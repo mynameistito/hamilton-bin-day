@@ -46,7 +46,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check": "ultracite check",
-    "prepack": "bun run check"
+    "prepack": "bun run check && bun run typecheck"
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",
