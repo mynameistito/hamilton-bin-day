@@ -8,6 +8,7 @@
     "bin-day",
     "hamilton",
     "hamilton-city-council",
+    "new-zealand",
     "typescript",
     "waste"
   ],
@@ -16,13 +17,17 @@
     "url": "https://github.com/mynameistito/hcc-bin-day/issues"
   },
   "license": "MIT",
-  "author": "Tito <contact@mynameistito.com>",
+  "author": {
+    "name": "Tito",
+    "email": "github@mynameistito.com",
+    "url": "https://github.com/mynameistito"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mynameistito/hcc-bin-day.git"
   },
   "bin": {
-    "hcc-bin-day": "dist/index.mjs"
+    "hcc-bin-day": "./dist/index.mjs"
   },
   "files": [
     "dist",
@@ -31,11 +36,17 @@
   ],
   "type": "module",
   "main": "./dist/index.mjs",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsdown",
     "dev": "bun run src/index.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check": "ultracite check",
+    "prepack": "bun run check && bun run typecheck && bun run build"
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",
@@ -43,5 +54,8 @@
   },
   "devDependencies": {
     "@types/node": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
