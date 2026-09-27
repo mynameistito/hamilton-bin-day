@@ -16,8 +16,8 @@ import {
   isLookupAddressValid,
   readRememberedAddress,
   saveAddressCookie,
-} from "../lib/address";
-import type { ScheduleResponse } from "../lib/schedule";
+} from "@/lib/address";
+import type { ScheduleResponse } from "@/lib/schedule";
 
 type LookupState =
   | { readonly kind: "idle" }

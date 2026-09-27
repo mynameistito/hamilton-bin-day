@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { handleLookup } from "../worker";
+import { handleLookup } from "@/worker";
 
 describe("lookup endpoint input validation", () => {
   test("rejects addresses over the length limit before calling the Council API", async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import packageJson from "../package.json";
+import packageJson from "@root/package.json";
 
 describe("CLI version flag", () => {
   test.each(["-v", "--version"])(
