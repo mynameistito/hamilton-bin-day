@@ -13,12 +13,29 @@ export const normalizeRememberedAddress = (
 ): string | null =>
   address && isLookupAddressValid(address) ? address.trim() : null;
 
+const readAddressStorage = (): string | null => {
+  try {
+    return window.localStorage.getItem(ADDRESS_COOKIE_NAME);
+  } catch {
+    return null;
+  }
+};
+
+const writeAddressStorage = (address: string): void => {
+  try {
+    window.localStorage.setItem(ADDRESS_COOKIE_NAME, address);
+  } catch {
+    // Keep lookup usable if browser storage is unavailable.
+  }
+};
+
 export const readRememberedAddress = async (): Promise<string | null> => {
   try {
     const cookie = await window.cookieStore.get(ADDRESS_COOKIE_NAME);
-    return normalizeRememberedAddress(cookie?.value);
+    const address = normalizeRememberedAddress(cookie?.value);
+    return address ?? normalizeRememberedAddress(readAddressStorage());
   } catch {
-    return null;
+    return normalizeRememberedAddress(readAddressStorage());
   }
 };
 
@@ -32,6 +49,6 @@ export const saveAddressCookie = async (address: string): Promise<void> => {
       sameSite: "lax",
     });
   } catch {
-    // Keep lookup usable if browser cookie storage is unavailable.
+    writeAddressStorage(address);
   }
 };

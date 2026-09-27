@@ -59,6 +59,9 @@ export const HomePage = () => {
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = nextTheme;
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", nextTheme === "light" ? "#f7f6f2" : "#171d19");
     setTheme(nextTheme);
     try {
       window.localStorage.setItem("hcc-bin-day-theme", nextTheme);

@@ -14,8 +14,11 @@
         const theme = localStorage.getItem("hcc-bin-day-theme");
         document.documentElement.dataset.theme =
           theme === "light" ? "light" : "dark";
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === "light" ? "#f7f6f2" : "#171d19";
       } catch {
         document.documentElement.dataset.theme = "dark";
+        document.querySelector('meta[name="theme-color"]').content = "#171d19";
       }
     </script>
   </head>

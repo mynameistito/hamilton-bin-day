@@ -8,7 +8,7 @@ import {
   Struct,
   Union,
 } from "effect/Schema";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import {
@@ -69,16 +69,25 @@ export const useAddressLookup = () => {
     return query ?? "";
   });
   const [state, setState] = useState<LookupState>({ kind: "idle" });
+  const latestRequest = useRef(0);
 
   const runLookup = useCallback(async (query: string) => {
+    latestRequest.current += 1;
+    const requestId = latestRequest.current;
     setState({ kind: "loading" });
     try {
       const result = await lookup(query);
+      if (requestId !== latestRequest.current) {
+        return;
+      }
       setState(result);
       if (result.kind === "success") {
         await saveAddressCookie(query);
       }
     } catch (error) {
+      if (requestId !== latestRequest.current) {
+        return;
+      }
       setState({
         kind: "error",
         message:
@@ -89,11 +98,13 @@ export const useAddressLookup = () => {
 
   useEffect(() => {
     let active = true;
+    const requestId = latestRequest.current;
     const loadRememberedAddress = async () => {
       const query = new URLSearchParams(window.location.search).get("query");
       const rememberedAddress = query ?? (await readRememberedAddress());
       if (
         !active ||
+        requestId !== latestRequest.current ||
         !rememberedAddress ||
         !isLookupAddressValid(rememberedAddress)
       ) {
