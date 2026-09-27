@@ -1,6 +1,45 @@
 @import "tailwindcss";
 
 @theme {
+  --color-canvas: #171d19;
+  --color-ink: #e7eee6;
+  --color-forest: #527c55;
+  --color-copy-muted: #a4b2a6;
+  --color-sage-dark: #bdcdbd;
+  --color-sage-border: #39483c;
+  --color-sage-copy: #b3c9ae;
+  --color-leaf: #91b66e;
+  --color-moss: #a3c17c;
+  --color-body-muted: #b5c0b5;
+  --color-paper-border: #38443a;
+  --color-placeholder: #88968a;
+  --color-focus-leaf: #a8c18b;
+  --color-highlight: #29362a;
+  --color-card-border: #354137;
+  --color-caption: #9daa9b;
+  --color-address-muted: #a7b2a7;
+  --color-yellow-bin: #554b2e;
+  --color-yellow-copy: #f1d98b;
+  --color-red-bin: #503331;
+  --color-red-copy: #f0b2a9;
+  --color-detail-muted: #aab6aa;
+  --color-panel: #222b24;
+  --color-surface: #202922;
+  --color-check: #b4d49a;
+  --color-moss-dark: #a3c17c;
+  --color-footer-border: #354137;
+  --color-footer-copy: #b1beb2;
+  --color-step-copy: #d9e5d8;
+  --color-footer-muted: #9ba99d;
+  --shadow-lookup: 0 24px 70px -40px #080d09;
+  --tracking-eyebrow: 0.14em;
+  --tracking-caption: 0.16em;
+  --tracking-heading: -0.055em;
+  --leading-heading: 1.06;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
   --color-canvas: #f7f6f2;
   --color-ink: #22352c;
   --color-forest: #174e39;
@@ -12,35 +51,33 @@
   --color-moss: #668747;
   --color-body-muted: #627067;
   --color-paper-border: #e4e5de;
-  --color-placeholder: #a0a8a0;
-  --color-focus-leaf: #a8c18b;
+  --color-placeholder: #717a71;
+  --color-focus-leaf: #668747;
   --color-highlight: #e8ecdf;
   --color-card-border: #edf0e9;
-  --color-caption: #849080;
-  --color-address-muted: #78837a;
+  --color-caption: #667264;
+  --color-address-muted: #59665c;
   --color-yellow-bin: #f5e8bc;
   --color-yellow-copy: #705816;
   --color-red-bin: #f3dddd;
   --color-red-copy: #813c34;
-  --color-detail-muted: #79847b;
-  --color-panel: #f6f7f2;
+  --color-detail-muted: #5e6b60;
+  --color-panel: #f0f2ec;
+  --color-surface: #ffffff;
   --color-check: #537747;
-  --color-moss-dark: #6a8854;
+  --color-moss-dark: #526d40;
   --color-footer-border: #e2e4dc;
-  --color-footer-copy: #647168;
+  --color-footer-copy: #526057;
   --color-step-copy: #33483a;
-  --color-footer-muted: #7d877e;
+  --color-footer-muted: #606b62;
   --shadow-lookup: 0 12px 40px -28px #243a2c;
-  --tracking-eyebrow: 0.14em;
-  --tracking-caption: 0.16em;
-  --tracking-heading: -0.055em;
-  --leading-heading: 1.06;
 }
 
 :root {
   font-family: "DM Sans", "Avenir Next", Avenir, sans-serif;
-  color: #22352c;
-  background: #f7f6f2;
+  color-scheme: dark;
+  color: var(--color-ink);
+  background: var(--color-canvas);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -52,8 +89,81 @@
 body {
   margin: 0;
   min-width: 320px;
+  background: var(--color-canvas);
 }
 button,
 input {
   font: inherit;
+}
+
+@media (min-width: 768px) and (max-height: 600px) {
+  .home-page {
+    padding-bottom: 0.5rem;
+  }
+
+  .home-header {
+    padding-block: 0.5rem;
+  }
+
+  .home-lookup {
+    gap: 1.5rem;
+    padding-block: 0.5rem;
+  }
+
+  .home-lookup-copy > p:first-child {
+    margin-bottom: 0.5rem;
+  }
+
+  .home-lookup-copy h1 {
+    font-size: clamp(2.5rem, 7vh, 3.5rem);
+  }
+
+  .home-lookup-copy h1 + p {
+    margin-top: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .home-lookup-copy form {
+    margin-top: 1rem;
+  }
+
+  .home-schedule > article > div:first-child,
+  .home-schedule > article > div:nth-child(2) {
+    padding: 0.75rem;
+  }
+
+  .home-schedule > article h2 {
+    font-size: 1.25rem;
+  }
+
+  .home-schedule > article ul {
+    margin-top: 0.5rem;
+  }
+
+  .home-schedule > article li {
+    padding-block: 0.5rem;
+  }
+
+  .home-schedule > article li > span:first-child {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .home-schedule > article ul + p {
+    margin-top: 0.75rem;
+  }
+
+  .home-schedule > article > div:last-child > div {
+    padding: 0.5rem;
+  }
+
+  .home-steps {
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+  }
+
+  .home-footer {
+    margin-top: auto;
+    padding-top: 0.5rem;
+  }
 }

@@ -55,6 +55,38 @@ const describeRelativeDate = (days: number): string => {
   return `In ${days} days`;
 };
 
+const collectionHighlightClass = (
+  type: ScheduleResponse["nextCollection"]["type"] | undefined
+): string => {
+  switch (type) {
+    case "yellow": {
+      return "bg-yellow-bin";
+    }
+    case "red": {
+      return "bg-red-bin";
+    }
+    default: {
+      return "bg-highlight";
+    }
+  }
+};
+
+const collectionBadgeClass = (
+  type: ScheduleResponse["nextCollection"]["type"] | undefined
+): string => {
+  switch (type) {
+    case "yellow": {
+      return "bg-yellow-bin text-yellow-copy";
+    }
+    case "red": {
+      return "bg-red-bin text-red-copy";
+    }
+    default: {
+      return "bg-panel text-copy-muted";
+    }
+  }
+};
+
 const lookup = async (address: string): Promise<LookupState> => {
   const response = await fetch(
     `/api/lookup?address=${encodeURIComponent(address)}`
@@ -75,6 +107,20 @@ const lookup = async (address: string): Promise<LookupState> => {
 export const HomePage = () => {
   const [address, setAddress] = useState("");
   const [state, setState] = useState<LookupState>({ kind: "idle" });
+  const [theme, setTheme] = useState<"dark" | "light">(() =>
+    document.documentElement.dataset.theme === "light" ? "light" : "dark"
+  );
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = nextTheme;
+    setTheme(nextTheme);
+    try {
+      window.localStorage.setItem("hcc-bin-day-theme", nextTheme);
+    } catch {
+      // Keep the toggle usable when browser storage is unavailable.
+    }
+  };
 
   const submitLookup = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -110,8 +156,8 @@ export const HomePage = () => {
     until === null ? "" : describeRelativeDate(until);
 
   return (
-    <main className="bg-canvas text-ink min-h-screen px-5 pb-16">
-      <header className="mx-auto flex max-w-6xl items-center justify-between py-7">
+    <main className="home-page bg-canvas text-ink flex min-h-screen flex-col px-5 pb-8">
+      <header className="home-header mx-auto flex w-full max-w-6xl items-center justify-between py-5">
         <a
           className="flex items-center gap-3 font-bold tracking-tight"
           href="/"
@@ -128,17 +174,29 @@ export const HomePage = () => {
             <span className="text-copy-muted font-normal">Bin Day</span>
           </span>
         </a>
-        <a
-          className="text-sage-dark text-sm font-semibold underline-offset-4 hover:underline"
-          href="/docs/"
-        >
-          How collections work
-        </a>
+        <nav className="flex items-center gap-3">
+          <a
+            className="text-sage-dark hidden text-sm font-semibold underline-offset-4 hover:underline sm:inline"
+            href="/docs/"
+          >
+            How collections work
+          </a>
+          <button
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            aria-pressed={theme === "light"}
+            className="border-sage-border bg-panel text-ink focus-visible:outline-focus-leaf inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2"
+            onClick={toggleTheme}
+            type="button"
+          >
+            <span aria-hidden="true">{theme === "dark" ? "☼" : "☾"}</span>
+            {theme === "dark" ? "Light" : "Dark"}
+          </button>
+        </nav>
       </header>
 
-      <section className="mx-auto grid max-w-6xl gap-12 pt-12 pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-24">
-        <div>
-          <p className="border-sage-border tracking-eyebrow text-sage-copy mb-5 inline-flex items-center gap-2 rounded-full border bg-white/70 px-3 py-1.5 text-xs font-bold uppercase">
+      <section className="home-lookup mx-auto grid w-full max-w-6xl gap-12 pt-12 pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-12">
+        <div className="home-lookup-copy">
+          <p className="border-sage-border tracking-eyebrow text-sage-copy bg-surface mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase">
             <span className="bg-leaf size-2 rounded-full" /> Hamilton, New
             Zealand
           </p>
@@ -150,7 +208,7 @@ export const HomePage = () => {
             next collection is.
           </p>
           <form
-            className="border-paper-border shadow-lookup mt-9 flex max-w-xl flex-col gap-3 rounded-2xl border bg-white p-2 sm:flex-row"
+            className="border-paper-border shadow-lookup bg-surface mt-9 flex max-w-xl flex-col gap-3 rounded-2xl border p-2 sm:flex-row"
             onSubmit={submitLookup}
           >
             <label className="sr-only" htmlFor="address">
@@ -178,8 +236,13 @@ export const HomePage = () => {
           </p>
         </div>
 
-        <div aria-live="polite" className="relative mx-auto w-full max-w-md">
-          <div className="bg-highlight absolute -inset-5 rounded-4xl" />
+        <div
+          aria-live="polite"
+          className="home-schedule relative mx-auto w-full max-w-md"
+        >
+          <div
+            className={`${collectionHighlightClass(schedule?.nextCollection.type)} absolute -inset-5 rounded-4xl`}
+          />
           <Card className="relative">
             <div className="border-card-border flex items-start justify-between border-b p-6">
               <div>
@@ -196,7 +259,7 @@ export const HomePage = () => {
                 </p>
               </div>
               <span
-                className={`rounded-full px-3 py-1.5 text-xs font-bold tracking-wide uppercase ${schedule?.nextCollection.type === "yellow" ? "bg-yellow-bin text-yellow-copy" : "bg-red-bin text-red-copy"}`}
+                className={`rounded-full px-3 py-1.5 text-xs font-bold tracking-wide uppercase ${collectionBadgeClass(schedule?.nextCollection.type)}`}
               >
                 {schedule ? `${schedule.nextCollection.type} week` : "Hamilton"}
               </span>
@@ -215,7 +278,7 @@ export const HomePage = () => {
                       >
                         <span
                           aria-hidden="true"
-                          className="text-check grid size-8 place-items-center rounded-lg bg-white"
+                          className="text-check bg-surface grid size-8 place-items-center rounded-lg"
                         >
                           ✓
                         </span>
@@ -231,7 +294,7 @@ export const HomePage = () => {
                 <div className="bg-panel rounded-2xl p-6 text-center">
                   <span
                     aria-hidden="true"
-                    className="text-moss-dark mx-auto grid size-14 place-items-center rounded-2xl bg-white text-2xl"
+                    className="text-moss-dark bg-surface mx-auto grid size-14 place-items-center rounded-2xl text-2xl"
                   >
                     ⌂
                   </span>
@@ -269,7 +332,7 @@ export const HomePage = () => {
         </div>
       </section>
 
-      <section className="border-footer-border text-footer-copy mx-auto grid max-w-6xl gap-4 border-t pt-8 text-sm sm:grid-cols-3">
+      <section className="home-steps border-footer-border text-footer-copy mx-auto grid w-full max-w-6xl gap-4 border-t pt-6 text-sm sm:grid-cols-3">
         <div>
           <span className="text-step-copy font-semibold">
             01 / Find your address
@@ -289,9 +352,15 @@ export const HomePage = () => {
           <p className="mt-1">Get the collection details at a glance.</p>
         </div>
       </section>
-      <footer className="border-footer-border text-footer-muted mx-auto mt-12 flex max-w-6xl flex-col gap-2 border-t pt-5 text-xs sm:flex-row sm:justify-between">
+      <footer className="home-footer border-footer-border text-footer-muted mx-auto mt-auto flex w-full max-w-6xl flex-col gap-2 border-t pt-4 text-xs sm:flex-row sm:justify-between">
         <span>
-          Independent community tool · Data from Hamilton City Council
+          Independent community tool · Data from{" "}
+          <a
+            className="hover:text-ink underline underline-offset-2"
+            href="https://hamilton.govt.nz/"
+          >
+            Hamilton City Council
+          </a>
         </span>
         <a className="underline underline-offset-2" href="/docs/">
           Collection guide &amp; project docs
