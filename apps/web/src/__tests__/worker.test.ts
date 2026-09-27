@@ -1,8 +1,21 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { handleLookup } from "@/worker";
+import worker, { handleLookup } from "@/worker";
+
+const addressResult = [{ Collection_Address: "12 Grey Street" }];
+const collectionResult = [
+  {
+    Address: "12 Grey Street",
+    CollectionDay: 1,
+    CollectionWeek: 1,
+    RedBin: "2026-09-21T00:00:00",
+    YellowBin: "2026-09-28T00:00:00",
+  },
+];
 
 describe("lookup endpoint input validation", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   test("rejects addresses over the length limit before calling the Council API", async () => {
     const request = new Request(
       `https://example.test/api/lookup?address=${"x".repeat(161)}`
@@ -22,5 +35,136 @@ describe("lookup endpoint input validation", () => {
     );
 
     expect(response.status).toBe(400);
+  });
+
+  test("returns not found without fetching a schedule", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(Response.json([]));
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await handleLookup(
+      new Request("https://example.test/api/lookup?address=unknown")
+    );
+
+    await expect(response.json()).resolves.toStrictEqual({
+      found: false,
+      matches: [],
+    });
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  test("retries an expanded address query and returns a schedule", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(Response.json([]))
+      .mockResolvedValueOnce(Response.json(addressResult))
+      .mockResolvedValueOnce(Response.json(collectionResult));
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await handleLookup(
+      new Request("https://example.test/api/lookup?address=12%20grey%20st")
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      found: true,
+      matchedAddress: "12 Grey Street",
+      schedule: {
+        collectionDayName: "Monday",
+        nextCollection: { type: "red" },
+      },
+    });
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(String(fetch.mock.calls[1]?.[0])).toContain("12+grey+street");
+  });
+
+  test("returns not found when the matched address has no schedule", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json(addressResult))
+        .mockResolvedValueOnce(Response.json([]))
+    );
+
+    const response = await handleLookup(
+      new Request("https://example.test/api/lookup?address=12%20grey%20street")
+    );
+
+    await expect(response.json()).resolves.toStrictEqual({
+      found: false,
+      matches: ["12 Grey Street"],
+    });
+  });
+
+  test("treats council 404 responses as empty result sets", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 404 }))
+    );
+
+    const response = await handleLookup(
+      new Request("https://example.test/api/lookup?address=unknown")
+    );
+
+    await expect(response.json()).resolves.toStrictEqual({
+      found: false,
+      matches: [],
+    });
+  });
+
+  test("maps API, decoding, and domain errors to 502 in the worker entry point", async () => {
+    const assets = {
+      fetch: vi
+        .fn<(request: Request) => Promise<Response>>()
+        .mockResolvedValue(new Response("asset")),
+    };
+    const request = new Request(
+      "https://example.test/api/lookup?address=12%20grey%20street"
+    );
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 503 }))
+    );
+    const failed = await worker.fetch(request, { ASSETS: assets });
+    expect(failed.status).toBe(502);
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(Response.json([{ invalid: true }]))
+    );
+    const invalidJsonResponse = await worker.fetch(request, { ASSETS: assets });
+    expect(invalidJsonResponse.status).toBe(502);
+
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json(addressResult))
+        .mockResolvedValueOnce(
+          Response.json([{ ...collectionResult[0], CollectionDay: 8 }])
+        )
+    );
+    const invalidScheduleResponse = await worker.fetch(request, {
+      ASSETS: assets,
+    });
+    expect(invalidScheduleResponse.status).toBe(502);
+  });
+
+  test("delegates non-lookup requests to the asset binding", async () => {
+    const response = new Response("asset");
+    const assets = {
+      fetch: vi
+        .fn<(request: Request) => Promise<Response>>()
+        .mockResolvedValue(response),
+    };
+    const request = new Request("https://example.test/anything");
+
+    await expect(worker.fetch(request, { ASSETS: assets })).resolves.toBe(
+      response
+    );
+    expect(assets.fetch).toHaveBeenCalledWith(request);
   });
 });

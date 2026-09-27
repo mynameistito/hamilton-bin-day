@@ -26,6 +26,17 @@ describe("Council collection response schema", () => {
     ).toThrow(/./u);
   });
 
+  test.each([
+    "not-a-date",
+    "2026-09-21T24:00:00",
+    "2026-09-21T00:60:00",
+    "2026-09-21T00:00:60",
+  ])("rejects malformed or out-of-range council timestamp %s", (RedBin) => {
+    expect(() => decodeCollections([{ ...validCollection, RedBin }])).toThrow(
+      /./u
+    );
+  });
+
   test("rejects a day outside the council's Monday-to-Sunday range", () => {
     expect(() =>
       decodeCollections([{ ...validCollection, CollectionDay: 8 }])

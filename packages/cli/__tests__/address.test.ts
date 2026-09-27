@@ -50,4 +50,47 @@ describe("address resolution", () => {
 
     expect(result).toStrictEqual({ matches: ["12 Other Road"], ok: false });
   });
+
+  test("retries expanded queries, filters council placeholders, and handles missing schedules", async () => {
+    const queries: string[] = [];
+    const noScheduleLayer = Layer.succeed(HccApi, {
+      getCollectionSchedule: () => Effect.succeed(null),
+      searchAddresses: (query) => {
+        queries.push(query);
+        return Effect.succeed(
+          query === "14b mountbatten pl"
+            ? []
+            : ["No address found", "14B Mountbatten Place"]
+        );
+      },
+    });
+
+    const result = await Effect.runPromise(
+      resolveAddressQuery("14b mountbatten pl").pipe(
+        Effect.provide(noScheduleLayer)
+      )
+    );
+
+    expect(queries).toStrictEqual([
+      "14b mountbatten pl",
+      "14B mountbatten place",
+    ]);
+    expect(result).toStrictEqual({
+      matches: ["14B Mountbatten Place"],
+      ok: false,
+    });
+  });
+
+  test("returns no suggestions after filtering the council no-address placeholder", async () => {
+    const placeholderLayer = Layer.succeed(HccApi, {
+      getCollectionSchedule: () => Effect.succeed(null),
+      searchAddresses: () => Effect.succeed(["No address found"]),
+    });
+
+    const result = await Effect.runPromise(
+      resolveAddressQuery("unknown road").pipe(Effect.provide(placeholderLayer))
+    );
+
+    expect(result).toStrictEqual({ matches: [], ok: false });
+  });
 });

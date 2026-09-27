@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { buildSchedule, toScheduleJson } from "@/schedule";
+import { buildSchedule, formatScheduleText, toScheduleJson } from "@/schedule";
+import type { CollectionDatesResult } from "@/types";
 
 const councilResult = {
   Address: "14B Mountbatten Place",
@@ -29,5 +30,52 @@ describe("collection schedules", () => {
     expect(output.upcoming.week).toBe("red");
     expect(output.following.week).toBe("yellow");
     expect(output.upcoming.dateFormatted).toContain("September");
+  });
+
+  test("formats the yellow week first when it is the next collection", () => {
+    const schedule = buildSchedule({
+      ...councilResult,
+      RedBin: "2026-10-05T00:00:00",
+      YellowBin: "2026-09-28T00:00:00",
+    });
+    const output = toScheduleJson(schedule);
+
+    expect(schedule).toMatchObject({
+      nextCollection: {
+        bins: ["yellow bin", "glass crate", "food scraps bin"],
+        type: "yellow",
+      },
+      upcomingWeek: "yellow",
+    });
+    expect({
+      followingBins: output.following.bins,
+      followingLabel: output.following.weekLabel,
+      text: formatScheduleText(schedule),
+      upcomingLabel: output.upcoming.weekLabel,
+    }).toMatchObject({
+      followingBins: ["red bin", "food scraps bin"],
+      followingLabel: "Red week",
+      text: expect.stringContaining("Yellow week"),
+      upcomingLabel: "Yellow week",
+    });
+    expect(formatScheduleText(schedule)).toContain("Red week");
+  });
+
+  test("formats red-week schedules as readable text", () => {
+    const text = formatScheduleText(buildSchedule(councilResult));
+
+    expect(text).toContain("14B Mountbatten Place — Monday collection");
+    expect(text).toContain("Red week");
+    expect(text).toContain("Yellow week");
+  });
+
+  test("rejects a collection day outside the schedule's supported range", () => {
+    const invalidDay = {
+      ...councilResult,
+      CollectionDay: 8,
+    } satisfies CollectionDatesResult;
+    expect(() => buildSchedule(invalidDay)).toThrow(
+      "Invalid collection day: 8"
+    );
   });
 });

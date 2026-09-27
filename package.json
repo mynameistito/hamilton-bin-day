@@ -31,7 +31,7 @@
     "fix": "ultracite fix",
     "knip": "bunx knip@latest",
     "prepare": "lefthook install",
-    "test": "bun run --filter '*' test",
+    "test": "bun run --filter '*' test --coverage",
     "typecheck": "bun run --filter '*' typecheck && bunx tsc --project tsconfig.json"
   },
   "dependencies": {

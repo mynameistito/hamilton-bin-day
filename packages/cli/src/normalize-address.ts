@@ -75,7 +75,7 @@ export const pickMatchingAddress = (
   );
 
   if (exactMatches.length === 1) {
-    return exactMatches[0] ?? null;
+    return exactMatches.join("");
   }
 
   return null;
