@@ -1,49 +1,12 @@
-import {
-  Array as SchemaArray,
-  Boolean as SchemaBoolean,
-  decodeUnknownSync,
-  optional,
-  String as SchemaString,
-  Struct,
-  Union,
-  Literal,
-} from "effect/Schema";
 import { useState } from "react";
-import type { FormEvent } from "react";
 
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import { ADDRESS_LENGTH_LIMIT, isLookupAddressValid } from "../lib/address";
+import { useAddressLookup } from "../hooks/use-address-lookup";
+import { ADDRESS_LENGTH_LIMIT } from "../lib/address";
 import { daysUntilCollection, formatCollectionDate } from "../lib/schedule";
 import type { ScheduleResponse } from "../lib/schedule";
-
-type LookupState =
-  | { readonly kind: "idle" }
-  | { readonly kind: "loading" }
-  | { readonly kind: "error"; readonly message: string }
-  | { readonly kind: "not-found"; readonly matches: readonly string[] }
-  | { readonly kind: "success"; readonly schedule: ScheduleResponse };
-
-const LookupSchema = Struct({
-  found: SchemaBoolean,
-  matches: optional(SchemaArray(SchemaString)),
-  schedule: optional(
-    Struct({
-      address: SchemaString,
-      collectionDayName: SchemaString,
-      nextCollection: Struct({
-        bins: SchemaArray(SchemaString),
-        date: SchemaString,
-        type: Union([Literal("red"), Literal("yellow")]),
-      }),
-      redBin: SchemaString,
-      yellowBin: SchemaString,
-    })
-  ),
-});
-
-const parseLookup = decodeUnknownSync(LookupSchema);
 
 const describeRelativeDate = (days: number): string => {
   if (days === 0) {
@@ -87,26 +50,8 @@ const collectionBadgeClass = (
   }
 };
 
-const lookup = async (address: string): Promise<LookupState> => {
-  const response = await fetch(
-    `/api/lookup?address=${encodeURIComponent(address)}`
-  );
-  if (!response.ok) {
-    throw new Error(
-      "The council lookup is unavailable right now. Please try again."
-    );
-  }
-
-  const result = parseLookup(await response.json());
-  if (!result.found || !result.schedule) {
-    return { kind: "not-found", matches: result.matches ?? [] };
-  }
-  return { kind: "success", schedule: result.schedule };
-};
-
 export const HomePage = () => {
-  const [address, setAddress] = useState("");
-  const [state, setState] = useState<LookupState>({ kind: "idle" });
+  const { address, setAddress, state, submitLookup } = useAddressLookup();
   const [theme, setTheme] = useState<"dark" | "light">(() =>
     document.documentElement.dataset.theme === "light" ? "light" : "dark"
   );
@@ -119,32 +64,6 @@ export const HomePage = () => {
       window.localStorage.setItem("hcc-bin-day-theme", nextTheme);
     } catch {
       // Keep the toggle usable when browser storage is unavailable.
-    }
-  };
-
-  const submitLookup = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const query = address.trim();
-    if (!query) {
-      return;
-    }
-    if (!isLookupAddressValid(query)) {
-      setState({
-        kind: "error",
-        message: `Enter an address with no more than ${ADDRESS_LENGTH_LIMIT} characters.`,
-      });
-      return;
-    }
-
-    setState({ kind: "loading" });
-    try {
-      setState(await lookup(query));
-    } catch (error) {
-      setState({
-        kind: "error",
-        message:
-          error instanceof Error ? error.message : "Something went wrong.",
-      });
     }
   };
 
