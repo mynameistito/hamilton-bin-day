@@ -21,6 +21,7 @@
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^4.7.0",
     "effect": "catalog:",
+    "react-grab": "^0.2.0",
     "tailwindcss": "^4.1.11",
     "typescript": "catalog:",
     "vite": "^6.3.5"
