@@ -11,6 +11,10 @@ import { HomePage } from "./pages/home";
 
 import "./styles.css";
 
+if (import.meta.env.DEV) {
+  import("react-grab");
+}
+
 const rootRoute = createRootRoute({ component: () => <HomePage /> });
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/" });
 const routeTree = rootRoute.addChildren([indexRoute]);
