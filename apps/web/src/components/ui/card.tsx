@@ -5,7 +5,7 @@ export const Card = ({
   ...props
 }: HTMLAttributes<HTMLElement>) => (
   <article
-    className={`overflow-hidden rounded-[1.75rem] border border-[#e6e8df] bg-white shadow-[0_24px_70px_-40px_#293c2c] ${className}`}
+    className={`border-card-border bg-surface shadow-lookup overflow-hidden rounded-[1.75rem] border ${className}`}
     {...props}
   />
 );

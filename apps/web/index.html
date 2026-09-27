@@ -3,12 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f7f6f2" />
+    <meta name="theme-color" content="#171d19" />
     <meta
       name="description"
       content="Find your next Hamilton bin collection day."
     />
     <title>Hamilton Bin Day</title>
+    <script>
+      try {
+        const theme = localStorage.getItem("hcc-bin-day-theme");
+        document.documentElement.dataset.theme =
+          theme === "light" ? "light" : "dark";
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === "light" ? "#f7f6f2" : "#171d19";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
+        document.querySelector('meta[name="theme-color"]').content = "#171d19";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

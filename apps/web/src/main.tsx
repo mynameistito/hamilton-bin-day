@@ -11,6 +11,18 @@ import { HomePage } from "./pages/home";
 
 import "./styles.css";
 
+const loadReactGrab = async () => {
+  try {
+    await import("react-grab");
+  } catch (error) {
+    console.error("Failed to load react-grab in development.", error);
+  }
+};
+
+if (import.meta.env.DEV) {
+  void loadReactGrab();
+}
+
 const rootRoute = createRootRoute({ component: () => <HomePage /> });
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/" });
 const routeTree = rootRoute.addChildren([indexRoute]);
