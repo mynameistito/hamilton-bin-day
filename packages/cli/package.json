@@ -43,7 +43,7 @@
   "scripts": {
     "build": "tsdown",
     "dev": "bun run src/index.ts",
-    "test": "bun test",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "check": "ultracite check",
     "prepack": "bun run check && bun run typecheck && bun run build"

@@ -1,9 +1,8 @@
-import { describe, expect, test } from "bun:test";
-
 // oxlint-disable-next-line sonarjs/no-wildcard-import
 import * as Effect from "effect/Effect";
 // oxlint-disable-next-line sonarjs/no-wildcard-import
 import * as Layer from "effect/Layer";
+import { describe, expect, test } from "vitest";
 
 import { resolveAddressQuery } from "@/address";
 import { HccApi } from "@/hcc-api";
@@ -38,10 +37,10 @@ describe("address resolution", () => {
       resolveAddressQuery("14b mountbatten pl").pipe(Effect.provide(apiLayer))
     );
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.matchedAddress).toBe("14B Mountbatten Place");
-    }
+    expect(result).toMatchObject({
+      matchedAddress: "14B Mountbatten Place",
+      ok: true,
+    });
   });
 
   test("returns suggestions when no exact match exists", async () => {
@@ -49,6 +48,49 @@ describe("address resolution", () => {
       resolveAddressQuery("unknown road").pipe(Effect.provide(apiLayer))
     );
 
-    expect(result).toEqual({ matches: ["12 Other Road"], ok: false });
+    expect(result).toStrictEqual({ matches: ["12 Other Road"], ok: false });
+  });
+
+  test("retries expanded queries, filters council placeholders, and handles missing schedules", async () => {
+    const queries: string[] = [];
+    const noScheduleLayer = Layer.succeed(HccApi, {
+      getCollectionSchedule: () => Effect.succeed(null),
+      searchAddresses: (query) => {
+        queries.push(query);
+        return Effect.succeed(
+          query === "14b mountbatten pl"
+            ? []
+            : ["No address found", "14B Mountbatten Place"]
+        );
+      },
+    });
+
+    const result = await Effect.runPromise(
+      resolveAddressQuery("14b mountbatten pl").pipe(
+        Effect.provide(noScheduleLayer)
+      )
+    );
+
+    expect(queries).toStrictEqual([
+      "14b mountbatten pl",
+      "14B mountbatten place",
+    ]);
+    expect(result).toStrictEqual({
+      matches: ["14B Mountbatten Place"],
+      ok: false,
+    });
+  });
+
+  test("returns no suggestions after filtering the council no-address placeholder", async () => {
+    const placeholderLayer = Layer.succeed(HccApi, {
+      getCollectionSchedule: () => Effect.succeed(null),
+      searchAddresses: () => Effect.succeed(["No address found"]),
+    });
+
+    const result = await Effect.runPromise(
+      resolveAddressQuery("unknown road").pipe(Effect.provide(placeholderLayer))
+    );
+
+    expect(result).toStrictEqual({ matches: [], ok: false });
   });
 });

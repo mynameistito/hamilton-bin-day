@@ -31,7 +31,7 @@
     "fix": "ultracite fix",
     "knip": "bunx knip@latest",
     "prepare": "lefthook install",
-    "test": "bun run --filter '*' test",
+    "test": "bun run --filter '*' test --coverage",
     "typecheck": "bun run --filter '*' typecheck && bunx tsc --project tsconfig.json"
   },
   "dependencies": {
@@ -45,6 +45,7 @@
     "@types/bun": "1.4.2",
     "@types/node": "catalog:",
     "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitest/coverage-v8": "5.0.2",
     "eslint-plugin-github": "6.1.2",
     "eslint-plugin-sonarjs": "^4.2.0",
     "lefthook": "^2.1.14",
@@ -53,7 +54,8 @@
     "oxlint-plugin-react-doctor": "^0.9.13",
     "tsdown": "0.23.0",
     "typescript": "catalog:",
-    "ultracite": "7.12.0"
+    "ultracite": "7.12.0",
+    "vitest": "5.0.2"
   },
   "overrides": {
     "@effect/platform-node-shared": "4.0.0-rc.115",

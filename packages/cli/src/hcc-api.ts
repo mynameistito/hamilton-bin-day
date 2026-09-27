@@ -1,4 +1,4 @@
-/* oxlint-disable max-classes-per-file, sonarjs/no-wildcard-import, no-nested-ternary, no-nested-conditional */
+/* oxlint-disable max-classes-per-file, sonarjs/no-wildcard-import, sonarjs/no-nested-functions, no-nested-ternary, no-nested-conditional */
 import * as NodeHttpClient from "@effect/platform-node/NodeHttpClient";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -48,8 +48,10 @@ export interface HccApiService {
 }
 
 /** Construct the council API service using the Effect HTTP client. */
-const make: Effect.Effect<HccApiService, never, HttpClient.HttpClient> =
-  Effect.gen(function* make() {
+const make = (
+  scheduleBuilder: typeof buildSchedule = buildSchedule
+): Effect.Effect<HccApiService, never, HttpClient.HttpClient> =>
+  Effect.gen(function* makeApi() {
     const client = yield* HttpClient.HttpClient;
 
     const searchAddresses = (
@@ -177,7 +179,7 @@ const make: Effect.Effect<HccApiService, never, HttpClient.HttpClient> =
                     operation: "getCollectionSchedule",
                     reason: "domain",
                   }),
-                try: () => buildSchedule(first),
+                try: () => scheduleBuilder(first),
               })
             : Effect.succeed(null);
         }),
@@ -196,10 +198,12 @@ const make: Effect.Effect<HccApiService, never, HttpClient.HttpClient> =
     return { getCollectionSchedule, searchAddresses };
   });
 
-/** Production API layer using the Effect Node HTTP client. */
-const hccApiLayerWithoutDependencies = Layer.effect(HccApi, make);
+/** API layer factory with an injectable schedule builder and HTTP client. */
+export const hccApiLayerWithoutDependencies = (
+  scheduleBuilder: typeof buildSchedule = buildSchedule
+) => Layer.effect(HccApi, make(scheduleBuilder));
 
 /** Production API layer using the Effect Node HTTP client. */
-export const hccApiLayer = hccApiLayerWithoutDependencies.pipe(
+export const hccApiLayer = hccApiLayerWithoutDependencies().pipe(
   Layer.provide(NodeHttpClient.layerFetch)
 );
