@@ -1,16 +1,16 @@
-import { decodeUnknownSync } from "effect/Schema";
-import type { Codec } from "effect/Schema";
-
 import {
   AddressLookupResultsSchema,
   CollectionDatesResultsSchema,
-} from "../../../packages/cli/src/council-schema";
+} from "@cli/council-schema";
 import {
   expandAddressQuery,
   pickMatchingAddress,
-} from "../../../packages/cli/src/normalize-address";
-import { buildSchedule } from "../../../packages/cli/src/schedule";
-import { isLookupAddressValid } from "./lib/address";
+} from "@cli/normalize-address";
+import { buildSchedule } from "@cli/schedule";
+import { decodeUnknownSync } from "effect/Schema";
+import type { Codec } from "effect/Schema";
+
+import { isLookupAddressValid } from "@/lib/address";
 
 interface WorkerEnvironment {
   readonly ASSETS: { readonly fetch: (request: Request) => Promise<Response> };

@@ -9,5 +9,6 @@ export default defineConfig({
   extends: [antiSlop, core, jsPlugins],
   ignorePatterns: core.ignorePatterns,
   jsPlugins: jsPlugins.jsPlugins,
+  rules: { "import/no-relative-parent-imports": "error" },
   settings: jsPluginSettings,
 });

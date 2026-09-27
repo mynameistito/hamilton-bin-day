@@ -1,12 +1,12 @@
 import { useState } from "react";
 
-import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { useAddressLookup } from "../hooks/use-address-lookup";
-import { ADDRESS_LENGTH_LIMIT } from "../lib/address";
-import { daysUntilCollection, formatCollectionDate } from "../lib/schedule";
-import type { ScheduleResponse } from "../lib/schedule";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useAddressLookup } from "@/hooks/use-address-lookup";
+import { ADDRESS_LENGTH_LIMIT } from "@/lib/address";
+import { daysUntilCollection, formatCollectionDate } from "@/lib/schedule";
+import type { ScheduleResponse } from "@/lib/schedule";
 
 const describeRelativeDate = (days: number): string => {
   if (days === 0) {

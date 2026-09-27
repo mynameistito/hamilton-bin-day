@@ -5,6 +5,7 @@ import shadcn from "ultracite/oxlint/shadcn";
 import tanstack from "ultracite/oxlint/tanstack";
 import tanstackJsPlugins from "ultracite/oxlint/tanstack/js-plugins";
 
+// oxlint-disable-next-line import/no-relative-parent-imports -- Load the shared root config.
 import base from "../../oxlint.config.ts";
 
 const jsPlugins = selectJsPlugins(["react-doctor"]);

@@ -3,6 +3,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@cli/*": ["../../packages/cli/src/*"]
+    },
     "types": ["vite/client"],
     "noEmit": true
   },

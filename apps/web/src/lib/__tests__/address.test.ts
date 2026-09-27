@@ -4,7 +4,7 @@ import {
   ADDRESS_LENGTH_LIMIT,
   isLookupAddressValid,
   normalizeRememberedAddress,
-} from "../address";
+} from "@/lib/address";
 
 describe("isLookupAddressValid", () => {
   test("accepts a non-blank address at the length limit", () => {

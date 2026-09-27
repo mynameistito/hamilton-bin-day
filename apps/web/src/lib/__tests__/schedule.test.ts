@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { daysUntilCollection } from "../schedule";
+import { daysUntilCollection } from "@/lib/schedule";
 
 describe("daysUntilCollection", () => {
   test("calculates days using calendar dates rather than the current time", () => {

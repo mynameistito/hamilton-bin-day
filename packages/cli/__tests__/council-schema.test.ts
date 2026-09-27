@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { decodeUnknownSync } from "effect/Schema";
 
-import { CollectionDatesResultsSchema } from "../src/council-schema";
+import { CollectionDatesResultsSchema } from "@/council-schema";
 
 const validCollection = {
   Address: "12 Grey Street, Hamilton",

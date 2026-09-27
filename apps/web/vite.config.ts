@@ -1,22 +1,24 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { fileURLToPath } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import type { Plugin } from "vite";
 
-import { handleLookup } from "./src/worker";
+type LookupHandler = (request: Request) => Promise<Response>;
 
 const serveLookup = async (
   request: IncomingMessage,
-  response: ServerResponse
+  response: ServerResponse,
+  loadLookup: () => Promise<LookupHandler>
 ): Promise<void> => {
   try {
     const lookupRequest = new Request(
       new URL(request.url ?? "/", "http://localhost"),
       { method: request.method ?? "GET" }
     );
-    const lookupResponse = await handleLookup(lookupRequest);
+    const lookupResponse = await (await loadLookup())(lookupRequest);
     response.statusCode = lookupResponse.status;
     for (const [key, value] of lookupResponse.headers.entries()) {
       response.setHeader(key, value);
@@ -35,7 +37,11 @@ const lookupDevPlugin: Plugin = {
         next();
         return;
       }
-      void serveLookup(request, response);
+      void serveLookup(request, response, async () => {
+        const worker = await server.ssrLoadModule("/src/worker.ts");
+        const handleLookup: LookupHandler = worker["handleLookup"];
+        return handleLookup;
+      });
     });
   },
   name: "hcc-bin-day-dev-api",
@@ -43,4 +49,10 @@ const lookupDevPlugin: Plugin = {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), lookupDevPlugin],
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("src", import.meta.url)),
+      "@cli": fileURLToPath(new URL("../../packages/cli/src", import.meta.url)),
+    },
+  },
 });
