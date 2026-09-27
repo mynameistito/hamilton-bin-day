@@ -1,9 +1,8 @@
-import { describe, expect, test } from "bun:test";
-
 // oxlint-disable-next-line sonarjs/no-wildcard-import
 import * as Effect from "effect/Effect";
 // oxlint-disable-next-line sonarjs/no-wildcard-import
 import * as Layer from "effect/Layer";
+import { describe, expect, test } from "vitest";
 
 import { resolveAddressQuery } from "@/address";
 import { HccApi } from "@/hcc-api";
@@ -38,10 +37,10 @@ describe("address resolution", () => {
       resolveAddressQuery("14b mountbatten pl").pipe(Effect.provide(apiLayer))
     );
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.matchedAddress).toBe("14B Mountbatten Place");
-    }
+    expect(result).toMatchObject({
+      matchedAddress: "14B Mountbatten Place",
+      ok: true,
+    });
   });
 
   test("returns suggestions when no exact match exists", async () => {
@@ -49,6 +48,6 @@ describe("address resolution", () => {
       resolveAddressQuery("unknown road").pipe(Effect.provide(apiLayer))
     );
 
-    expect(result).toEqual({ matches: ["12 Other Road"], ok: false });
+    expect(result).toStrictEqual({ matches: ["12 Other Road"], ok: false });
   });
 });

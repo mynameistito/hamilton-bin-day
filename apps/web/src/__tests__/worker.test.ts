@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { handleLookup } from "@/worker";
 
@@ -11,7 +11,7 @@ describe("lookup endpoint input validation", () => {
     const response = await handleLookup(request);
 
     expect(response.status).toBe(413);
-    expect(await response.json()).toEqual({
+    await expect(response.json()).resolves.toStrictEqual({
       error: "Address must be 160 characters or fewer",
     });
   });

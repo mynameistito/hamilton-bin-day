@@ -1,8 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import { daysUntilCollection } from "@/lib/schedule";
 
-describe("daysUntilCollection", () => {
+describe(daysUntilCollection, () => {
   test("calculates days using calendar dates rather than the current time", () => {
     expect(
       daysUntilCollection("2026-09-28", new Date("2026-09-25T23:50:00"))

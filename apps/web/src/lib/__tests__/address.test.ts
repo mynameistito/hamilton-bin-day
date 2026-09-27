@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 import {
   ADDRESS_LENGTH_LIMIT,
@@ -6,16 +6,16 @@ import {
   normalizeRememberedAddress,
 } from "@/lib/address";
 
-describe("isLookupAddressValid", () => {
+describe(isLookupAddressValid, () => {
   test("accepts a non-blank address at the length limit", () => {
-    expect(isLookupAddressValid("1".repeat(ADDRESS_LENGTH_LIMIT))).toBe(true);
+    expect(isLookupAddressValid("1".repeat(ADDRESS_LENGTH_LIMIT))).toBeTruthy();
   });
 
   test("rejects blank and overlong address input", () => {
-    expect(isLookupAddressValid("   ")).toBe(false);
-    expect(isLookupAddressValid("1".repeat(ADDRESS_LENGTH_LIMIT + 1))).toBe(
-      false
-    );
+    expect(isLookupAddressValid("   ")).toBeFalsy();
+    expect(
+      isLookupAddressValid("1".repeat(ADDRESS_LENGTH_LIMIT + 1))
+    ).toBeFalsy();
   });
 });
 
