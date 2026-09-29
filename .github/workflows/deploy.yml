@@ -2,8 +2,10 @@ name: Deploy Cloudflare Workers
 
 on:
   workflow_run:
-    workflows: [CI]
+    workflows: [CI (artifact)]
     types: [completed]
+  pull_request_target:
+    types: [closed]
   schedule:
     - cron: "17 4 * * *"
 
@@ -13,12 +15,13 @@ permissions:
   actions: read
 
 concurrency:
-  group: deploy-${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && 'prod' || 'other' }}
+  group: deploy-${{ github.event_name == 'pull_request_target' && format('pr-{0}', github.event.pull_request.number) || github.event.workflow_run.event == 'pull_request' && format('pr-{0}', github.event.workflow_run.pull_requests[0].number) || github.event.workflow_run.event == 'push' && 'prod' || 'other' }}
   cancel-in-progress: false
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push'
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'pull_request_target' && github.event.action == 'closed')
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -40,14 +43,19 @@ jobs:
           fi
       - name: Deploy or clean up preview
         if: steps.credentials.outputs.available == 'true'
-        uses: mynameistito/alchemy-deploy@0e2820973a0536bdf9c4e33d0b8a7eebe85372f2 # v2.4.0
+        uses: mynameistito/alchemy-deploy@1b495c668753637a7820112cea1773b8878fd4b9 # v3.1.2
         with:
           worker-name: hcc-bin-day
-          deploy-command: bunx --no-install alchemy deploy --stage "$STAGE" --yes
-          destroy-command: bunx --no-install alchemy destroy --stage "$STAGE" --yes
+          deploy-command: bun ./node_modules/alchemy/bin/cli.js deploy --stage "$STAGE" --yes
+          destroy-command: bun ./node_modules/alchemy/bin/cli.js destroy --stage "$STAGE" --yes
           production-url: https://bin-day.mynameistito.com
           production-branch: main
           ci-workflow: ci.yml
+          preview-artifact: alchemy-worker
+          preview-entrypoint: worker/index.js
+          preview-assets-directory: site
+          preview-assets-config: '{"htmlHandling":"force-trailing-slash","notFoundHandling":"single-page-application","runWorkerFirst":["/api/*"]}'
+          preview-compatibility-date: "2026-07-04"
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -76,11 +84,11 @@ jobs:
           fi
       - name: Reconcile closed pull-request previews
         if: steps.credentials.outputs.available == 'true'
-        uses: mynameistito/alchemy-deploy@0e2820973a0536bdf9c4e33d0b8a7eebe85372f2 # v2.4.0
+        uses: mynameistito/alchemy-deploy@1b495c668753637a7820112cea1773b8878fd4b9 # v3.1.2
         with:
           worker-name: hcc-bin-day
-          deploy-command: bunx --no-install alchemy deploy --stage "$STAGE" --yes
-          destroy-command: bunx --no-install alchemy destroy --stage "$STAGE" --yes
+          deploy-command: bun ./node_modules/alchemy/bin/cli.js deploy --stage "$STAGE" --yes
+          destroy-command: bun ./node_modules/alchemy/bin/cli.js destroy --stage "$STAGE" --yes
           production-url: https://bin-day.mynameistito.com
           production-branch: main
           ci-workflow: ci.yml
