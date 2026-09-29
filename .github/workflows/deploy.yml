@@ -1,8 +1,6 @@
 name: Deploy Cloudflare Workers
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
   workflow_run:
     workflows: [CI]
     types: [completed]
@@ -15,12 +13,12 @@ permissions:
   actions: read
 
 concurrency:
-  group: deploy-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event.workflow_run.event == 'pull_request' && format('pr-{0}', github.event.workflow_run.pull_requests[0].number) || github.event.workflow_run.event == 'push' && 'prod' || 'other' }}
+  group: deploy-${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && 'prod' || 'other' }}
   cancel-in-progress: false
 
 jobs:
   deploy:
-    if: github.event_name != 'schedule'
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     permissions:
       actions: read
