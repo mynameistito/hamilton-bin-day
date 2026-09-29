@@ -1,4 +1,4 @@
-name: CI
+name: CI (artifact)
 
 on:
   pull_request:
@@ -39,3 +39,18 @@ jobs:
 
       - name: Run task
         run: bun run ${{ matrix.task }}
+
+      - name: Bundle Worker Preview artifact
+        if: matrix.task == 'build'
+        run: |
+          mkdir -p "$RUNNER_TEMP/alchemy-worker/worker" "$RUNNER_TEMP/alchemy-worker/site"
+          bun build apps/web/src/worker.ts --target browser --outfile "$RUNNER_TEMP/alchemy-worker/worker/index.js"
+          cp -R apps/web/dist/. "$RUNNER_TEMP/alchemy-worker/site/"
+
+      - name: Upload Worker Preview artifact
+        if: matrix.task == 'build'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: alchemy-worker
+          path: ${{ runner.temp }}/alchemy-worker/
+          if-no-files-found: error
