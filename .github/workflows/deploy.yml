@@ -46,8 +46,8 @@ jobs:
         uses: mynameistito/alchemy-deploy@1b495c668753637a7820112cea1773b8878fd4b9 # v3.1.2
         with:
           worker-name: hcc-bin-day
-          deploy-command: bun ./node_modules/alchemy/bin/cli.js deploy --stage "$STAGE" --yes
-          destroy-command: bun ./node_modules/alchemy/bin/cli.js destroy --stage "$STAGE" --yes
+          deploy-command: bunx --no-install alchemy deploy --stage "$STAGE" --yes
+          destroy-command: bunx --no-install alchemy destroy --stage "$STAGE" --yes
           production-url: https://bin-day.mynameistito.com
           production-branch: main
           ci-workflow: ci.yml
