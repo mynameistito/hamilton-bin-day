@@ -9,10 +9,10 @@
       "packages/*"
     ],
     "catalog": {
-      "@effect/platform-bun": "4.0.0-rc.115",
-      "@effect/platform-node": "4.0.0-rc.115",
+      "@effect/platform-bun": "4.0.0",
+      "@effect/platform-node": "4.0.0",
       "@types/node": "^26.6.3",
-      "effect": "4.0.0-rc.115",
+      "effect": "4.0.0",
       "typescript": "npm:@typescript/typescript6@^6.0.2"
     }
   },
@@ -37,7 +37,7 @@
   "dependencies": {
     "@changesets/cli": "^3.0.3",
     "@effect/platform-bun": "catalog:",
-    "alchemy": "2.0.0-beta.78",
+    "alchemy": "2.0.0-beta.80",
     "effect": "catalog:"
   },
   "devDependencies": {
@@ -57,11 +57,6 @@
     "ultracite": "7.12.0",
     "vitest": "5.0.2"
   },
-  "overrides": {
-    "@effect/platform-node-shared": "4.0.0-rc.115",
-    "@effect/sql-d1": "4.0.0-rc.115",
-    "@effect/sql-sqlite-do": "4.0.0-rc.115",
-    "@effect/vitest": "4.0.0-rc.115"
-  },
+  "overrides": {},
   "packageManager": "bun@1.4.2"
 }

@@ -1,13 +1,13 @@
 // oxlint-disable-next-line sonarjs/no-wildcard-import
 import * as Effect from "effect/Effect";
 // oxlint-disable-next-line sonarjs/no-wildcard-import
+import * as HttpClient from "effect/http/HttpClient";
+// oxlint-disable-next-line sonarjs/no-wildcard-import
+import * as HttpClientError from "effect/http/HttpClientError";
+// oxlint-disable-next-line sonarjs/no-wildcard-import
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
+// oxlint-disable-next-line sonarjs/no-wildcard-import
 import * as Layer from "effect/Layer";
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as HttpClient from "effect/unstable/http/HttpClient";
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as HttpClientError from "effect/unstable/http/HttpClientError";
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
 import { describe, expect, test } from "vitest";
 
 import { HccApi, hccApiLayerWithoutDependencies } from "@/hcc-api";
