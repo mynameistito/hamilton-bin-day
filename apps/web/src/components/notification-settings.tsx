@@ -83,7 +83,7 @@ export const NotificationSettings = ({
       try {
         const registration = await navigator.serviceWorker.ready;
         registration.active?.postMessage({
-          enabled: preferences.enabled,
+          enabled: preferences.enabled && storageAvailable,
           type: "NOTIFICATION_CONSENT",
         });
       } catch {
@@ -91,7 +91,7 @@ export const NotificationSettings = ({
       }
     };
     void updateConsent();
-  }, [preferences.enabled]);
+  }, [preferences.enabled, storageAvailable]);
 
   const save = (next: NotificationPreferences) => {
     setPreferences(next);
@@ -165,6 +165,8 @@ export const NotificationSettings = ({
             onChange={(event) => {
               if (event.target.value) {
                 save({ ...preferences, localTime: event.target.value });
+              } else {
+                event.currentTarget.value = preferences.localTime;
               }
             }}
             required

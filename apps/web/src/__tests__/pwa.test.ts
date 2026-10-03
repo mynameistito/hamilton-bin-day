@@ -69,9 +69,10 @@ describe("PWA app shell", () => {
       avoidsPrematurePermissionPrompt: !settings.includes(
         "Notification.requestPermission"
       ),
-      syncsOptInToServiceWorker: serviceWorker.includes(
-        'type === "NOTIFICATION_CONSENT"'
-      ),
+      syncsOptInToServiceWorker:
+        settings.includes("registration.active?.postMessage({") &&
+        settings.includes('type: "NOTIFICATION_CONSENT"') &&
+        serviceWorker.includes('type === "NOTIFICATION_CONSENT"'),
       handlesPushEvents: serviceWorker.includes('addEventListener("push"'),
     }).toStrictEqual({
       hasExplicitOptIn: true,

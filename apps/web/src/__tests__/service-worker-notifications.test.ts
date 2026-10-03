@@ -68,6 +68,7 @@ const makeServiceWorker = (source: string) => {
     registration: { showNotification },
     skipWaiting: vi.fn<() => void>(),
   };
+  const logger = { warn: vi.fn<(message: string) => void>() };
 
   // oxlint-disable-next-line sonarjs/code-eval -- SAFETY: Executes this checked-in worker in a VM with local deterministic browser fakes.
   runInNewContext(source, {
@@ -77,9 +78,10 @@ const makeServiceWorker = (source: string) => {
     URL,
     caches: cachesApi,
     encodeURIComponent,
+    console: logger,
     self,
   });
-  return { cache, listeners, showNotification };
+  return { cache, listeners, logger, showNotification };
 };
 
 const dispatch = async (
@@ -140,7 +142,12 @@ describe("service worker push notifications", () => {
       waitUntil: (promise) => consentPromises.push(promise),
     });
     await Promise.all(consentPromises);
-    await dispatch(worker.listeners.get("push"), validPush);
+    await dispatch(worker.listeners.get("push"), {
+      json: () => ({
+        ...validPayload,
+        notificationId: `${validPayload.notificationId}:after-opt-out`,
+      }),
+    });
 
     expect(worker.showNotification).toHaveBeenCalledExactlyOnceWith(
       validPayload.title,
@@ -149,6 +156,27 @@ describe("service worker push notifications", () => {
         renotify: false,
         tag: validPayload.notificationId,
       })
+    );
+  });
+
+  test("handles notification display failure without rejecting the push event", async () => {
+    const worker = makeServiceWorker(await readServiceWorker());
+    const consent = worker.listeners.get("message");
+    const pending: Promise<void>[] = [];
+    consent?.({
+      data: { type: "NOTIFICATION_CONSENT", enabled: true },
+      waitUntil: (promise) => pending.push(promise),
+    });
+    await Promise.all(pending);
+    worker.showNotification.mockRejectedValueOnce(
+      new Error("permission revoked")
+    );
+
+    await expect(
+      dispatch(worker.listeners.get("push"), { json: () => validPayload })
+    ).resolves.toBeUndefined();
+    expect(worker.logger.warn).toHaveBeenCalledExactlyOnceWith(
+      "Unable to display or record a bin-day notification."
     );
   });
 });

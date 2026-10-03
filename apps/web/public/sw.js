@@ -112,13 +112,17 @@ const showPushNotificationOnce = async (cache, payload) => {
     ) {
       return;
     }
-    await self.registration.showNotification(payload.title, {
-      body: payload.body,
-      data: { url: "/" },
-      renotify: false,
-      tag: payload.notificationId,
-    });
-    await cache.put(deliveredKey, new Response(String(Date.now())));
+    try {
+      await self.registration.showNotification(payload.title, {
+        body: payload.body,
+        data: { url: "/" },
+        renotify: false,
+        tag: payload.notificationId,
+      });
+      await cache.put(deliveredKey, new Response(String(Date.now())));
+    } catch {
+      console.warn("Unable to display or record a bin-day notification.");
+    }
   })();
   activeNotificationDeliveries.set(payload.notificationId, delivery);
   try {
