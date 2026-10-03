@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -59,6 +59,18 @@ export const HomePage = () => {
   const [theme, setTheme] = useState<"dark" | "light">(() =>
     document.documentElement.dataset.theme === "light" ? "light" : "dark"
   );
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const refreshNow = () => setNow(new Date());
+    const interval = window.setInterval(refreshNow, 60_000);
+
+    document.addEventListener("visibilitychange", refreshNow);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshNow);
+    };
+  }, []);
 
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
@@ -74,7 +86,6 @@ export const HomePage = () => {
     }
   };
 
-  const now = new Date();
   const schedule =
     state.kind === "success"
       ? resolveNextCollection(state.schedule, now)

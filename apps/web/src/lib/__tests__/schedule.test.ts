@@ -29,7 +29,7 @@ describe(formatCollectionDate, () => {
 describe(daysUntilCollection, () => {
   test("calculates days using calendar dates rather than the current time", () => {
     expect(
-      daysUntilCollection("2026-09-28", new Date("2026-09-25T23:50:00"))
+      daysUntilCollection("2026-09-28", new Date("2026-09-25T11:50:00Z"))
     ).toBe(3);
   });
 
