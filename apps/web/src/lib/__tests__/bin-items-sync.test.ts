@@ -1,11 +1,10 @@
-import { describe, expect, test } from "vitest";
-
 import {
   fetchCouncilCatalogue,
   parseSorterDetail,
   planCatalogueSync,
   renderCatalogue,
 } from "@web-scripts/sync-hcc-bin-items";
+import { describe, expect, test } from "vitest";
 
 const listingItem = { id: 42, text: "Glass jars & bottles" } as const;
 const detail = {
@@ -33,39 +32,33 @@ const failingFetch: typeof fetch = async (input, init) => {
 };
 
 describe("Council sorter catalogue sync", () => {
-  test(
-    "normalizes HTML entities, whitespace, category, destination and notes",
-    () => {
-      expect(parseSorterDetail(listingItem, detail)).toStrictEqual({
-        id: 42,
-        item: "Glass jars & bottles",
-        bin: "glass",
-        destination: "Use the glass recycling crate.",
-        notes: "Remove lids and rinse.",
-      });
-    }
-  );
+  test("normalizes HTML entities, whitespace, category, destination and notes", () => {
+    expect(parseSorterDetail(listingItem, detail)).toStrictEqual({
+      id: 42,
+      item: "Glass jars & bottles",
+      bin: "glass",
+      destination: "Use the glass recycling crate.",
+      notes: "Remove lids and rinse.",
+    });
+  });
 
-  test(
-    "fails safely for failed details, unknown categories, and name mismatches",
-    () => {
-      expect(() =>
-        parseSorterDetail(listingItem, { ...detail, success: false })
-      ).toThrow("detail failed");
-      expect(() =>
-        parseSorterDetail(listingItem, {
-          ...detail,
-          html: detail.html.replace("SorterGlassCrate", "SorterMysteryBin"),
-        })
-      ).toThrow("unknown category");
-      expect(() =>
-        parseSorterDetail(listingItem, {
-          ...detail,
-          html: detail.html.replace("Glass jars &amp; bottles", "Something else"),
-        })
-      ).toThrow("listing/detail mismatch");
-    }
-  );
+  test("fails safely for failed details, unknown categories, and name mismatches", () => {
+    expect(() =>
+      parseSorterDetail(listingItem, { ...detail, success: false })
+    ).toThrow("detail failed");
+    expect(() =>
+      parseSorterDetail(listingItem, {
+        ...detail,
+        html: detail.html.replace("SorterGlassCrate", "SorterMysteryBin"),
+      })
+    ).toThrow("unknown category");
+    expect(() =>
+      parseSorterDetail(listingItem, {
+        ...detail,
+        html: detail.html.replace("Glass jars &amp; bottles", "Something else"),
+      })
+    ).toThrow("listing/detail mismatch");
+  });
 
   test("checks and updates through the injected fetch seam", async () => {
     const calls: Request[] = [];
@@ -106,12 +99,9 @@ describe("Council sorter catalogue sync", () => {
     });
   });
 
-  test(
-    "does not produce a partial catalogue if a detail fetch fails",
-    async () => {
-      await expect(
-        fetchCouncilCatalogue(failingFetch, "2026-10-03")
-      ).rejects.toThrow("detail request failed for item 43");
-    }
-  );
+  test("does not produce a partial catalogue if a detail fetch fails", async () => {
+    await expect(
+      fetchCouncilCatalogue(failingFetch, "2026-10-03")
+    ).rejects.toThrow("detail request failed for item 43");
+  });
 });

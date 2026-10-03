@@ -2,11 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  BIN_ITEM_SOURCE,
-  BIN_ITEMS,
-  searchBinItems,
-} from "@/lib/bin-items";
+import { BIN_ITEM_SOURCE, BIN_ITEMS, searchBinItems } from "@/lib/bin-items";
 import type { BinType } from "@/lib/bin-items";
 
 interface BinHelpProps {

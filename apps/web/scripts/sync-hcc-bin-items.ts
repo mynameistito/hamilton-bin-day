@@ -1,13 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
+
 import { z } from "zod";
 
 /** A verified Council sorter image category. */
-export type SorterBin =
-  | "yellow"
-  | "red"
-  | "glass"
-  | "food-scraps"
-  | "other";
+export type SorterBin = "yellow" | "red" | "glass" | "food-scraps" | "other";
 
 /** A normalized Council sorter item and its published advice. */
 export interface SorterItem {
@@ -102,7 +98,9 @@ const decodeHtmlEntities = (value: string): string =>
         ([name]) => name === reference.toLowerCase()
       )?.[1];
       if (decoded === undefined) {
-        throw new Error(`Unknown HTML entity in Council sorter response: ${entity}`);
+        throw new Error(
+          `Unknown HTML entity in Council sorter response: ${entity}`
+        );
       }
       return decoded;
     }
@@ -119,10 +117,7 @@ const textFromHtml = (value: string): string =>
   );
 
 const sectionText = (html: string, tag: "h3" | "h4" | "small"): string => {
-  const pattern = new RegExp(
-    `<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`,
-    "iu"
-  );
+  const pattern = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`, "iu");
   const match = pattern.exec(html);
   return match?.[1] ? textFromHtml(match[1]) : "";
 };
@@ -133,9 +128,7 @@ export const parseSorterDetail = (
   detail: CouncilSorterDetail
 ): SorterItem => {
   if (!detail.success) {
-    throw new Error(
-      `Council sorter detail failed for item ${listingItem.id}`
-    );
+    throw new Error(`Council sorter detail failed for item ${listingItem.id}`);
   }
   if (!detail.html || !detail.title) {
     throw new Error(
@@ -163,8 +156,7 @@ export const parseSorterDetail = (
     !item ||
     !destination ||
     item.toLowerCase() !== normalizedListingText ||
-    normalizeWhitespace(detail.title).toLowerCase() !==
-      normalizedListingText
+    normalizeWhitespace(detail.title).toLowerCase() !== normalizedListingText
   ) {
     throw new Error(
       `Council sorter listing/detail mismatch for item ${listingItem.id}`
@@ -257,7 +249,10 @@ export const fetchCouncilCatalogue = async (
 };
 
 /** Render the deterministic JSON representation written to the web catalogue. */
-export const renderCatalogue = ({ checkedOn, items }: CouncilCatalogue): string =>
+export const renderCatalogue = ({
+  checkedOn,
+  items,
+}: CouncilCatalogue): string =>
   `${JSON.stringify(
     { items, source: { url: SOURCE_URL, verifiedOn: checkedOn } },
     null,
