@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 
-import { expandAddressQuery, pickMatchingAddress } from "@/normalize-address";
+import {
+  expandAddressQuery,
+  filterAddressMatches,
+  pickMatchingAddress,
+} from "@/normalize-address";
 
 describe("address normalization", () => {
   test("expands street types and normalizes unit suffixes", () => {
@@ -22,5 +26,11 @@ describe("address normalization", () => {
         "14B Mountbatten Pl",
       ])
     ).toBeNull();
+  });
+
+  test("filters the Council no-address placeholder", () => {
+    expect(
+      filterAddressMatches(["No address found", "14B Mountbatten Place"])
+    ).toStrictEqual(["14B Mountbatten Place"]);
   });
 });

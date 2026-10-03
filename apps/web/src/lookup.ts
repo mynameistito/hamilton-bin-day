@@ -4,6 +4,7 @@ import {
 } from "@cli/council-schema";
 import {
   expandAddressQuery,
+  filterAddressMatches,
   pickMatchingAddress,
 } from "@cli/normalize-address";
 import { buildSchedule } from "@cli/schedule";
@@ -13,7 +14,6 @@ import type { Codec } from "effect/Schema";
 import { isLookupAddressValid } from "@/lib/address";
 
 const councilApi = "https://api2.hcc.govt.nz";
-const NO_ADDRESS_FOUND = "No address found";
 const COUNCIL_API_TIMEOUT_MS = 10_000;
 
 const getJson = async <A>(
@@ -67,8 +67,8 @@ export const lookupAddress = async (
     addresses = await getJson(addressUrl, AddressLookupResultsSchema);
   }
 
-  const matches = addresses.flatMap(({ Collection_Address }) =>
-    Collection_Address === NO_ADDRESS_FOUND ? [] : [Collection_Address]
+  const matches = filterAddressMatches(
+    addresses.map(({ Collection_Address }) => Collection_Address)
   );
   const matchedAddress = pickMatchingAddress(address, matches);
   if (!matchedAddress) {
