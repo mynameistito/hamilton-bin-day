@@ -166,12 +166,49 @@ describe("MCP Streamable HTTP endpoint", () => {
     });
   });
 
+  test("returns a Council request timeout as an MCP tool error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof globalThis.fetch>()
+        .mockRejectedValue(
+          new DOMException("The operation was aborted", "TimeoutError")
+        )
+    );
+
+    const response = await postMcp({
+      id: 6,
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        arguments: { address: "12 Grey Street" },
+        name: "lookup_bin_schedule",
+      },
+    });
+
+    await expect(response.json()).resolves.toMatchObject({
+      result: {
+        isError: true,
+        structuredContent: { error: "Council service unavailable" },
+      },
+    });
+  });
+
   test("rejects cross-origin requests and does not allow GET streaming", async () => {
     const crossOrigin = await postMcp(
       { id: 1, jsonrpc: "2.0", method: "tools/list", params: {} },
       "https://attacker.test"
     );
-    expect(crossOrigin.status).toBe(403);
+    const crossOriginOptions = await worker.fetch(
+      new Request("https://example.test/api/mcp", {
+        headers: { Origin: "https://attacker.test" },
+        method: "OPTIONS",
+      }),
+      { ASSETS: assets }
+    );
+    expect([crossOrigin.status, crossOriginOptions.status]).toStrictEqual([
+      403, 403,
+    ]);
 
     const get = await worker.fetch(
       new Request("https://example.test/api/mcp"),

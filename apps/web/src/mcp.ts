@@ -7,6 +7,21 @@ import { lookupAddress } from "@/lookup";
 const ORIGIN_NOT_ALLOWED = "Origin not allowed";
 const MCP_ALLOW = "POST, OPTIONS";
 
+const rejectCrossOrigin = (request: Request): Response | null => {
+  const origin = request.headers.get("Origin");
+  if (!origin) {
+    return null;
+  }
+  try {
+    if (new URL(origin).origin === new URL(request.url).origin) {
+      return null;
+    }
+  } catch {
+    // Reject malformed Origin headers using the same response as cross-origin ones.
+  }
+  return Response.json({ error: ORIGIN_NOT_ALLOWED }, { status: 403 });
+};
+
 const createMcpServer = (): McpServer => {
   const server = new McpServer(
     { name: "hamilton-bin-day", version: "1.0.0" },
@@ -49,15 +64,9 @@ const createMcpServer = (): McpServer => {
 };
 
 export const handleMcp = async (request: Request): Promise<Response> => {
-  const origin = request.headers.get("Origin");
-  if (origin) {
-    try {
-      if (new URL(origin).origin !== new URL(request.url).origin) {
-        return Response.json({ error: ORIGIN_NOT_ALLOWED }, { status: 403 });
-      }
-    } catch {
-      return Response.json({ error: ORIGIN_NOT_ALLOWED }, { status: 403 });
-    }
+  const originRejection = rejectCrossOrigin(request);
+  if (originRejection) {
+    return originRejection;
   }
 
   if (request.method !== "POST") {
@@ -74,14 +83,9 @@ export const handleMcp = async (request: Request): Promise<Response> => {
 
 export const handleMcpOptions = (request: Request): Response => {
   const origin = request.headers.get("Origin");
-  if (origin) {
-    try {
-      if (new URL(origin).origin !== new URL(request.url).origin) {
-        return Response.json({ error: ORIGIN_NOT_ALLOWED }, { status: 403 });
-      }
-    } catch {
-      return Response.json({ error: ORIGIN_NOT_ALLOWED }, { status: 403 });
-    }
+  const originRejection = rejectCrossOrigin(request);
+  if (originRejection) {
+    return originRejection;
   }
 
   const headers = new Headers({
