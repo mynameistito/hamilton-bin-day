@@ -55,6 +55,11 @@ describe("per-bin help", () => {
       name: "Hamilton City Council’s item sorter",
     });
     expect(sourceLink.closest("[aria-live]")).toBeNull();
+    const catalogueLink = screen.getByRole("link", {
+      name: "Browse the full catalogue",
+    });
+    expect(catalogueLink.getAttribute("href")).toBe("/what-goes-where");
+    expect(catalogueLink.closest("[aria-live]")).toBeNull();
   });
 
   test("searches the full catalogue and announces a clear no-match state", () => {
