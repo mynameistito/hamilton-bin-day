@@ -78,15 +78,15 @@ export const HomePage = () => {
     until === null ? "" : describeRelativeDate(until);
 
   return (
-    <main className="home-page bg-canvas text-ink flex min-h-screen flex-col px-5 pb-8">
-      <header className="home-header mx-auto flex w-full max-w-6xl items-center justify-between py-5">
+    <main className="home-page bg-canvas text-ink flex min-h-dvh flex-col px-4 pb-6 sm:px-5">
+      <header className="home-header mx-auto flex w-full max-w-6xl items-center justify-between gap-3 py-4 sm:py-5">
         <a
-          className="flex items-center gap-3 font-bold tracking-tight"
+          className="flex items-center gap-2.5 font-bold tracking-tight sm:gap-3"
           href="/"
           aria-label="Hamilton Bin Day home"
         >
           <span
-            className="bg-forest grid size-10 place-items-center rounded-xl text-lg text-white"
+            className="bg-forest grid size-9 shrink-0 place-items-center rounded-xl text-lg text-white sm:size-10"
             aria-hidden="true"
           >
             ♻
@@ -96,41 +96,44 @@ export const HomePage = () => {
             <span className="text-copy-muted font-normal">Bin Day</span>
           </span>
         </a>
-        <nav className="flex items-center gap-3">
+        <nav className="flex shrink-0 items-center gap-2 sm:gap-3">
           <a
-            className="text-sage-dark hidden text-sm font-semibold underline-offset-4 hover:underline sm:inline"
+            className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
             href="/docs/"
           >
-            How collections work
+            <span className="sm:hidden">Guide</span>
+            <span className="hidden sm:inline">How collections work</span>
           </a>
           <button
             aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             aria-pressed={theme === "light"}
-            className="border-sage-border bg-panel text-ink focus-visible:outline-focus-leaf inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="border-sage-border bg-panel text-ink focus-visible:outline-focus-leaf inline-flex min-h-11 items-center gap-2 rounded-full border px-2.5 py-2 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-3"
             onClick={toggleTheme}
             type="button"
           >
             <span aria-hidden="true">{theme === "dark" ? "☼" : "☾"}</span>
-            {theme === "dark" ? "Light" : "Dark"}
+            <span className="hidden sm:inline">
+              {theme === "dark" ? "Light" : "Dark"}
+            </span>
           </button>
         </nav>
       </header>
 
-      <section className="home-lookup mx-auto grid w-full max-w-6xl gap-12 pt-12 pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-12">
+      <section className="home-lookup mx-auto grid w-full max-w-6xl gap-9 pt-8 pb-10 sm:gap-12 sm:pt-12 sm:pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-12">
         <div className="home-lookup-copy">
-          <p className="border-sage-border tracking-eyebrow text-sage-copy bg-surface mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase">
+          <p className="border-sage-border tracking-eyebrow text-sage-copy bg-surface mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase sm:mb-5">
             <span className="bg-leaf size-2 rounded-full" /> Hamilton, New
             Zealand
           </p>
-          <h1 className="leading-heading tracking-heading max-w-xl text-5xl font-semibold sm:text-6xl">
+          <h1 className="leading-heading tracking-heading max-w-xl text-4xl font-semibold sm:text-6xl">
             Never miss your <span className="text-moss">bin day</span> again.
           </h1>
-          <p className="text-body-muted mt-6 max-w-lg text-lg leading-8">
+          <p className="text-body-muted mt-4 max-w-lg text-base leading-7 sm:mt-6 sm:text-lg sm:leading-8">
             Look up your address to see exactly what to put out and when your
             next collection is.
           </p>
           <form
-            className="border-paper-border shadow-lookup bg-surface mt-9 flex max-w-xl flex-col gap-3 rounded-2xl border p-2 sm:flex-row"
+            className="border-paper-border shadow-lookup bg-surface mt-6 flex max-w-xl flex-col gap-2 rounded-2xl border p-2 sm:mt-9 sm:flex-row sm:gap-3"
             onSubmit={submitLookup}
           >
             <label className="sr-only" htmlFor="address">
@@ -145,7 +148,11 @@ export const HomePage = () => {
               placeholder="Try 12 Grey Street"
               value={address}
             />
-            <Button disabled={state.kind === "loading"} type="submit">
+            <Button
+              className="min-h-12 w-full whitespace-nowrap sm:w-auto"
+              disabled={state.kind === "loading"}
+              type="submit"
+            >
               {state.kind === "loading" ? "Checking…" : "Find my bin day"}
             </Button>
           </form>
@@ -163,15 +170,15 @@ export const HomePage = () => {
           className="home-schedule relative mx-auto w-full max-w-md"
         >
           <div
-            className={`${collectionHighlightClass(schedule?.nextCollection.type)} absolute -inset-5 rounded-4xl`}
+            className={`${collectionHighlightClass(schedule?.nextCollection.type)} absolute -inset-2 rounded-4xl sm:-inset-5`}
           />
           <Card className="relative">
-            <div className="border-card-border flex items-start justify-between border-b p-6">
-              <div>
+            <div className="border-card-border flex items-start justify-between gap-3 border-b p-5 sm:p-6">
+              <div className="min-w-0">
                 <p className="tracking-caption text-caption text-xs font-bold uppercase">
                   Next collection
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
                   {schedule
                     ? formatCollectionDate(schedule.nextCollection.date)
                     : "Your collection day"}
@@ -181,12 +188,12 @@ export const HomePage = () => {
                 </p>
               </div>
               <span
-                className={`rounded-full px-3 py-1.5 text-xs font-bold tracking-wide uppercase ${collectionBadgeClass(schedule?.nextCollection.type)}`}
+                className={`shrink-0 rounded-full px-2.5 py-1.5 text-xs font-bold tracking-wide whitespace-nowrap uppercase sm:px-3 ${collectionBadgeClass(schedule?.nextCollection.type)}`}
               >
                 {schedule ? `${schedule.nextCollection.type} week` : "Hamilton"}
               </span>
             </div>
-            <div className="p-6">
+            <div className="p-5 sm:p-6">
               {schedule ? (
                 <>
                   <p className="text-detail-muted text-sm">
@@ -213,7 +220,7 @@ export const HomePage = () => {
                   </p>
                 </>
               ) : (
-                <div className="bg-panel rounded-2xl p-6 text-center">
+                <div className="bg-panel rounded-2xl p-5 text-center sm:p-6">
                   <span
                     aria-hidden="true"
                     className="text-moss-dark bg-surface mx-auto grid size-14 place-items-center rounded-2xl text-2xl"
@@ -254,7 +261,7 @@ export const HomePage = () => {
         </div>
       </section>
 
-      <section className="home-steps border-footer-border text-footer-copy mx-auto grid w-full max-w-6xl gap-4 border-t pt-6 text-sm sm:grid-cols-3">
+      <section className="home-steps border-footer-border text-footer-copy mx-auto grid w-full max-w-6xl gap-5 border-t py-6 text-sm md:grid-cols-3 md:gap-4 md:pt-6">
         <div>
           <span className="text-step-copy font-semibold">
             01 / Find your address
@@ -274,7 +281,7 @@ export const HomePage = () => {
           <p className="mt-1">Get the collection details at a glance.</p>
         </div>
       </section>
-      <footer className="home-footer border-footer-border text-footer-muted mx-auto mt-auto flex w-full max-w-6xl flex-col gap-2 border-t pt-4 text-xs sm:flex-row sm:justify-between">
+      <footer className="home-footer border-footer-border text-footer-muted mx-auto mt-auto flex w-full max-w-6xl flex-col gap-3 border-t pt-5 text-xs leading-5 sm:flex-row sm:justify-between sm:gap-2 sm:pt-4">
         <span>
           Independent community tool · Data from{" "}
           <a
