@@ -5,7 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
 import { ADDRESS_LENGTH_LIMIT } from "@/lib/address";
-import { daysUntilCollection, formatCollectionDate } from "@/lib/schedule";
+import {
+  daysUntilCollection,
+  formatCollectionDate,
+  resolveNextCollection,
+} from "@/lib/schedule";
 import type { ScheduleResponse } from "@/lib/schedule";
 
 const describeRelativeDate = (days: number): string => {
@@ -70,9 +74,13 @@ export const HomePage = () => {
     }
   };
 
-  const schedule = state.kind === "success" ? state.schedule : null;
+  const now = new Date();
+  const schedule =
+    state.kind === "success"
+      ? resolveNextCollection(state.schedule, now)
+      : null;
   const until = schedule
-    ? daysUntilCollection(schedule.nextCollection.date, new Date())
+    ? daysUntilCollection(schedule.nextCollection.date, now)
     : null;
   const relativeCollectionDate =
     until === null ? "" : describeRelativeDate(until);
