@@ -92,17 +92,25 @@ const normalizeWhitespace = (value: string): string =>
 
 const decodeHtmlEntities = (value: string): string =>
   value.replaceAll(
-    /&(?<reference>#x[\da-f]+|#\d+|[a-z]+);?/giu,
+    /&(?<reference>#x[\da-f]+;?|#\d+;?|[a-z]+;)/giu,
     (entity, reference: string) => {
-      if (reference.startsWith("#x") || reference.startsWith("#X")) {
-        return String.fromCodePoint(Number(`0${reference.slice(1)}`));
+      const normalizedReference = reference.endsWith(";")
+        ? reference.slice(0, -1)
+        : reference;
+      if (
+        normalizedReference.startsWith("#x") ||
+        normalizedReference.startsWith("#X")
+      ) {
+        return String.fromCodePoint(Number(`0${normalizedReference.slice(1)}`));
       }
-      if (reference.startsWith("#")) {
-        return String.fromCodePoint(Math.trunc(Number(reference.slice(1))));
+      if (normalizedReference.startsWith("#")) {
+        return String.fromCodePoint(
+          Math.trunc(Number(normalizedReference.slice(1)))
+        );
       }
 
       const decoded = Object.entries(NAMED_ENTITIES).find(
-        ([name]) => name === reference.toLowerCase()
+        ([name]) => name === normalizedReference.toLowerCase()
       )?.[1];
       if (decoded === undefined) {
         throw new Error(

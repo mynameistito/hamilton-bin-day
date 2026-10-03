@@ -55,6 +55,21 @@ describe("Council sorter catalogue sync", () => {
     });
   });
 
+  test("preserves bare ampersands in catalogue names", () => {
+    const listing = { id: 44, text: "M&M's" };
+    const response = {
+      success: true,
+      title: "M&M's",
+      html: [
+        '<img src="/SorterYellowBin.png"/>',
+        "<h3>M&M's</h3>",
+        "<h4>This item goes into the yellow recycling wheelie bin</h4>",
+      ].join(""),
+    };
+
+    expect(parseSorterDetail(listing, response).item).toBe("M&M's");
+  });
+
   test("fails safely for failed details, unknown categories, and name or destination mismatches", () => {
     expect(() =>
       parseSorterDetail(listingItem, { ...detail, success: false })
