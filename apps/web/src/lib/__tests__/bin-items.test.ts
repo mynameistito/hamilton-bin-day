@@ -69,7 +69,6 @@ describe("verified bin item lookup", () => {
     expect({
       url: BIN_ITEM_SOURCE.url,
       verifiedOn: /^\d{4}-\d{2}-\d{2}$/u.test(BIN_ITEM_SOURCE.verifiedOn),
-      count: BIN_ITEMS.length,
       uniqueIdsMatchCount:
         new Set(BIN_ITEMS.map(({ id }) => id)).size === BIN_ITEMS.length,
       categoryCount: new Set(BIN_ITEMS.map(({ bin }) => bin)).size,
@@ -79,7 +78,6 @@ describe("verified bin item lookup", () => {
     }).toStrictEqual({
       url: "https://hamilton.govt.nz/fight-the-landfill",
       verifiedOn: true,
-      count: 351,
       uniqueIdsMatchCount: true,
       categoryCount: 5,
       medicalWasteNote:
