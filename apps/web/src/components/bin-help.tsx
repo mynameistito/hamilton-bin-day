@@ -26,7 +26,8 @@ const hasConflictingKerbsideGuidance = (itemId: number): boolean =>
 
 const KerbsideGuidanceNotice = () => (
   <p className="text-copy-muted mt-1 block text-xs">
-    This sorter result is classified as red, while separate Council{" "}
+    Council sorter entries 231 and 232 classify these takeaway containers as
+    red, while separate Council{" "}
     <a
       className="underline underline-offset-2"
       href="https://hamilton.govt.nz/fight-the-landfill/kerbside-collection"
@@ -46,6 +47,12 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
   const [query, setQuery] = useState("");
   const guidance = bin ? BIN_ITEMS.filter((entry) => entry.bin === bin) : [];
   const results = query.trim() ? searchBinItems(query) : null;
+  const hasGuidanceConflict = guidance.some(({ id }) =>
+    hasConflictingKerbsideGuidance(id)
+  );
+  const showGuidance = results === null && guidance.length > 0;
+  const showNoGuidance = results === null && guidance.length === 0;
+  const hasMoreGuidance = guidance.length > 10;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -142,9 +149,6 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                     {entry.notes && (
                       <span className="mt-1 block">{entry.notes}</span>
                     )}
-                    {hasConflictingKerbsideGuidance(entry.id) && (
-                      <KerbsideGuidanceNotice />
-                    )}
                   </li>
                 ))}
               </ul>
@@ -157,11 +161,12 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
           </output>
         )}
 
-        {results === null && guidance.length > 0 && (
+        {showGuidance && (
           <>
             <h3 className="mt-6 font-semibold">
               Council sorter items for this bin
             </h3>
+            {hasGuidanceConflict && <KerbsideGuidanceNotice />}
             <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6">
               {guidance.slice(0, 10).map((entry) => (
                 <li key={entry.id}>
@@ -169,13 +174,10 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                   {entry.notes && (
                     <span className="text-copy-muted"> — {entry.notes}</span>
                   )}
-                  {hasConflictingKerbsideGuidance(entry.id) && (
-                    <KerbsideGuidanceNotice />
-                  )}
                 </li>
               ))}
             </ul>
-            {guidance.length > 10 && (
+            {hasMoreGuidance && (
               <details className="mt-3 text-sm">
                 <summary className="cursor-pointer underline underline-offset-2">
                   Show the remaining {guidance.length - 10} items
@@ -190,9 +192,6 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                           — {entry.notes}
                         </span>
                       )}
-                      {hasConflictingKerbsideGuidance(entry.id) && (
-                        <KerbsideGuidanceNotice />
-                      )}
                     </li>
                   ))}
                 </ul>
@@ -200,7 +199,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
             )}
           </>
         )}
-        {results === null && guidance.length === 0 && (
+        {showNoGuidance && (
           <p className="text-copy-muted mt-2 text-sm leading-6">
             The Council sorter has no listed items for this bin. Search the
             catalogue below or visit Hamilton City Council for current advice.

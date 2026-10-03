@@ -90,17 +90,15 @@ describe("per-bin help", () => {
       })
     );
 
-    expect(
-      screen.getAllByText(/This sorter result is classified as red/u)
-    ).toHaveLength(2);
+    const conflictNotice = screen.getByText(
+      /Council sorter entries 231 and 232/u
+    );
+    expect(conflictNotice.closest("details")).toBeNull();
     expect(
       screen
-        .getAllByRole("link", { name: "kerbside guidance" })
-        .map((link) => link.getAttribute("href"))
-    ).toStrictEqual([
-      "https://hamilton.govt.nz/fight-the-landfill/kerbside-collection",
-      "https://hamilton.govt.nz/fight-the-landfill/kerbside-collection",
-    ]);
+        .getByRole("link", { name: "kerbside guidance" })
+        .getAttribute("href")
+    ).toBe("https://hamilton.govt.nz/fight-the-landfill/kerbside-collection");
   });
 
   test("closes with Escape and returns focus to its help control", () => {
