@@ -8,8 +8,7 @@
       "@/*": ["./src/*"],
       "@cli/council-schema": ["../../packages/cli/src/council-schema.ts"],
       "@cli/normalize-address": ["../../packages/cli/src/normalize-address.ts"],
-      "@cli/schedule": ["../../packages/cli/src/schedule.ts"],
-      "@web-scripts/sync-hcc-bin-items": ["./scripts/sync-hcc-bin-items.ts"]
+      "@cli/schedule": ["../../packages/cli/src/schedule.ts"]
     },
     "types": ["vite/client"],
     "noEmit": true
