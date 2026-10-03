@@ -3,13 +3,12 @@ import * as Effect from "effect/Effect";
 
 import { HccApi } from "@/hcc-api";
 import type { HccApiError } from "@/hcc-api";
-import { expandAddressQuery, pickMatchingAddress } from "@/normalize-address";
+import {
+  expandAddressQuery,
+  filterAddressMatches,
+  pickMatchingAddress,
+} from "@/normalize-address";
 import type { CollectionSchedule } from "@/schedule";
-
-const NO_ADDRESS_FOUND = "No address found";
-
-const filterMatches = (matches: readonly string[]): readonly string[] =>
-  matches.filter((match) => match !== NO_ADDRESS_FOUND);
 
 export type AddressResolution =
   | {
@@ -28,10 +27,10 @@ export const resolveAddressQuery = (
   const expandedQuery = expandAddressQuery(query);
   return Effect.gen(function* resolveAddress() {
     const api = yield* HccApi;
-    let matches = filterMatches(yield* api.searchAddresses(query));
+    let matches = filterAddressMatches(yield* api.searchAddresses(query));
 
     if (matches.length === 0 && expandedQuery !== query) {
-      matches = filterMatches(yield* api.searchAddresses(expandedQuery));
+      matches = filterAddressMatches(yield* api.searchAddresses(expandedQuery));
     }
 
     if (matches.length === 0) {

@@ -14,7 +14,10 @@ const collectionResult = [
 ];
 
 describe("lookup endpoint input validation", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   test("rejects addresses over the length limit before calling the Council API", async () => {
     const request = new Request(
@@ -52,6 +55,65 @@ describe("lookup endpoint input validation", () => {
       matches: [],
     });
     expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  test("bounds Council fetches with a 10-second abort signal", async () => {
+    const controller = new AbortController();
+    const timeout = vi
+      .spyOn(AbortSignal, "timeout")
+      .mockReturnValue(controller.signal);
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(Response.json([]));
+    vi.stubGlobal("fetch", fetch);
+
+    const response = await handleLookup(
+      new Request("https://example.test/api/lookup?address=unknown")
+    );
+
+    expect(response.status).toBe(200);
+    expect(timeout).toHaveBeenCalledWith(10_000);
+    expect(fetch.mock.calls[0]?.[1]?.signal).toBe(controller.signal);
+  });
+
+  test("filters the Council no-address placeholder from suggestions", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(
+          Response.json([
+            { Collection_Address: "No address found" },
+            { Collection_Address: "14B Mountbatten Place" },
+          ])
+        )
+    );
+
+    const response = await handleLookup(
+      new Request("https://example.test/api/lookup?address=unknown")
+    );
+
+    await expect(response.json()).resolves.toStrictEqual({
+      found: false,
+      matches: ["14B Mountbatten Place"],
+    });
+  });
+
+  test("maps a Council request timeout to 502", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof globalThis.fetch>()
+        .mockRejectedValue(
+          new DOMException("The operation was aborted", "TimeoutError")
+        )
+    );
+    const response = await worker.fetch(
+      new Request("https://example.test/api/lookup?address=unknown"),
+      { ASSETS: { fetch: vi.fn<(request: Request) => Promise<Response>>() } }
+    );
+
+    expect(response.status).toBe(502);
   });
 
   test("retries an expanded address query and returns a schedule", async () => {

@@ -35,6 +35,11 @@ const STREET_TYPE_ALIASES = {
 } satisfies Record<string, string>;
 
 const STREET_TYPE_ALIASES_MAP = new Map(Object.entries(STREET_TYPE_ALIASES));
+const NO_ADDRESS_FOUND = "No address found";
+
+export const filterAddressMatches = (
+  matches: readonly string[]
+): readonly string[] => matches.filter((match) => match !== NO_ADDRESS_FOUND);
 
 const collapseWhitespace = (value: string): string =>
   value.trim().replaceAll(/\s+/gu, " ");
