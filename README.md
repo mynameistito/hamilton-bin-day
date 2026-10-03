@@ -19,7 +19,7 @@ Look up the next Hamilton City Council bin collection for an address, or use the
 The deployed web Worker exposes a stateless, read-only MCP Streamable HTTP endpoint:
 
 - `POST https://bin-day.mynameistito.com/api/mcp` — initialize an MCP connection, list tools, and call `lookup_bin_schedule`.
-- `OPTIONS /api/mcp` — same-origin browser preflight. Cross-origin `Origin` values are rejected.
+- `OPTIONS /api/mcp` — responds to same-origin OPTIONS requests. Cross-origin `Origin` values are rejected, so browser cross-origin preflight requests are not supported.
 
 The `lookup_bin_schedule` tool accepts `{ "address": "12 Grey Street" }` and returns the same `found`, `matchedAddress`, and `schedule` result as `GET /api/lookup?address=12%20Grey%20Street`. Unmatched addresses return `found: false` and suggestions; invalid input and Council service failures are returned as MCP tool errors. The endpoint is stateless (clients do not retain a session ID), has no A2A endpoint, and supports POST rather than server-initiated GET streams.
 
