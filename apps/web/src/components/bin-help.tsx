@@ -120,8 +120,8 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
               </ul>
             ) : (
               <>
-                No catalogue item matches “{query}”. Try another name or check the
-                Council sorter.
+                No catalogue item matches “{query}”. Try another name or check
+                the Council sorter.
               </>
             )}
           </output>

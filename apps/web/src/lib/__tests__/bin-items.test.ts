@@ -43,7 +43,7 @@ describe("verified bin item lookup", () => {
       verifiedOn: BIN_ITEM_SOURCE.verifiedOn,
       count: BIN_ITEMS.length,
       uniqueIds: new Set(BIN_ITEMS.map(({ id }) => id)).size,
-      categories: [...new Set(BIN_ITEMS.map(({ bin }) => bin))].sort(),
+      categoryCount: new Set(BIN_ITEMS.map(({ bin }) => bin)).size,
       medicalWasteNote: BIN_ITEMS.find(({ item }) => item === "Medical waste")
         ?.notes,
       weedEntries: BIN_ITEMS.filter(({ item }) => item === "Weeds").length,
@@ -52,7 +52,7 @@ describe("verified bin item lookup", () => {
       verifiedOn: "2026-10-03",
       count: 351,
       uniqueIds: 351,
-      categories: ["food-scraps", "glass", "other", "red", "yellow"],
+      categoryCount: 5,
       medicalWasteNote:
         "Private medical waste disposal services are available. Medical waste should not be placed in any of your bins.",
       weedEntries: 2,

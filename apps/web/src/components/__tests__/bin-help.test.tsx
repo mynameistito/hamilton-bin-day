@@ -73,7 +73,9 @@ describe("per-bin help", () => {
       name: "What goes in the collection bins?",
     });
     fireEvent.click(trigger);
-    expect(screen.getByText(/The Council sorter has no listed items/u)).toBeTruthy();
+    expect(
+      screen.getByText(/The Council sorter has no listed items/u)
+    ).toBeTruthy();
     const search = screen.getByLabelText("Search the full catalogue");
     const close = screen.getByRole("button", { name: "Close bin help" });
 

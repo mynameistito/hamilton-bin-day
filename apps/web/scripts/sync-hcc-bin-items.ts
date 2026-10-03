@@ -2,7 +2,12 @@ import { readFile, writeFile } from "node:fs/promises";
 import { z } from "zod";
 
 /** A verified Council sorter image category. */
-export type SorterBin = "yellow" | "red" | "glass" | "food-scraps" | "other";
+export type SorterBin =
+  | "yellow"
+  | "red"
+  | "glass"
+  | "food-scraps"
+  | "other";
 
 /** A normalized Council sorter item and its published advice. */
 export interface SorterItem {
@@ -62,6 +67,7 @@ const DETAIL_RESPONSE = z.object({
   success: z.boolean(),
   title: z.string().optional(),
 });
+type CouncilSorterDetail = z.infer<typeof DETAIL_RESPONSE>;
 const NAMED_ENTITIES = {
   amp: "&",
   apos: "'",
@@ -113,44 +119,56 @@ const textFromHtml = (value: string): string =>
   );
 
 const sectionText = (html: string, tag: "h3" | "h4" | "small"): string => {
-  const match = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`, "iu").exec(
-    html
+  const pattern = new RegExp(
+    `<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`,
+    "iu"
   );
+  const match = pattern.exec(html);
   return match?.[1] ? textFromHtml(match[1]) : "";
 };
 
 /** Parse one Council sorter detail response into a normalized catalogue item. */
 export const parseSorterDetail = (
   listingItem: SorterListingItem,
-  input: unknown
+  detail: CouncilSorterDetail
 ): SorterItem => {
-  const detail = DETAIL_RESPONSE.safeParse(input);
-  if (!detail.success || !detail.data.success) {
-    throw new Error(`Council sorter detail failed for item ${listingItem.id}`);
+  if (!detail.success) {
+    throw new Error(
+      `Council sorter detail failed for item ${listingItem.id}`
+    );
   }
-  if (!detail.data.html || !detail.data.title) {
-    throw new Error(`Council sorter detail was incomplete for item ${listingItem.id}`);
+  if (!detail.html || !detail.title) {
+    throw new Error(
+      `Council sorter detail was incomplete for item ${listingItem.id}`
+    );
   }
 
   const imageMatch = /\/(?<image>Sorter[A-Za-z]+)\.png(?:["'?])/iu.exec(
-    detail.data.html
+    detail.html
   );
   const imageName = SORTER_IMAGE.safeParse(imageMatch?.groups?.image);
   if (!imageName.success) {
-    throw new Error(`Council sorter returned an unknown category for item ${listingItem.id}`);
+    throw new Error(
+      `Council sorter returned an unknown category for item ${listingItem.id}`
+    );
   }
 
-  const item = sectionText(detail.data.html, "h3");
-  const destination = sectionText(detail.data.html, "h4");
-  const notes = sectionText(detail.data.html, "small");
-  const normalizedListingText = normalizeWhitespace(listingItem.text).toLowerCase();
+  const item = sectionText(detail.html, "h3");
+  const destination = sectionText(detail.html, "h4");
+  const notes = sectionText(detail.html, "small");
+  const normalizedListingText = normalizeWhitespace(
+    listingItem.text
+  ).toLowerCase();
   if (
     !item ||
     !destination ||
     item.toLowerCase() !== normalizedListingText ||
-    normalizeWhitespace(detail.data.title).toLowerCase() !== normalizedListingText
+    normalizeWhitespace(detail.title).toLowerCase() !==
+      normalizedListingText
   ) {
-    throw new Error(`Council sorter listing/detail mismatch for item ${listingItem.id}`);
+    throw new Error(
+      `Council sorter listing/detail mismatch for item ${listingItem.id}`
+    );
   }
 
   const result: SorterItem = {
@@ -185,7 +203,9 @@ const fetchItemDetail = async (
       `Council sorter detail request failed for item ${listingItem.id} (${response.status})`
     );
   }
-  return parseSorterDetail(listingItem, await response.json());
+  const responseData: unknown = await response.json();
+  const detail = DETAIL_RESPONSE.parse(responseData);
+  return parseSorterDetail(listingItem, detail);
 };
 
 /** Fetch the full official listing and every item detail, failing on partial data. */
@@ -197,7 +217,9 @@ export const fetchCouncilCatalogue = async (
     headers: { accept: "application/json" },
   });
   if (!response.ok) {
-    throw new Error(`Council sorter listing request failed (${response.status})`);
+    throw new Error(
+      `Council sorter listing request failed (${response.status})`
+    );
   }
 
   const listing = LISTING_RESPONSE.safeParse(await response.json());
@@ -211,7 +233,9 @@ export const fetchCouncilCatalogue = async (
   }));
   const ids = new Set(items.map(({ id }) => id));
   if (ids.size !== items.length || items.some(({ text }) => !text)) {
-    throw new Error("Council sorter listing contains duplicate IDs or blank item names");
+    throw new Error(
+      "Council sorter listing contains duplicate IDs or blank item names"
+    );
   }
 
   const batchSize = 8;
@@ -249,7 +273,11 @@ export const planCatalogueSync = (
   const content = renderCatalogue(next);
   const changed = content !== current;
   if (!changed) {
-    return { changed: false, content, message: "Council sorter catalogue is up to date." };
+    return {
+      changed: false,
+      content,
+      message: "Council sorter catalogue is up to date.",
+    };
   }
   return {
     changed: true,
@@ -268,8 +296,10 @@ const main = async (): Promise<void> => {
   }
 
   const checkedOn = new Date().toISOString().slice(0, 10);
-  const next = await fetchCouncilCatalogue(fetch, checkedOn);
-  const current = await readFile(DATA_PATH, "utf-8");
+  const [next, current] = await Promise.all([
+    fetchCouncilCatalogue(fetch, checkedOn),
+    readFile(DATA_PATH, "utf-8"),
+  ]);
   const plan = planCatalogueSync(current, next, checkOnly);
   console.info(plan.message);
   if (checkOnly && plan.changed) {

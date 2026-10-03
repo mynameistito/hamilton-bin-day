@@ -9,8 +9,13 @@
       "entry": ["blume.config.ts"]
     },
     "apps/web": {
-      "entry": ["src/worker.ts"],
-      "project": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.css"]
+      "entry": ["scripts/sync-hcc-bin-items.ts", "src/worker.ts"],
+      "project": [
+        "scripts/**/*.ts",
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.css"
+      ]
     },
     "packages/cli": {
       "entry": ["scripts/**/*.ts"],
