@@ -106,7 +106,7 @@ export const HomePage = () => {
             ♻
           </span>
           <span>
-            Hamilton{" "}
+            <span className="hidden min-[360px]:inline">Hamilton </span>
             <span className="text-copy-muted font-normal">Bin Day</span>
           </span>
         </a>

@@ -7,11 +7,14 @@ const readAppFile = (relativePath: string): Promise<string> =>
 
 describe("PWA app shell", () => {
   test("declares install metadata and registers the root service worker", async () => {
-    const [manifestSource, html, main] = await Promise.all([
-      readAppFile("../../public/manifest.webmanifest"),
-      readAppFile("../../index.html"),
-      readAppFile("../main.tsx"),
-    ]);
+    const [manifestSource, html, main, buildScript, networkStatus] =
+      await Promise.all([
+        readAppFile("../../public/manifest.webmanifest"),
+        readAppFile("../../index.html"),
+        readAppFile("../main.tsx"),
+        readAppFile("../../../../scripts/build-web.ts"),
+        readAppFile("../hooks/use-network-status.ts"),
+      ]);
     const manifest: {
       readonly display: string;
       readonly icons: readonly {
@@ -41,18 +44,62 @@ describe("PWA app shell", () => {
         expect.objectContaining({ purpose: "maskable", sizes: "512x512" }),
       ])
     );
-    expect(html).toContain('rel="manifest" href="/manifest.webmanifest"');
-    expect(main).toContain('.register("/sw.js")');
+    expect({
+      hasManifest: html.includes('rel="manifest" href="/manifest.webmanifest"'),
+      safeIosStatusBar:
+        /<meta\s+name="apple-mobile-web-app-status-bar-style"\s+content="black"\s*\/>/u.test(
+          html
+        ),
+      registersServiceWorker: main.includes('.register("/sw.js")'),
+      detectsWaitingUpdates:
+        main.includes("if (registration.waiting)") &&
+        main.includes("let updatePending = false"),
+      sortsBuildAssets: buildScript.includes("assetFiles.sort()"),
+      validatesPlaceholders: buildScript.includes(
+        "Expected exactly one service-worker placeholder"
+      ),
+      seedsFromBrowserNetworkState: networkStatus.includes(
+        'let isOnline = typeof navigator !== "undefined" && navigator.onLine;'
+      ),
+    }).toStrictEqual({
+      hasManifest: true,
+      safeIosStatusBar: true,
+      registersServiceWorker: true,
+      detectsWaitingUpdates: true,
+      sortsBuildAssets: true,
+      validatesPlaceholders: true,
+      seedsFromBrowserNetworkState: true,
+    });
   });
 
   test("precaches the app shell and falls back to it for offline navigation", async () => {
     const serviceWorker = await readAppFile("../../public/sw.js");
 
-    expect(serviceWorker).toContain('"/"');
-    expect(serviceWorker).toContain('if (request.mode === "navigate")');
-    expect(serviceWorker).toContain('const cached = await caches.match("/")');
-    expect(serviceWorker).toContain("return cached ?? Response.error()");
-    expect(serviceWorker).toContain('url.pathname.startsWith("/api/")');
+    expect({
+      precachesRoot: serviceWorker.includes('"/"'),
+      handlesNavigations: serviceWorker.includes(
+        'if (request.mode === "navigate")'
+      ),
+      cachesNavigationsByRequest: serviceWorker.includes(
+        "await cache.put(request, response.clone())"
+      ),
+      fallsBackToMatchingNavigation: serviceWorker.includes(
+        "(await caches.match(request))"
+      ),
+      fallsBackToRoot: serviceWorker.includes('await caches.match("/")'),
+      returnsNetworkErrorWhenUncached: serviceWorker.includes(
+        "return cached ?? Response.error()"
+      ),
+      bypassesApi: serviceWorker.includes('url.pathname.startsWith("/api/")'),
+    }).toStrictEqual({
+      precachesRoot: true,
+      handlesNavigations: true,
+      cachesNavigationsByRequest: true,
+      fallsBackToMatchingNavigation: true,
+      fallsBackToRoot: true,
+      returnsNetworkErrorWhenUncached: true,
+      bypassesApi: true,
+    });
   });
 
   test("requests permission only from explicit reminder opt-in and syncs consent to the worker", async () => {

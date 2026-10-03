@@ -51,27 +51,33 @@ const registerServiceWorker = async (): Promise<void> => {
     return;
   }
 
-  const hadController = navigator.serviceWorker.controller !== null;
+  let updatePending = false;
 
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (hadController) {
+    if (updatePending) {
       window.location.reload();
     }
   });
 
   try {
     const registration = await navigator.serviceWorker.register("/sw.js");
+    const notifyUpdateAvailable = () => {
+      if (navigator.serviceWorker.controller) {
+        updatePending = true;
+        window.dispatchEvent(new Event("app-update-available"));
+      }
+    };
     registration.addEventListener("updatefound", () => {
       const { installing } = registration;
       installing?.addEventListener("statechange", () => {
-        if (
-          installing.state === "installed" &&
-          navigator.serviceWorker.controller
-        ) {
-          window.dispatchEvent(new Event("app-update-available"));
+        if (installing.state === "installed") {
+          notifyUpdateAvailable();
         }
       });
     });
+    if (registration.waiting) {
+      notifyUpdateAvailable();
+    }
   } catch {
     console.error("Failed to register the offline app shell.");
   }

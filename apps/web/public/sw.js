@@ -206,11 +206,12 @@ self.addEventListener("fetch", (event) => {
           const response = await fetch(request);
           if (response.ok) {
             const cache = await caches.open(CACHE_NAME);
-            await cache.put("/", response.clone());
+            await cache.put(request, response.clone());
           }
           return response;
         } catch {
-          const cached = await caches.match("/");
+          const cached =
+            (await caches.match(request)) ?? (await caches.match("/"));
           return cached ?? Response.error();
         }
       })()

@@ -91,6 +91,12 @@ export default {
         headers: { Allow: "POST, DELETE" },
       });
     }
+    if (url.pathname === "/api/health" && request.method === "HEAD") {
+      return new Response(null, {
+        headers: { "Cache-Control": "no-store" },
+        status: 204,
+      });
+    }
     if (url.pathname === "/api/lookup" && request.method === "GET") {
       try {
         return await handleLookup(request);
