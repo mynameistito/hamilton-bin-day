@@ -21,6 +21,24 @@ const verificationDateFormatter = new Intl.DateTimeFormat("en-NZ", {
   dateStyle: "long",
   timeZone: "UTC",
 });
+const hasConflictingKerbsideGuidance = (itemId: number): boolean =>
+  itemId === 231 || itemId === 232;
+
+const KerbsideGuidanceNotice = () => (
+  <p className="text-copy-muted mt-1 block text-xs">
+    This sorter result is classified as red, while separate Council{" "}
+    <a
+      className="underline underline-offset-2"
+      href="https://hamilton.govt.nz/fight-the-landfill/kerbside-collection"
+      rel="noreferrer"
+      target="_blank"
+    >
+      kerbside guidance
+    </a>{" "}
+    says clean cardboard and eligible plastics numbered 1, 2 or 5 go in yellow
+    recycling. Check current Council advice before disposal.
+  </p>
+);
 
 const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
   const searchRef = useRef<HTMLInputElement>(null);
@@ -124,6 +142,9 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                     {entry.notes && (
                       <span className="mt-1 block">{entry.notes}</span>
                     )}
+                    {hasConflictingKerbsideGuidance(entry.id) && (
+                      <KerbsideGuidanceNotice />
+                    )}
                   </li>
                 ))}
               </ul>
@@ -148,6 +169,9 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                   {entry.notes && (
                     <span className="text-copy-muted"> — {entry.notes}</span>
                   )}
+                  {hasConflictingKerbsideGuidance(entry.id) && (
+                    <KerbsideGuidanceNotice />
+                  )}
                 </li>
               ))}
             </ul>
@@ -165,6 +189,9 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                           {" "}
                           — {entry.notes}
                         </span>
+                      )}
+                      {hasConflictingKerbsideGuidance(entry.id) && (
+                        <KerbsideGuidanceNotice />
                       )}
                     </li>
                   ))}

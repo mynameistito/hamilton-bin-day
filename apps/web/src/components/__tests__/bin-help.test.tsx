@@ -82,6 +82,27 @@ describe("per-bin help", () => {
     ).toContain("No item matches “not a council item”");
   });
 
+  test("shows the Council guidance conflict beside sorter entries 231 and 232", () => {
+    render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "What goes in the red rubbish wheelie bin?",
+      })
+    );
+
+    expect(
+      screen.getAllByText(/This sorter result is classified as red/u)
+    ).toHaveLength(2);
+    expect(
+      screen
+        .getAllByRole("link", { name: "kerbside guidance" })
+        .map((link) => link.getAttribute("href"))
+    ).toStrictEqual([
+      "https://hamilton.govt.nz/fight-the-landfill/kerbside-collection",
+      "https://hamilton.govt.nz/fight-the-landfill/kerbside-collection",
+    ]);
+  });
+
   test("closes with Escape and returns focus to its help control", () => {
     render(<BinHelpControl bin="food-scraps" binName="food scraps bin" />);
     const trigger = screen.getByRole("button", {
