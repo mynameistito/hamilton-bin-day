@@ -283,7 +283,7 @@ export const planCatalogueSync = (
     changed: true,
     content,
     message: checkOnly
-      ? "Council sorter catalogue is stale. Run `bun run bins:sync` to refresh it."
+      ? "Council sorter catalogue is stale. Run bins:sync to refresh it."
       : `Updated the Council sorter catalogue with ${next.items.length} items.`,
   };
 };

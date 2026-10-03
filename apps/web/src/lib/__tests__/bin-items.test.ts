@@ -27,7 +27,9 @@ describe("verified bin item lookup", () => {
   });
 
   test("finds Council handling advice for non-kerbside disposal", () => {
-    expect(searchBinItems("batteries").map(({ bin }) => bin)).toContain("other");
+    expect(
+      searchBinItems("batteries").map(({ bin }) => bin)
+    ).toContain("other");
     expect(searchBinItems(" ")).toStrictEqual([]);
   });
 

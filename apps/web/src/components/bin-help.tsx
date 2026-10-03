@@ -109,9 +109,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                     key={entry.id}
                   >
                     <span className="font-semibold">{entry.item}</span>
-                    <span className="mt-1 block">
-                      {entry.destination}
-                    </span>
+                    <span className="mt-1 block">{entry.destination}</span>
                     {entry.notes && (
                       <span className="mt-1 block">{entry.notes}</span>
                     )}

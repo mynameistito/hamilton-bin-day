@@ -98,16 +98,19 @@ describe("Council sorter catalogue sync", () => {
       detailBody: "id=42",
       isFresh: false,
       checkChanged: true,
-      checkMessage: "Council sorter catalogue is stale. Run `bun run bins:sync` to refresh it.",
+      checkMessage: "Council sorter catalogue is stale. Run bins:sync to refresh it.",
       checkContent: content,
       updateMessage: "Updated the Council sorter catalogue with 1 items.",
       updateContent: content,
     });
   });
 
-  test("does not produce a partial catalogue if a detail fetch fails", async () => {
-    await expect(
-      fetchCouncilCatalogue(failingFetch, "2026-10-03")
-    ).rejects.toThrow("detail request failed for item 43");
-  });
+  test(
+    "does not produce a partial catalogue if a detail fetch fails",
+    async () => {
+      await expect(
+        fetchCouncilCatalogue(failingFetch, "2026-10-03")
+      ).rejects.toThrow("detail request failed for item 43");
+    }
+  );
 });
