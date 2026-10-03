@@ -154,4 +154,39 @@ describe("remembered addresses", () => {
     });
     await expect(saveAddressCookie("12 Grey Street")).resolves.toBeUndefined();
   });
+
+  test("serializes overlapping address writes in invocation order", async () => {
+    const pendingWrites: (() => void)[] = [];
+    let storedAddress: string | null = null;
+    const set = vi.fn<(options: { value: string }) => Promise<void>>(
+      (options) => {
+        const write = Promise.withResolvers<null>();
+        pendingWrites.push(() => {
+          storedAddress = options.value;
+          write.resolve(null);
+        });
+        return write.promise;
+      }
+    );
+    vi.stubGlobal("window", {
+      cookieStore: { set },
+      localStorage: { setItem: vi.fn<(key: string, value: string) => void>() },
+    });
+
+    const firstWrite = saveAddressCookie("Older address");
+    const secondWrite = saveAddressCookie("Latest address");
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(set).toHaveBeenCalledOnce();
+    pendingWrites[0]?.();
+    await firstWrite;
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(set).toHaveBeenCalledTimes(2);
+    pendingWrites[1]?.();
+    await secondWrite;
+
+    expect(storedAddress).toBe("Latest address");
+  });
 });
