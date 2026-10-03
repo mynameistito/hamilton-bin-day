@@ -13,16 +13,20 @@ import {
 } from "@/lib/reminder-server";
 import type { ReminderDatabase } from "@/lib/reminder-server";
 
-const migration = readFileSync(
-  new URL("../../migrations/0001_reminder_subscriptions.sql", import.meta.url),
-  "utf-8"
-);
+const migrations = [
+  "0001_reminder_subscriptions.sql",
+  "0002_reminder_subscription_revision.sql",
+]
+  .map((file) =>
+    readFileSync(new URL(`../../migrations/${file}`, import.meta.url), "utf-8")
+  )
+  .join("\n");
 
 class SQLiteReminderDatabase implements ReminderDatabase {
   readonly sqlite = new DatabaseSync(":memory:");
 
   constructor() {
-    this.sqlite.exec(migration);
+    this.sqlite.exec(migrations);
   }
 
   prepare(query: string) {
@@ -485,16 +489,16 @@ describe("reminder delivery database behavior", () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
-        new Date("2026-10-02T00:00:00.000Z")
+        new Date("2026-10-01T00:00:00.000Z")
       );
       sendGate.resolve(new Response(null, { status: 410 }));
       await firstRun;
 
       expect(
         database.sqlite
-          .prepare("SELECT updated_at FROM reminder_subscriptions")
+          .prepare("SELECT revision FROM reminder_subscriptions")
           .get()
-      ).toMatchObject({ updated_at: "2026-10-02T00:00:00.000Z" });
+      ).toMatchObject({ revision: 2 });
     });
 
     test("retries a transient push failure on the next cron instead of suppressing delivery", async () => {

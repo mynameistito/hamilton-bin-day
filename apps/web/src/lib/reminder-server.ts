@@ -83,7 +83,7 @@ interface ReminderRecord {
   readonly scheduled_at: string;
   readonly notification_id: string;
   readonly claim_until: string | null;
-  readonly updated_at: string;
+  readonly revision: number;
 }
 
 const PUSH_SERVICE_SUFFIXES = [
@@ -345,10 +345,10 @@ export const handleReminderSubscribe = async (
       .prepare(
         `INSERT INTO reminder_subscriptions
           (endpoint, subscription_json, collection_date, following_date, collection_type,
-           lead_days, local_time, time_zone, scheduled_at, notification_id, claim_until,
-            updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
-         ON CONFLICT(endpoint) DO UPDATE SET
+            lead_days, local_time, time_zone, scheduled_at, notification_id, claim_until,
+             updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+          ON CONFLICT(endpoint) DO UPDATE SET
            subscription_json = excluded.subscription_json,
            collection_date = excluded.collection_date,
            following_date = excluded.following_date,
@@ -357,9 +357,10 @@ export const handleReminderSubscribe = async (
            local_time = excluded.local_time,
            time_zone = excluded.time_zone,
            scheduled_at = excluded.scheduled_at,
-           notification_id = excluded.notification_id,
-           claim_until = NULL,
-           updated_at = excluded.updated_at`
+            notification_id = excluded.notification_id,
+            claim_until = NULL,
+            updated_at = excluded.updated_at,
+            revision = reminder_subscriptions.revision + 1`
       )
       .bind(
         input.subscription.endpoint,
@@ -416,14 +417,14 @@ const CLEAR_CLAIM_SQL =
 const removeSubscription = async (
   database: ReminderDatabase,
   endpoint: string,
-  updatedAt?: string
+  revision?: number
 ): Promise<void> => {
-  if (updatedAt) {
+  if (revision !== undefined) {
     await database
       .prepare(
-        "DELETE FROM reminder_subscriptions WHERE endpoint = ? AND updated_at = ?"
+        "DELETE FROM reminder_subscriptions WHERE endpoint = ? AND revision = ?"
       )
-      .bind(endpoint, updatedAt)
+      .bind(endpoint, revision)
       .run();
     return;
   }
@@ -543,7 +544,7 @@ const sendDueRecord = async (
       keys
     );
     if (response.status === 404 || response.status === 410) {
-      await removeSubscription(database, record.endpoint, record.updated_at);
+      await removeSubscription(database, record.endpoint, record.revision);
     } else if (response.ok) {
       await advanceSubscription(database, record, now);
     } else {
@@ -588,7 +589,7 @@ export const sendDueReminders = async (
   const { results } = await database
     .prepare(
       `SELECT endpoint, subscription_json, collection_date, following_date, collection_type,
-              lead_days, local_time, time_zone, scheduled_at, notification_id, claim_until, updated_at
+              lead_days, local_time, time_zone, scheduled_at, notification_id, claim_until, revision
        FROM reminder_subscriptions
        WHERE scheduled_at <= ? AND (claim_until IS NULL OR claim_until <= ?)
        ORDER BY scheduled_at LIMIT 100`
