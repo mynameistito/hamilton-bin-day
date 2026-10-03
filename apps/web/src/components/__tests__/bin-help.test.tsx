@@ -73,12 +73,13 @@ describe("per-bin help", () => {
     fireEvent.change(search, { target: { value: "glass bottles" } });
     expect(
       screen.getByText("This item goes into your glass recycling crate.")
-    ).toBeTruthy();
+        .textContent
+    ).toBe("This item goes into your glass recycling crate.");
 
     fireEvent.change(search, { target: { value: "not a council item" } });
     expect(
-      screen.getByText(/No item matches “not a council item”/u)
-    ).toBeTruthy();
+      screen.getByText(/No item matches “not a council item”/u).textContent
+    ).toContain("No item matches “not a council item”");
   });
 
   test("closes with Escape and returns focus to its help control", () => {
@@ -101,8 +102,8 @@ describe("per-bin help", () => {
     });
     fireEvent.click(trigger);
     expect(
-      screen.getByText(/The Council sorter has no listed items/u)
-    ).toBeTruthy();
+      screen.getByText(/The Council sorter has no listed items/u).textContent
+    ).toContain("The Council sorter has no listed items");
     const search = screen.getByLabelText("Search the full catalogue");
     const sourceLink = screen.getByRole("link", {
       name: "Hamilton City Council’s item sorter",
