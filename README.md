@@ -29,18 +29,30 @@ The web Worker lookup endpoint is also available as `GET /api/lookup?address=...
 
 ### Bin-day reminder status
 
-The web app now lets a user save an explicit reminder preference, lead time, and local delivery time in that browser's local storage. It calculates the requested local instant from Hamilton's collection date (including local timezone and daylight-saving transitions). Preferences are device-local; there are no accounts or cross-device sync.
+The web app lets a user explicitly enable reminders, choose a lead time and local delivery time, and save a schedule using a browser push subscription. The sender resolves the instant in the selected IANA timezone, including DST boundaries. There are no accounts or cross-device sync. Notification permission is requested only by the enable control; unsupported browsers, denied permission, insecure contexts, and iOS browsers that are not installed Home Screen apps are reported. The browser retains the opaque push endpoint locally so it can delete the server record even if PushManager no longer returns the subscription.
 
-Closed-app delivery is **not configured**, so the app does not request browser notification permission and does not claim that reminders will be sent. The service worker accepts only validated push messages after a local opt-in marker and suppresses repeats with the same notification ID; it has no page timer and cannot schedule notifications on its own. No VAPID key, push subscription endpoint, subscription database, or reminder scheduler is currently deployed.
+Closed-app delivery is implemented with a scheduled Worker, a stage-specific D1 database, and Web Push (RFC 8291/8292 via `@block65/webcrypto-web-push`). It checks due notifications every five minutes, uses a claim and stable collection/preference notification ID to make retries idempotent, suppresses duplicate displays in the service worker, retries transient push failures, and removes subscriptions rejected with HTTP 404/410. A schedule lookup updates the snapshot for an existing browser subscription. The server stores only the push subscription, next and following collection dates/bin-week, timezone, reminder preferences, and operational timestamps/claim state. It does **not** store the street address or an address-derived lookup key. With no account, the push endpoint itself is the unguessable per-device authorization capability used for updates and deletion.
 
-To enable production delivery, provision a VAPID key pair (keep the private key in a Cloudflare secret), an authenticated subscribe/unsubscribe API, durable storage for the minimal push subscription and reminder preferences, and a scheduled Worker (or queue-backed scheduler). Rechecking a schedule also requires retaining the address or equivalent Council lookup key on the server; that personal data is not collected server-side today, so its retention and privacy disclosure must be decided before enabling delivery. The sender must recompute the current Council schedule before delivery, cancel stale address/date schedules, use a stable per-subscription/collection/preference idempotency key, and delete expired push subscriptions. Only after this path is configured should the UI request permission and create a push subscription. No credentials or Cloudflare resources for this delivery path are included in this change.
+The closed-app sender cannot re-query the Council without retaining an address or equivalent lookup key. It uses the latest two-date schedule snapshot and projects the alternating weekly dates until the user looks up a schedule again. Exceptional Council date changes therefore require a fresh lookup to update the snapshot. Records are deleted on unsubscribe, provider 404/410, or after 90 days without a successful reminder or schedule refresh. No production VAPID credentials have been generated or committed, and no Cloudflare resources have been deployed or provisioned by this change. Until all three VAPID settings are configured, the API safely returns “not configured” and does not claim a subscription was saved.
+
+#### Enabling delivery in a deployment
+
+The next explicit Alchemy deployment creates the stage-specific D1 database, applies `apps/web/migrations`, binds it to the Worker, and attaches the five-minute Cron Trigger. Before enabling browser subscriptions, securely generate a VAPID key pair and configure the Worker's `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` settings. For example, for the production Worker, use the Cloudflare secret manager (never commit the values):
+
+```powershell
+wrangler secret put VAPID_PUBLIC_KEY --name hcc-bin-day
+wrangler secret put VAPID_PRIVATE_KEY --name hcc-bin-day
+wrangler secret put VAPID_SUBJECT --name hcc-bin-day
+```
+
+Use the corresponding stage-specific Worker name for previews. Reconfirm that the secrets remain configured after later deployments. Do not enable or advertise delivery until the API reports configured status and a real installed-device smoke test succeeds.
 
 #### Reminder delivery smoke test
 
-- **Current deployment:** on Android Chrome and iOS Safari, install the PWA, opt in, choose **The day before** and a local time, then reload and confirm the selections persist. Confirm the UI reports that delivery is unavailable and that it did not prompt for notification permission. A closed-app delivery test is not possible until the backend above is provisioned.
-- **After delivery is provisioned — Android:** allow notifications, set a test collection/reminder close to the current time, close the installed app before delivery, and verify one notification arrives at the selected local time. Tap it to open the app; resend the same push and verify it is not shown again.
-- **After delivery is provisioned — iOS:** use a supported iOS version and an app launched from **Share → Add to Home Screen** in Safari. Repeat the permission, closed-app, selected-time, tap-through, and duplicate checks.
-- On both platforms, also deny permission and verify the UI directs the user to browser settings; then change the collection schedule and verify an old collection reminder is cancelled before testing the new date.
+- **Current code before deployment/configuration:** local tests cover enrollment, schedule updates, removal, and duplicate/retry behavior. On Android Chrome and supported iOS Safari, install the PWA, verify the consent explanation appears before opting in, and confirm that an unconfigured server fails visibly without claiming success. No phone E2E was run for this change.
+- **After VAPID settings and D1/Cron deployment:** on Android Chrome, enable reminders, select **The day before** and a local time, close the installed app before send time, and verify one notification arrives. Tap it to open the app; retry the same push and verify it is not shown again.
+- **After delivery is provisioned — iOS:** use a supported iOS version and open the app installed through **Share → Add to Home Screen** in Safari. Repeat the permission, closed-app, selected-time, tap-through, and duplicate checks.
+- On both platforms, also deny permission and verify the UI points to browser settings; change the collection schedule and confirm the existing server snapshot is updated so the old date is cancelled. Disable reminders and verify the server record is deleted.
 
 The web Worker and CLI use the public Hamilton City Council backend used by the Fight the Landfill page:
 

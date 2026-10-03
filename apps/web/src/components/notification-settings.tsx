@@ -1,14 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
+import { useReminderDelivery } from "@/hooks/use-reminder-delivery";
 import {
   calculateReminderSchedule,
   readNotificationPreferences,
-  resolveNotificationPermissionState,
   saveNotificationPreferences,
 } from "@/lib/notifications";
 import type {
   NotificationPreferences,
-  NotificationPermissionState,
   ReminderLeadDays,
 } from "@/lib/notifications";
 import { formatCollectionDate } from "@/lib/schedule";
@@ -17,28 +16,17 @@ import type { ScheduleResponse } from "@/lib/schedule";
 const readDeviceTimeZone = (): string =>
   Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const describeDefaultPermission = (
+const describeReminderDelivery = (
   enabled: boolean,
-  storageAvailable: boolean
+  deliveryActive: boolean
 ): string => {
   if (!enabled) {
-    return "Turn reminders on to save your preference on this device.";
+    return "Reminders are off. Enabling them asks for browser permission and saves a push subscription.";
   }
-  if (!storageAvailable) {
-    return "Your reminder preference could not be saved on this device.";
+  if (deliveryActive) {
+    return "Your reminder subscription is active. Delivery is checked every five minutes; push timing also depends on your browser and platform.";
   }
-  return "Your reminder preference is saved on this device.";
-};
-
-const readPermissionState = (): NotificationPermissionState => {
-  const hasNotification = "Notification" in window;
-  return resolveNotificationPermissionState({
-    hasNotification,
-    hasPushManager: "PushManager" in window,
-    hasServiceWorker: "serviceWorker" in navigator,
-    permission: hasNotification ? Notification.permission : "default",
-    secureContext: window.isSecureContext,
-  });
+  return "Reminders are on in this browser; server delivery status is being checked or needs attention.";
 };
 
 const leadDaysFromValue = (value: string): ReminderLeadDays => {
@@ -58,45 +46,54 @@ const leadDaysFromValue = (value: string): ReminderLeadDays => {
   }
 };
 
-/** Let the user save local reminder intent while clearly reporting delivery availability. */
+const describePermission = (
+  permission: string,
+  enabled: boolean,
+  storageAvailable: boolean
+): string => {
+  if (permission === "unsupported") {
+    return "This browser does not support web notifications.";
+  }
+  if (permission === "insecure") {
+    return "Notifications require a secure HTTPS connection.";
+  }
+  if (permission === "denied") {
+    return "Notifications are blocked. Change this site's permission in browser settings.";
+  }
+  if (permission === "granted") {
+    return "Browser notification permission is granted.";
+  }
+  if (!storageAvailable) {
+    return "Your reminder preference could not be saved on this device.";
+  }
+  return enabled
+    ? "Your reminder preference is saved on this device."
+    : "Turn reminders on to choose your reminder settings.";
+};
+
+/** Render consent, schedule, and delivery status for bin-day reminders. */
 export const NotificationSettings = ({
   schedule,
+  cancelMissingSchedule,
 }: {
   readonly schedule: ScheduleResponse | null;
+  readonly cancelMissingSchedule: boolean;
 }) => {
   const [preferences, setPreferences] = useState(readNotificationPreferences);
-  const [permission, setPermission] =
-    useState<NotificationPermissionState>(readPermissionState);
   const [storageAvailable, setStorageAvailable] = useState(true);
-
-  useEffect(() => {
-    const refreshPermission = () => setPermission(readPermissionState());
-    window.addEventListener("focus", refreshPermission);
-    return () => window.removeEventListener("focus", refreshPermission);
-  }, []);
-
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) {
-      return;
-    }
-    const updateConsent = async () => {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        registration.active?.postMessage({
-          enabled: preferences.enabled && storageAvailable,
-          type: "NOTIFICATION_CONSENT",
-        });
-      } catch {
-        // Preference storage remains usable when service workers are unavailable.
-      }
-    };
-    void updateConsent();
-  }, [preferences.enabled, storageAvailable]);
-
-  const save = (next: NotificationPreferences) => {
+  const save = useCallback((next: NotificationPreferences) => {
     setPreferences(next);
-    setStorageAvailable(saveNotificationPreferences(next));
-  };
+    const saved = saveNotificationPreferences(next);
+    setStorageAvailable(saved);
+    return saved;
+  }, []);
+  const {
+    deliveryActive,
+    deliveryMessage,
+    disableReminders,
+    enableReminders,
+    permission,
+  } = useReminderDelivery(schedule, cancelMissingSchedule, preferences, save);
   const timeZone = readDeviceTimeZone();
   const reminder = schedule
     ? calculateReminderSchedule(
@@ -105,6 +102,10 @@ export const NotificationSettings = ({
         timeZone
       )
     : null;
+  const reminderStatus = describeReminderDelivery(
+    preferences.enabled,
+    deliveryActive
+  );
 
   return (
     <section
@@ -120,17 +121,26 @@ export const NotificationSettings = ({
             Bin-day reminders
           </h2>
           <p className="text-copy-muted mt-2 text-sm leading-6">
-            Choose when you would like a reminder. Your preference is saved only
-            in this browser on this device.
+            Choose when you would like a reminder. When you turn reminders on,
+            this app asks for notification permission and sends the push
+            subscription, schedule dates, timezone, and reminder settings to the
+            delivery service. Your street address is never stored there. A copy
+            of the opaque push endpoint stays in this browser so the service
+            subscription can still be removed if the browser no longer reports
+            it.
           </p>
         </div>
         <label className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-3 font-semibold">
           <input
             checked={preferences.enabled}
             className="accent-forest size-5"
-            onChange={(event) =>
-              save({ ...preferences, enabled: event.target.checked })
-            }
+            onChange={(event) => {
+              if (event.target.checked) {
+                void enableReminders();
+              } else {
+                void disableReminders();
+              }
+            }}
             type="checkbox"
           />
           Reminders {preferences.enabled ? "on" : "off"}
@@ -143,12 +153,15 @@ export const NotificationSettings = ({
           <select
             className="border-sage-border bg-panel text-ink mt-2 min-h-11 w-full rounded-xl border px-3"
             disabled={!preferences.enabled}
-            onChange={(event) =>
-              save({
+            onChange={(event) => {
+              const saved = save({
                 ...preferences,
                 leadDays: leadDaysFromValue(event.target.value),
-              })
-            }
+              });
+              if (!saved && preferences.enabled) {
+                void disableReminders();
+              }
+            }}
             value={String(preferences.leadDays)}
           >
             <option value="0">On collection day</option>
@@ -164,7 +177,13 @@ export const NotificationSettings = ({
             disabled={!preferences.enabled}
             onChange={(event) => {
               if (event.target.value) {
-                save({ ...preferences, localTime: event.target.value });
+                const saved = save({
+                  ...preferences,
+                  localTime: event.target.value,
+                });
+                if (!saved && preferences.enabled) {
+                  void disableReminders();
+                }
               } else {
                 event.currentTarget.value = preferences.localTime;
               }
@@ -179,56 +198,34 @@ export const NotificationSettings = ({
       {reminder && (
         <p className="bg-panel mt-4 rounded-xl p-4 text-sm">
           Planned reminder: {formatCollectionDate(reminder.scheduledLocalDate)}
-          at {reminder.scheduledLocalTime} ({reminder.timeZone}). This is a
-          preview only; background delivery is not configured.
+          at {reminder.scheduledLocalTime} ({reminder.timeZone}).
         </p>
       )}
 
       <div aria-live="polite" className="bg-panel mt-5 rounded-xl p-4 text-sm">
-        <output className="block">
-          Background delivery is not configured. This version sends no reminders
-          and does not prompt for notification permission.
-        </output>
+        <output className="block">{reminderStatus}</output>
         {!storageAvailable && (
           <output className="block">
-            This browser blocked local storage, so your reminder preference
-            could not be saved.
+            This browser blocked local storage, so your preference could not be
+            saved.
           </output>
         )}
-        {permission === "unsupported" && (
-          <output className="block">
-            This browser does not support web notifications. You can still edit
-            your preference, but reminders are unavailable here.
-          </output>
-        )}
-        {permission === "insecure" && (
-          <output className="block">
-            Notifications require a secure HTTPS connection. Reminder delivery
-            is unavailable on this connection.
-          </output>
-        )}
-        {permission === "denied" && (
-          <output className="block">
-            Notifications are blocked in browser settings. Change this site’s
-            notification permission there before reminders can be delivered.
-          </output>
-        )}
-        {permission === "granted" && (
-          <output className="block">
-            Browser notification permission is granted.
-          </output>
-        )}
-        {permission === "default" && (
-          <output className="block">
-            {describeDefaultPermission(preferences.enabled, storageAvailable)}
-          </output>
+        <output className="block">
+          {describePermission(
+            permission,
+            preferences.enabled,
+            storageAvailable
+          )}
+        </output>
+        {deliveryMessage && (
+          <output className="block">{deliveryMessage}</output>
         )}
       </div>
 
       <p className="text-copy-muted mt-3 text-xs leading-5">
-        iPhone and iPad web push requires adding this app to the Home Screen and
-        using a supported iOS version. No notification permission is requested
-        until background delivery is available.
+        iPhone and iPad web push is available only in a supported, installed
+        Home Screen app. Browser permission may also need to be changed in
+        browser settings when reminders are turned off.
       </p>
     </section>
   );

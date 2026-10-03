@@ -55,23 +55,28 @@ describe("PWA app shell", () => {
     expect(serviceWorker).toContain('url.pathname.startsWith("/api/")');
   });
 
-  test("keeps notification opt-in explicit and does not prompt before push delivery is configured", async () => {
-    const [settings, serviceWorker] = await Promise.all([
+  test("requests permission only from explicit reminder opt-in and syncs consent to the worker", async () => {
+    const [settings, deliveryHook, serviceWorker] = await Promise.all([
       readAppFile("../components/notification-settings.tsx"),
+      readAppFile("../hooks/use-reminder-delivery.ts"),
       readAppFile("../../public/sw.js"),
     ]);
 
     expect({
-      hasExplicitOptIn: settings.includes('type="checkbox"'),
+      hasExplicitOptIn:
+        settings.includes('type="checkbox"') &&
+        settings.includes("event.target.checked") &&
+        settings.includes("void enableReminders()"),
       hasLocalTime: settings.includes('type="time"'),
       hasDayBeforeOption: settings.includes("The day before"),
-      showsPermissionState: settings.includes("Notification.permission"),
-      avoidsPrematurePermissionPrompt: !settings.includes(
-        "Notification.requestPermission"
-      ),
+      showsPermissionState: deliveryHook.includes("Notification.permission"),
+      permissionPromptLivesInOptInAction:
+        deliveryHook.includes("const enableReminders = async") &&
+        deliveryHook.includes("Notification.requestPermission()") &&
+        !settings.includes("Notification.requestPermission"),
       syncsOptInToServiceWorker:
-        settings.includes("registration.active?.postMessage({") &&
-        settings.includes('type: "NOTIFICATION_CONSENT"') &&
+        deliveryHook.includes("registration.active?.postMessage({") &&
+        deliveryHook.includes('type: "NOTIFICATION_CONSENT"') &&
         serviceWorker.includes('type === "NOTIFICATION_CONSENT"'),
       handlesPushEvents: serviceWorker.includes('addEventListener("push"'),
     }).toStrictEqual({
@@ -79,7 +84,7 @@ describe("PWA app shell", () => {
       hasLocalTime: true,
       hasDayBeforeOption: true,
       showsPermissionState: true,
-      avoidsPrematurePermissionPrompt: true,
+      permissionPromptLivesInOptInAction: true,
       syncsOptInToServiceWorker: true,
       handlesPushEvents: true,
     });

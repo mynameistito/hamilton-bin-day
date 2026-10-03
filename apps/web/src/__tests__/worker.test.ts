@@ -215,6 +215,40 @@ describe("lookup endpoint input validation", () => {
     expect(invalidScheduleResponse.status).toBe(502);
   });
 
+  test("rate limits reminder mutations by request IP and fails closed on limiter errors", async () => {
+    const assets = {
+      fetch: vi.fn<(request: Request) => Promise<Response>>(),
+    };
+    const rateLimit = vi
+      .fn<
+        (options: {
+          readonly key: string;
+        }) => Promise<{ readonly success: boolean }>
+      >()
+      .mockResolvedValueOnce({ success: false })
+      .mockRejectedValueOnce(new Error("limiter unavailable"));
+    const environment = {
+      ASSETS: assets,
+      REMINDER_LIMIT: { limit: rateLimit },
+    };
+    const request = new Request(
+      "https://example.test/api/reminders/subscription",
+      {
+        method: "DELETE",
+        headers: { "CF-Connecting-IP": "203.0.113.4" },
+      }
+    );
+
+    const limited = await worker.fetch(request, environment);
+    const unavailable = await worker.fetch(request, environment);
+
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("Retry-After")).toBe("60");
+    expect(unavailable.status).toBe(503);
+    expect(rateLimit).toHaveBeenCalledWith({ key: "203.0.113.4" });
+    expect(assets.fetch).not.toHaveBeenCalled();
+  });
+
   test("delegates non-lookup requests to the asset binding", async () => {
     const response = new Response("asset");
     const assets = {
