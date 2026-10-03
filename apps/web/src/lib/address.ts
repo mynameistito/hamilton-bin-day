@@ -63,11 +63,7 @@ const persistAddressAfter = async (
   } catch {
     // A failed earlier write must not block this address.
   }
-  try {
-    await persistAddress(address);
-  } catch {
-    writeAddressStorage(address);
-  }
+  await persistAddress(address);
 };
 
 export const saveAddressCookie = (address: string): Promise<void> => {
