@@ -20,14 +20,41 @@ describe("per-bin help", () => {
     );
 
     expect(
-      screen.getByRole("dialog", {
-        name: "What goes in the yellow recycling wheelie bin?",
-      })
-    ).toBeTruthy();
+      screen
+        .getByRole("dialog", {
+          name: "What goes in the yellow recycling wheelie bin?",
+        })
+        .getAttribute("aria-modal")
+    ).toBe("true");
     expect(screen.getByLabelText("Search the full catalogue")).toBe(
       document.activeElement
     );
-    expect(screen.getByText("Aluminium cans")).toBeTruthy();
+    expect(screen.getByText("Aluminium cans").textContent).toBe(
+      "Aluminium cans"
+    );
+  });
+
+  test("keeps the full catalogue collapsed and its source outside live regions", () => {
+    render(
+      <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "What goes in the yellow recycling wheelie bin?",
+      })
+    );
+
+    const dialog = screen.getByRole("dialog");
+    expect(
+      dialog.querySelector("section > ul")?.querySelectorAll("li").length
+    ).toBeLessThanOrEqual(10);
+    expect(screen.getByText(/Show the remaining \d+ items/u).tagName).toBe(
+      "SUMMARY"
+    );
+    const sourceLink = screen.getByRole("link", {
+      name: "Hamilton City Council’s item sorter",
+    });
+    expect(sourceLink.closest("[aria-live]")).toBeNull();
   });
 
   test("searches the full catalogue and announces a clear no-match state", () => {
@@ -77,11 +104,17 @@ describe("per-bin help", () => {
       screen.getByText(/The Council sorter has no listed items/u)
     ).toBeTruthy();
     const search = screen.getByLabelText("Search the full catalogue");
+    const sourceLink = screen.getByRole("link", {
+      name: "Hamilton City Council’s item sorter",
+    });
     const close = screen.getByRole("button", { name: "Close bin help" });
 
     close.focus();
     fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
-    expect(search).toBe(document.activeElement);
+    expect(sourceLink).toBe(document.activeElement);
+    fireEvent.keyDown(sourceLink, { key: "Tab" });
+    expect(close).toBe(document.activeElement);
+    search.focus();
     fireEvent.click(close);
 
     expect(screen.queryByRole("dialog")).toBeNull();

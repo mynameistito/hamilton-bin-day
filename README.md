@@ -16,7 +16,7 @@ Look up the next Hamilton City Council bin collection for an address, or use the
 
 ## Council sorter catalogue
 
-The web app includes all 351 items returned by Hamilton City Council's public item sorter, including the Council's destination wording and handling/disposal advice. The local catalogue was checked on 3 October 2026; it is sourced from [Hamilton City Council's Fight the Landfill sorter](https://hamilton.govt.nz/fight-the-landfill) and is informational convenience, not a substitute for current Council advice.
+The web app includes the full Hamilton City Council public sorter catalogue, including the Council's destination wording and handling/disposal advice. The checked-in item count and snapshot date are recorded in `apps/web/src/lib/bin-items-data.json` (`source.verifiedOn`). The catalogue is sourced from [Hamilton City Council's Fight the Landfill sorter](https://hamilton.govt.nz/fight-the-landfill) and is informational convenience, not a substitute for current Council advice.
 
 Refresh or check the catalogue from the repository root:
 

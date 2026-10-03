@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { BIN_ITEM_SOURCE, BIN_ITEMS, searchBinItems } from "@/lib/bin-items";
@@ -23,12 +24,26 @@ const verificationDateFormatter = new Intl.DateTimeFormat("en-NZ", {
 
 const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
   const searchRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [query, setQuery] = useState("");
   const guidance = bin ? BIN_ITEMS.filter((entry) => entry.bin === bin) : [];
   const results = query.trim() ? searchBinItems(query) : null;
 
   useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      return;
+    }
+    dialog.showModal?.();
+    if (!dialog.open) {
+      dialog.setAttribute("open", "");
+    }
     searchRef.current?.focus();
+    return () => {
+      if (dialog.open) {
+        dialog.close?.();
+      }
+    };
   }, []);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
@@ -43,7 +58,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
     }
 
     const focusable = event.currentTarget.querySelectorAll<HTMLElement>(
-      "button:not([disabled]), input:not([disabled])"
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
     );
     const first = focusable.item(0);
     const last = focusable.item(focusable.length - 1);
@@ -62,7 +77,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
       aria-modal="true"
       className="fixed inset-0 z-50 m-0 grid h-dvh max-h-none w-full max-w-none items-end border-0 bg-black/55 p-0 sm:place-items-center sm:p-5"
       onKeyDown={handleKeyDown}
-      open
+      ref={dialogRef}
     >
       <section className="border-card-border bg-surface text-ink max-h-[90dvh] w-full overflow-y-auto rounded-t-3xl border p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-6">
         <div className="flex items-start justify-between gap-4">
@@ -121,21 +136,44 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
           </output>
         )}
 
-        <h3 className="mt-6 font-semibold">
-          Council sorter items for this bin
-        </h3>
-        {guidance.length ? (
-          <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6">
-            {guidance.map((entry) => (
-              <li key={entry.id}>
-                {entry.item}
-                {entry.notes && (
-                  <span className="text-copy-muted"> — {entry.notes}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
+        {results === null && guidance.length > 0 && (
+          <>
+            <h3 className="mt-6 font-semibold">
+              Council sorter items for this bin
+            </h3>
+            <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6">
+              {guidance.slice(0, 10).map((entry) => (
+                <li key={entry.id}>
+                  {entry.item}
+                  {entry.notes && (
+                    <span className="text-copy-muted"> — {entry.notes}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {guidance.length > 10 && (
+              <details className="mt-3 text-sm">
+                <summary className="cursor-pointer underline underline-offset-2">
+                  Show the remaining {guidance.length - 10} items
+                </summary>
+                <ul className="mt-2 list-disc space-y-2 pl-5 leading-6">
+                  {guidance.slice(10).map((entry) => (
+                    <li key={entry.id}>
+                      {entry.item}
+                      {entry.notes && (
+                        <span className="text-copy-muted">
+                          {" "}
+                          — {entry.notes}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        )}
+        {results === null && guidance.length === 0 && (
           <p className="text-copy-muted mt-2 text-sm leading-6">
             The Council sorter has no listed items for this bin. Search the
             catalogue below or visit Hamilton City Council for current advice.
@@ -167,10 +205,17 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
 const BinHelpControl = ({ bin, binName }: BinHelpControlProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const close = () => {
-    setIsOpen(false);
-    buttonRef.current?.focus();
-  };
+  const hasOpened = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      hasOpened.current = true;
+    } else if (hasOpened.current) {
+      buttonRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  const close = () => setIsOpen(false);
 
   return (
     <>
@@ -185,7 +230,11 @@ const BinHelpControl = ({ bin, binName }: BinHelpControlProps) => {
       >
         ?
       </Button>
-      {isOpen && <BinHelp bin={bin} binName={binName} onClose={close} />}
+      {isOpen &&
+        createPortal(
+          <BinHelp bin={bin} binName={binName} onClose={close} />,
+          document.body
+        )}
     </>
   );
 };
