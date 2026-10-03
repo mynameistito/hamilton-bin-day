@@ -1,7 +1,10 @@
 import catalogue from "@/lib/bin-items-data.json" with { type: "json" };
 
+/** Council sorter destination groups represented in the local catalogue. */
+const BIN_TYPES = ["yellow", "red", "glass", "food-scraps", "other"] as const;
+
 /** Council sorter destinations represented in the local catalogue. */
-export type BinType = "yellow" | "red" | "glass" | "food-scraps" | "other";
+export type BinType = (typeof BIN_TYPES)[number];
 
 /** A council-sourced item classification and any handling instruction. */
 export interface BinItem {
@@ -19,7 +22,19 @@ export interface BinItem {
 
 /** Complete catalogue returned by the Council sorter at the recorded date. */
 export const BIN_ITEM_SOURCE = catalogue.source;
-export const BIN_ITEMS: readonly BinItem[] = catalogue.items;
+
+const parseBinType = (value: string): BinType => {
+  const bin = BIN_TYPES.find((candidate) => candidate === value);
+  if (!bin) {
+    throw new Error(`Unknown Council sorter bin type: ${value}`);
+  }
+  return bin;
+};
+
+export const BIN_ITEMS: readonly BinItem[] = catalogue.items.map((entry) => ({
+  ...entry,
+  bin: parseBinType(entry.bin),
+}));
 
 const normalize = (value: string): string => value.trim().toLocaleLowerCase();
 

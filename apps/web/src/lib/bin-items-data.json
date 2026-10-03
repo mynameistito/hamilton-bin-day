@@ -1,8 +1,4 @@
 {
-  "source": {
-    "url": "https://hamilton.govt.nz/fight-the-landfill",
-    "verifiedOn": "2026-10-03"
-  },
   "items": [
     {
       "id": 1,
@@ -2252,5 +2248,9 @@
       "bin": "yellow",
       "destination": "This item goes into the yellow recycling wheelie bin"
     }
-  ]
+  ],
+  "source": {
+    "url": "https://hamilton.govt.nz/fight-the-landfill",
+    "verifiedOn": "2026-10-03"
+  }
 }

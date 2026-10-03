@@ -5,13 +5,24 @@ import {
   parseSorterDetail,
   planCatalogueSync,
   renderCatalogue,
-} from "../../../../../scripts/sync-hcc-bin-items";
+} from "@web-scripts/sync-hcc-bin-items";
 
 const listingItem = { id: 42, text: "Glass jars & bottles" } as const;
 const detail = {
   success: true,
   title: "Glass jars & bottles",
   html: '<img src="/SorterGlassCrate.png"/><h3>Glass jars &amp; bottles</h3><h4>Use the glass recycling crate.</h4><small><p>Remove lids&nbsp;and rinse.</p></small>',
+};
+
+const failingFetch: typeof fetch = async (input, init) => {
+  const request = new Request(input, init);
+  if (request.method === "GET") {
+    return Response.json({ results: [listingItem, { id: 43, text: "Other" }] });
+  }
+  if (new URLSearchParams(await request.text()).get("id") === "43") {
+    return new Response("unavailable", { status: 503 });
+  }
+  return Response.json(detail);
 };
 
 describe("Council sorter catalogue sync", () => {
@@ -45,40 +56,44 @@ describe("Council sorter catalogue sync", () => {
 
   test("checks and updates through the injected fetch seam", async () => {
     const calls: Request[] = [];
-    const fetcher: typeof fetch = async (input, init) => {
+    const fetcher: typeof fetch = (input, init) => {
       const request = new Request(input, init);
       calls.push(request);
       if (request.method === "GET") {
-        return Response.json({ results: [listingItem] });
+        return Promise.resolve(Response.json({ results: [listingItem] }));
       }
-      return Response.json(detail);
+      return Promise.resolve(Response.json(detail));
     };
     const fetched = await fetchCouncilCatalogue(fetcher, "2026-10-03");
-    expect(calls).toHaveLength(2);
-    expect(await calls[1]?.text()).toBe("id=42");
+    const detailRequest = calls.at(1);
+    const detailBody = detailRequest ? await detailRequest.text() : null;
     const content = renderCatalogue(fetched);
-    expect(planCatalogueSync(content, fetched, true).changed).toBe(false);
+    const freshPlan = planCatalogueSync(content, fetched, true);
     const stale = planCatalogueSync("old data", fetched, true);
-    expect(stale.changed).toBe(true);
-    expect(stale.message).toContain("stale");
-    expect(stale.content).toBe(content);
-    expect(planCatalogueSync("old data", fetched, false).message).toContain(
-      "Updated the Council sorter catalogue with 1 items"
-    );
+    const update = planCatalogueSync("old data", fetched, false);
+    expect({
+      requestCount: calls.length,
+      detailBody,
+      isFresh: freshPlan.changed,
+      checkChanged: stale.changed,
+      checkMessage: stale.message,
+      checkContent: stale.content,
+      updateMessage: update.message,
+      updateContent: update.content,
+    }).toStrictEqual({
+      requestCount: 2,
+      detailBody: "id=42",
+      isFresh: false,
+      checkChanged: true,
+      checkMessage: "Council sorter catalogue is stale. Run `bun run bins:sync` to refresh it.",
+      checkContent: content,
+      updateMessage: "Updated the Council sorter catalogue with 1 items.",
+      updateContent: content,
+    });
   });
 
   test("does not produce a partial catalogue if a detail fetch fails", async () => {
-    const fetcher: typeof fetch = async (input, init) => {
-      const request = new Request(input, init);
-      if (request.method === "GET") {
-        return Response.json({ results: [listingItem, { id: 43, text: "Other" }] });
-      }
-      if (new URLSearchParams(await request.text()).get("id") === "43") {
-        return new Response("unavailable", { status: 503 });
-      }
-      return Response.json(detail);
-    };
-    await expect(fetchCouncilCatalogue(fetcher, "2026-10-03")).rejects.toThrow(
+    await expect(fetchCouncilCatalogue(failingFetch, "2026-10-03")).rejects.toThrow(
       "detail request failed for item 43"
     );
   });

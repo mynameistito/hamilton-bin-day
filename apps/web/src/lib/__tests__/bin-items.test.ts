@@ -11,7 +11,7 @@ import {
 describe("verified bin item lookup", () => {
   test("finds item names without case or surrounding-space sensitivity", () => {
     expect(
-      searchBinItems("  aLuMiNiUm ").map(({ item }) => item)
+      searchBinItems("  aLuMiNiUm cans ").map(({ item }) => item)
     ).toStrictEqual(["Aluminium cans"]);
   });
 
@@ -38,19 +38,24 @@ describe("verified bin item lookup", () => {
   });
 
   test("records a complete checked Council catalogue with stable IDs", () => {
-    expect(BIN_ITEM_SOURCE.url).toBe(
-      "https://hamilton.govt.nz/fight-the-landfill"
-    );
-    expect(BIN_ITEM_SOURCE.verifiedOn).toBe("2026-10-03");
-    expect(BIN_ITEMS).toHaveLength(351);
-    expect(new Set(BIN_ITEMS.map(({ id }) => id)).size).toBe(351);
-    expect(new Set(BIN_ITEMS.map(({ bin }) => bin))).toStrictEqual(
-      new Set(["yellow", "red", "glass", "food-scraps", "other"])
-    );
-    expect(BIN_ITEMS.some(({ item }) => item === "Medical waste")).toBe(true);
-    expect(BIN_ITEMS.filter(({ item }) => item === "Weeds")).toHaveLength(2);
-    expect(
-      BIN_ITEMS.find(({ item }) => item === "Medical waste")?.notes
-    ).toContain("should not be placed in any of your bins");
+    expect({
+      url: BIN_ITEM_SOURCE.url,
+      verifiedOn: BIN_ITEM_SOURCE.verifiedOn,
+      count: BIN_ITEMS.length,
+      uniqueIds: new Set(BIN_ITEMS.map(({ id }) => id)).size,
+      categories: [...new Set(BIN_ITEMS.map(({ bin }) => bin))].sort(),
+      medicalWasteNote: BIN_ITEMS.find(({ item }) => item === "Medical waste")
+        ?.notes,
+      weedEntries: BIN_ITEMS.filter(({ item }) => item === "Weeds").length,
+    }).toStrictEqual({
+      url: "https://hamilton.govt.nz/fight-the-landfill",
+      verifiedOn: "2026-10-03",
+      count: 351,
+      uniqueIds: 351,
+      categories: ["food-scraps", "glass", "other", "red", "yellow"],
+      medicalWasteNote:
+        "Private medical waste disposal services are available. Medical waste should not be placed in any of your bins.",
+      weedEntries: 2,
+    });
   });
 });

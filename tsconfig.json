@@ -7,7 +7,7 @@
   "files": [
     "alchemy.run.ts",
     "scripts/alchemy-command.ts",
-    "scripts/sync-hcc-bin-items.ts",
+    "apps/web/scripts/sync-hcc-bin-items.ts",
     "scripts/build-web.ts"
   ]
 }
