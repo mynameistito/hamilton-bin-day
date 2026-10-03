@@ -14,6 +14,19 @@ Look up the next Hamilton City Council bin collection for an address, or use the
 - resolves a street address to a bin collection schedule
 - supports text and JSON output
 
+## Council sorter catalogue
+
+The web app includes all 351 items returned by Hamilton City Council's public item sorter, including the Council's destination wording and handling/disposal advice. The local catalogue was checked on 3 October 2026; it is sourced from [Hamilton City Council's Fight the Landfill sorter](https://hamilton.govt.nz/fight-the-landfill) and is informational convenience, not a substitute for current Council advice.
+
+Refresh or check the catalogue from the repository root:
+
+```bash
+bun run bins:sync        # fetch the listing and all item details, then update the local data
+bun run bins:sync --check # fail with a stale-data message without writing files
+```
+
+The refresh stops without changing the checked-in data if any detail fails or the Council introduces an unknown result category.
+
 ## API endpoints
 
 The deployed web Worker exposes a stateless, read-only MCP Streamable HTTP endpoint:

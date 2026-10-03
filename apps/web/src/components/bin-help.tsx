@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   BIN_ITEM_SOURCE,
   BIN_ITEMS,
-  binTypeName,
   searchBinItems,
 } from "@/lib/bin-items";
 import type { BinType } from "@/lib/bin-items";
@@ -89,28 +88,8 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
           </Button>
         </div>
 
-        <h3 className="mt-6 font-semibold">Verified items for this bin</h3>
-        {guidance.length ? (
-          <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6">
-            {guidance.map((entry) => (
-              <li key={entry.item}>
-                {entry.item}
-                {entry.notes && (
-                  <span className="text-copy-muted"> — {entry.notes}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-copy-muted mt-2 text-sm leading-6">
-            No items for this bin have been verified in this guide yet. Search
-            the checked items below or visit Hamilton City Council for current
-            advice.
-          </p>
-        )}
-
         <label className="mt-6 block font-semibold" htmlFor="bin-item-search">
-          Search checked items
+          Search the full catalogue
         </label>
         <input
           className="border-sage-border bg-panel focus-visible:outline-focus-leaf mt-2 min-h-12 w-full rounded-xl border px-4 py-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -127,11 +106,11 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                 {results.map((entry) => (
                   <li
                     className="bg-panel rounded-xl p-3 text-sm"
-                    key={entry.item}
+                    key={entry.id}
                   >
                     <span className="font-semibold">{entry.item}</span>
                     <span className="mt-1 block">
-                      Goes in the {binTypeName(entry.bin)}.
+                      {entry.destination}
                     </span>
                     {entry.notes && (
                       <span className="mt-1 block">{entry.notes}</span>
@@ -141,11 +120,30 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
               </ul>
             ) : (
               <>
-                No checked item matches “{query}”. Try another name or check the
+                No catalogue item matches “{query}”. Try another name or check the
                 Council sorter.
               </>
             )}
           </output>
+        )}
+
+        <h3 className="mt-6 font-semibold">Council sorter items for this bin</h3>
+        {guidance.length ? (
+          <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6">
+            {guidance.map((entry) => (
+              <li key={entry.id}>
+                {entry.item}
+                {entry.notes && (
+                  <span className="text-copy-muted"> — {entry.notes}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-copy-muted mt-2 text-sm leading-6">
+            The Council sorter has no listed items for this bin. Search the
+            catalogue below or visit Hamilton City Council for current advice.
+          </p>
         )}
 
         <p className="text-copy-muted mt-5 text-xs leading-5">
@@ -153,7 +151,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
           {verificationDateFormatter.format(
             new Date(`${BIN_ITEM_SOURCE.verifiedOn}T12:00:00Z`)
           )}
-          . Limited checked sample; see{" "}
+          . Full Council sorter catalogue; see{" "}
           <a
             className="underline underline-offset-2"
             href={BIN_ITEM_SOURCE.url}
@@ -162,7 +160,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
           >
             Hamilton City Council’s item sorter
           </a>{" "}
-          for current and complete guidance.
+          for current guidance.
         </p>
       </section>
     </dialog>

@@ -1,5 +1,7 @@
-/** Council bin types represented by the locally verified item guide. */
-export type BinType = "yellow" | "red" | "glass" | "food-scraps";
+import catalogue from "@/lib/bin-items-data.json" with { type: "json" };
+
+/** Council sorter destinations represented in the local catalogue. */
+export type BinType = "yellow" | "red" | "glass" | "food-scraps" | "other";
 
 /** A council-sourced item classification and any handling instruction. */
 export interface BinItem {
@@ -7,35 +9,17 @@ export interface BinItem {
   readonly item: string;
   /** Destination stated by the Council sorter. */
   readonly bin: BinType;
-  /** Preparation wording included in the Council item name or result. */
+  /** Stable Council sorter identifier. */
+  readonly id: number;
+  /** Exact destination wording returned by the Council sorter. */
+  readonly destination: string;
+  /** Council handling and disposal advice. */
   readonly notes?: string;
 }
 
-/** Provenance for the deliberately small, manually checked starter dataset. */
-export const BIN_ITEM_SOURCE = {
-  url: "https://hamilton.govt.nz/fight-the-landfill",
-  verifiedOn: "2026-10-03",
-  note: "Checked in the Council's searchable item sorter with Playwriter. Only explicit sorter results are included; this is not a complete accepted-items list.",
-} as const;
-
-/** Items whose destinations were explicitly returned by the Council sorter. */
-export const BIN_ITEMS: readonly BinItem[] = [
-  { item: "Aluminium cans", bin: "yellow" },
-  {
-    item: "Apple core",
-    bin: "food-scraps",
-  },
-  {
-    item: "Baby formula tins (remove lid and scoop)",
-    bin: "yellow",
-    notes: "Remove lid and scoop.",
-  },
-  {
-    item: "Glass bottles - brown, green, clear, blue, opaque (no lids)",
-    bin: "glass",
-    notes: "No lids.",
-  },
-];
+/** Complete catalogue returned by the Council sorter at the recorded date. */
+export const BIN_ITEM_SOURCE = catalogue.source;
+export const BIN_ITEMS: readonly BinItem[] = catalogue.items;
 
 const normalize = (value: string): string => value.trim().toLocaleLowerCase();
 
@@ -57,6 +41,7 @@ const binTypeNames: Record<BinType, string> = {
   red: "red rubbish wheelie bin",
   glass: "glass recycling crate",
   "food-scraps": "food scraps bin",
+  other: "other disposal",
 };
 
 /** Human-readable Council bin name used in guidance and lookup results. */

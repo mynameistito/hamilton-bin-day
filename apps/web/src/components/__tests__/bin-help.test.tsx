@@ -24,13 +24,13 @@ describe("per-bin help", () => {
         name: "What goes in the yellow recycling wheelie bin?",
       })
     ).toBeTruthy();
-    expect(screen.getByLabelText("Search checked items")).toBe(
+    expect(screen.getByLabelText("Search the full catalogue")).toBe(
       document.activeElement
     );
     expect(screen.getByText("Aluminium cans")).toBeTruthy();
   });
 
-  test("searches checked items and announces a clear no-match state", () => {
+  test("searches the full catalogue and announces a clear no-match state", () => {
     render(
       <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
     );
@@ -40,16 +40,17 @@ describe("per-bin help", () => {
       })
     );
     const search = screen.getByRole("searchbox", {
-      name: "Search checked items",
+      name: "Search the full catalogue",
     });
 
     fireEvent.change(search, { target: { value: "glass bottles" } });
-    expect(screen.getByText(/Goes in the glass recycling crate/u)).toBeTruthy();
-    expect(screen.getByText("No lids.")).toBeTruthy();
-
-    fireEvent.change(search, { target: { value: "batteries" } });
     expect(
-      screen.getByText(/No checked item matches “batteries”/u)
+      screen.getByText("This item goes into your glass recycling crate.")
+    ).toBeTruthy();
+
+    fireEvent.change(search, { target: { value: "not a council item" } });
+    expect(
+      screen.getByText(/No catalogue item matches “not a council item”/u)
     ).toBeTruthy();
   });
 
@@ -66,16 +67,14 @@ describe("per-bin help", () => {
     expect(trigger).toBe(document.activeElement);
   });
 
-  test("closes with the accessible close control and wraps keyboard focus", () => {
-    render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
+  test("shows non-bin advice and closes with the accessible control", () => {
+    render(<BinHelpControl bin={null} binName="collection bins" />);
     const trigger = screen.getByRole("button", {
-      name: "What goes in the red rubbish wheelie bin?",
+      name: "What goes in the collection bins?",
     });
     fireEvent.click(trigger);
-    expect(
-      screen.getByText(/No items for this bin have been verified/u)
-    ).toBeTruthy();
-    const search = screen.getByLabelText("Search checked items");
+    expect(screen.getByText(/The Council sorter has no listed items/u)).toBeTruthy();
+    const search = screen.getByLabelText("Search the full catalogue");
     const close = screen.getByRole("button", { name: "Close bin help" });
 
     close.focus();
