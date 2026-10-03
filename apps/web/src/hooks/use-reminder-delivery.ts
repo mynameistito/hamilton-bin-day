@@ -513,6 +513,9 @@ export const useReminderDelivery = (
               subscription,
               () => active && operationVersion === mutationVersion.current
             );
+            if (!active || operationVersion !== mutationVersion.current) {
+              return;
+            }
             if (cleanup === PUSH_CLEANUP.missingEndpoint) {
               setDeliveryMessage(
                 "The reminder could not be cancelled because no browser subscription or saved endpoint is available for server cleanup."
@@ -523,9 +526,6 @@ export const useReminderDelivery = (
               setDeliveryMessage(
                 "The server could not cancel the reminder because the new address has no matching schedule."
               );
-              return;
-            }
-            if (!active || operationVersion !== mutationVersion.current) {
               return;
             }
             savePreferences({ ...preferences, enabled: false });

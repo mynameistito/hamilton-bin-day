@@ -8,18 +8,25 @@ export const PUSH_ENDPOINT_STORAGE_KEY = "hcc-bin-day-push-endpoint-v1";
 /** A queue that executes browser push mutations in the order they were submitted. */
 export type PushMutationQueue = <T>(operation: () => Promise<T>) => Promise<T>;
 
+const noop = (): undefined => undefined;
+
 /** Create a per-component queue that applies browser push mutations in call order. */
 export const createPushMutationQueue = (): PushMutationQueue => {
   let tail = Promise.resolve();
   return async <T>(operation: () => Promise<T>) => {
-    const current = Promise.withResolvers<undefined>();
+    let resolveCurrent: () => void = noop;
+    // SAFETY: This deferred promise serializes operations; its resolver is called in the finally block.
+    // oxlint-disable-next-line promise/avoid-new
+    const current = new Promise<void>((resolve) => {
+      resolveCurrent = resolve;
+    });
     const previous = tail;
-    tail = current.promise;
+    tail = current;
     await previous;
     try {
       return await operation();
     } finally {
-      current.resolve();
+      resolveCurrent();
     }
   };
 };
