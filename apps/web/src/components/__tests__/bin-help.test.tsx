@@ -72,9 +72,8 @@ describe("per-bin help", () => {
 
     fireEvent.change(search, { target: { value: "glass bottles" } });
     expect(
-      screen.getByText("This item goes into your glass recycling crate.")
-        .textContent
-    ).toBe("This item goes into your glass recycling crate.");
+      screen.getAllByText("Goes in: glass recycling crate")[0].textContent
+    ).toBe("Goes in: glass recycling crate");
 
     fireEvent.change(search, { target: { value: "not a council item" } });
     expect(

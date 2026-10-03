@@ -1,0 +1,100 @@
+import { useState } from "react";
+
+import { BinItemCard } from "@/components/bin-item-card";
+import { Input } from "@/components/ui/input";
+import { BIN_ITEM_SOURCE, BIN_ITEMS, searchBinItems } from "@/lib/bin-items";
+
+const verificationDateFormatter = new Intl.DateTimeFormat("en-NZ", {
+  dateStyle: "long",
+  timeZone: "UTC",
+});
+
+export const BinCataloguePage = () => {
+  const [query, setQuery] = useState("");
+  const items = query.trim() ? searchBinItems(query) : BIN_ITEMS;
+  const itemLabel = items.length === 1 ? "item" : "items";
+  const resultContext = query.trim() ? "found" : "in the catalogue";
+  const resultSummary = items.length
+    ? `${items.length} ${itemLabel} ${resultContext}`
+    : `No item matches “${query}”. Try another search.`;
+
+  return (
+    <main className="bg-canvas text-ink min-h-dvh px-4 pb-10 sm:px-5">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 py-4 sm:py-5">
+        <a
+          className="flex items-center gap-2.5 font-bold tracking-tight sm:gap-3"
+          href="/"
+        >
+          <span
+            aria-hidden="true"
+            className="bg-forest grid size-9 place-items-center rounded-xl text-lg text-white sm:size-10"
+          >
+            ♻
+          </span>
+          <span>
+            Hamilton{" "}
+            <span className="text-copy-muted font-normal">Bin Day</span>
+          </span>
+        </a>
+        <a
+          className="text-sage-dark rounded-lg px-3 py-2 text-sm font-semibold underline-offset-4 hover:underline"
+          href="/"
+        >
+          Back to home
+        </a>
+      </header>
+
+      <section className="mx-auto w-full max-w-4xl pt-8 sm:pt-12">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
+          What goes where?
+        </h1>
+        <p className="text-body-muted mt-3 max-w-2xl text-base leading-7">
+          Search an item to find out which Hamilton bin it belongs in. Browse
+          the full Council sorter below.
+        </p>
+
+        <label className="mt-7 block font-semibold" htmlFor="catalogue-search">
+          Search all items
+        </label>
+        <Input
+          autoComplete="off"
+          className="mt-2 w-full"
+          id="catalogue-search"
+          onChange={(event) => setQuery(event.currentTarget.value)}
+          placeholder="e.g. glass bottles"
+          type="search"
+          value={query}
+        />
+
+        <p aria-live="polite" className="text-copy-muted mt-4 text-sm">
+          {resultSummary}
+        </p>
+
+        {items.length > 0 && (
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {items.map((item) => (
+              <BinItemCard item={item} key={item.id} />
+            ))}
+          </ul>
+        )}
+
+        <p className="text-copy-muted mt-8 text-xs leading-5">
+          Checked{" "}
+          {verificationDateFormatter.format(
+            new Date(`${BIN_ITEM_SOURCE.verifiedOn}T12:00:00Z`)
+          )}
+          . Council advice may change; see{" "}
+          <a
+            className="underline underline-offset-2"
+            href={BIN_ITEM_SOURCE.url}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Hamilton City Council’s item sorter
+          </a>{" "}
+          for the latest guidance.
+        </p>
+      </section>
+    </main>
+  );
+};

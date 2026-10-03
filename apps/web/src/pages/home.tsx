@@ -101,6 +101,13 @@ export const HomePage = () => {
         <nav className="flex shrink-0 items-center gap-2 sm:gap-3">
           <a
             className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+            href="/what-goes-where"
+          >
+            <span className="sm:hidden">Items</span>
+            <span className="hidden sm:inline">What goes where?</span>
+          </a>
+          <a
+            className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
             href="/docs/"
           >
             <span className="sm:hidden">Guide</span>
@@ -307,6 +314,9 @@ export const HomePage = () => {
           </a>
           <a className="underline underline-offset-2" href="/docs/privacy/">
             Privacy
+          </a>
+          <a className="underline underline-offset-2" href="/what-goes-where">
+            What goes where?
           </a>
           <a className="underline underline-offset-2" href="/docs/terms/">
             Terms

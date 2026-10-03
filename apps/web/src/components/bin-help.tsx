@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 
+import { BinItemCard } from "@/components/bin-item-card";
 import { Button } from "@/components/ui/button";
 import { BIN_ITEM_SOURCE, BIN_ITEMS, searchBinItems } from "@/lib/bin-items";
 import type { BinType } from "@/lib/bin-items";
@@ -140,16 +141,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
             {results.length ? (
               <ul className="space-y-2">
                 {results.map((entry) => (
-                  <li
-                    className="bg-panel rounded-xl p-3 text-sm"
-                    key={entry.id}
-                  >
-                    <span className="font-semibold">{entry.item}</span>
-                    <span className="mt-1 block">{entry.destination}</span>
-                    {entry.notes && (
-                      <span className="mt-1 block">{entry.notes}</span>
-                    )}
-                  </li>
+                  <BinItemCard item={entry} key={entry.id} />
                 ))}
               </ul>
             ) : (
@@ -160,6 +152,13 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
             )}
           </output>
         )}
+
+        <a
+          className="text-sage-dark mt-3 inline-block text-sm font-semibold underline underline-offset-2"
+          href="/what-goes-where"
+        >
+          Browse the full catalogue
+        </a>
 
         {showGuidance && (
           <>
