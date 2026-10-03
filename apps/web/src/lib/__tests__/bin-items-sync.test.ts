@@ -16,7 +16,7 @@ const detail = {
   html: [
     '<img src="/SorterGlassCrate.png"/>',
     "<h3>Glass jars &amp; bottles</h3>",
-    "<h4>Use the glass recycling crate.</h4>",
+    "<h4>This item goes into your glass recycling crate.</h4>",
     "<small><p>Remove lids&nbsp;and rinse.</p></small>",
   ].join(""),
 };
@@ -50,7 +50,7 @@ describe("Council sorter catalogue sync", () => {
       id: 42,
       item: "Glass jars & bottles",
       bin: "glass",
-      destination: "Use the glass recycling crate.",
+      destination: "This item goes into your glass recycling crate.",
       notes: "Remove lids and rinse.",
     });
   });
@@ -69,6 +69,15 @@ describe("Council sorter catalogue sync", () => {
       parseSorterDetail(listingItem, {
         ...detail,
         html: detail.html.replace("Glass jars &amp; bottles", "Something else"),
+      })
+    ).toThrow("listing/detail mismatch");
+    expect(() =>
+      parseSorterDetail(listingItem, {
+        ...detail,
+        html: detail.html.replace(
+          "This item goes into your glass recycling crate.",
+          "This item goes into the red rubbish wheelie bin."
+        ),
       })
     ).toThrow("listing/detail mismatch");
   });
@@ -93,7 +102,7 @@ describe("Council sorter catalogue sync", () => {
     expect({
       requestCount: calls.length,
       detailBody,
-      isFresh: freshPlan.changed,
+      isChanged: freshPlan.changed,
       checkChanged: stale.changed,
       checkMessage: stale.message,
       checkContent: stale.content,
@@ -102,7 +111,7 @@ describe("Council sorter catalogue sync", () => {
     }).toStrictEqual({
       requestCount: 2,
       detailBody: "id=42",
-      isFresh: false,
+      isChanged: false,
       checkChanged: true,
       checkMessage:
         "Council sorter catalogue is stale. Run bins:sync to refresh it.",

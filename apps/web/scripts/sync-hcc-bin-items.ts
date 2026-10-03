@@ -43,6 +43,13 @@ const BIN_BY_IMAGE = {
   SorterRedBin: "red",
   SorterYellowBin: "yellow",
 } as const satisfies Record<string, SorterBin>;
+const DESTINATION_BY_IMAGE = {
+  SorterFoodScraps: "This item goes into your food scraps bin.",
+  SorterGlassCrate: "This item goes into your glass recycling crate.",
+  SorterOtherDisposal: "Other disposal.",
+  SorterRedBin: "This item goes into the red rubbish wheelie bin.",
+  SorterYellowBin: "This item goes into the yellow recycling wheelie bin",
+} as const satisfies Record<keyof typeof BIN_BY_IMAGE, string>;
 const SORTER_IMAGE = z.enum([
   "SorterFoodScraps",
   "SorterGlassCrate",
@@ -149,15 +156,17 @@ export const parseSorterDetail = (
   const item = sectionText(detail.html, "h3");
   const destination = sectionText(detail.html, "h4");
   const notes = sectionText(detail.html, "small");
+  const expectedDestination = DESTINATION_BY_IMAGE[imageName.data];
   const normalizedListingText = normalizeWhitespace(
     listingItem.text
   ).toLowerCase();
-  if (
-    !item ||
+  const invalidItem = !item || item.toLowerCase() !== normalizedListingText;
+  const invalidDestination =
     !destination ||
-    item.toLowerCase() !== normalizedListingText ||
-    normalizeWhitespace(detail.title).toLowerCase() !== normalizedListingText
-  ) {
+    destination.toLowerCase() !== expectedDestination.toLowerCase();
+  const invalidTitle =
+    normalizeWhitespace(detail.title).toLowerCase() !== normalizedListingText;
+  if (invalidItem || invalidDestination || invalidTitle) {
     throw new Error(
       `Council sorter listing/detail mismatch for item ${listingItem.id}`
     );
