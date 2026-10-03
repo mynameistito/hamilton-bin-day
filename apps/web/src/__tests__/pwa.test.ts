@@ -54,4 +54,33 @@ describe("PWA app shell", () => {
     expect(serviceWorker).toContain("return cached ?? Response.error()");
     expect(serviceWorker).toContain('url.pathname.startsWith("/api/")');
   });
+
+  test("keeps notification opt-in explicit and does not prompt before push delivery is configured", async () => {
+    const [settings, serviceWorker] = await Promise.all([
+      readAppFile("../components/notification-settings.tsx"),
+      readAppFile("../../public/sw.js"),
+    ]);
+
+    expect({
+      hasExplicitOptIn: settings.includes('type="checkbox"'),
+      hasLocalTime: settings.includes('type="time"'),
+      hasDayBeforeOption: settings.includes("The day before"),
+      showsPermissionState: settings.includes("Notification.permission"),
+      avoidsPrematurePermissionPrompt: !settings.includes(
+        "Notification.requestPermission"
+      ),
+      syncsOptInToServiceWorker: serviceWorker.includes(
+        'type === "NOTIFICATION_CONSENT"'
+      ),
+      handlesPushEvents: serviceWorker.includes('addEventListener("push"'),
+    }).toStrictEqual({
+      hasExplicitOptIn: true,
+      hasLocalTime: true,
+      hasDayBeforeOption: true,
+      showsPermissionState: true,
+      avoidsPrematurePermissionPrompt: true,
+      syncsOptInToServiceWorker: true,
+      handlesPushEvents: true,
+    });
+  });
 });
