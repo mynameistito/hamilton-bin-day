@@ -464,6 +464,39 @@ describe("reminder delivery database behavior", () => {
       }
     );
 
+    test("does not delete a renewed subscription after a stale push failure", async () => {
+      await handleReminderSubscribe(
+        subscriptionRequest(),
+        environment,
+        new Date("2026-10-01T00:00:00.000Z")
+      );
+      const sendGate = Promise.withResolvers<Response>();
+      const sendStarted = Promise.withResolvers<undefined>();
+      const firstRun = sendDueReminders(
+        environment,
+        new Date("2026-10-04T08:00:00.000Z"),
+        () => {
+          sendStarted.resolve();
+          return sendGate.promise;
+        }
+      );
+      await sendStarted;
+
+      await handleReminderSubscribe(
+        subscriptionRequest(),
+        environment,
+        new Date("2026-10-02T00:00:00.000Z")
+      );
+      sendGate.resolve(new Response(null, { status: 410 }));
+      await firstRun;
+
+      expect(
+        database.sqlite
+          .prepare("SELECT updated_at FROM reminder_subscriptions")
+          .get()
+      ).toMatchObject({ updated_at: "2026-10-02T00:00:00.000Z" });
+    });
+
     test("retries a transient push failure on the next cron instead of suppressing delivery", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),

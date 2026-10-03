@@ -36,9 +36,16 @@ self.addEventListener("message", (event) => {
     event.waitUntil(
       (async () => {
         const cache = await caches.open(NOTIFICATION_CACHE);
-        await (event.data.enabled === true
-          ? cache.put(NOTIFICATION_CONSENT_KEY, new Response("enabled"))
-          : cache.delete(NOTIFICATION_CONSENT_KEY));
+        if (event.data.enabled === true) {
+          await cache.put(NOTIFICATION_CONSENT_KEY, new Response("enabled"));
+          return;
+        }
+        await cache.delete(NOTIFICATION_CONSENT_KEY);
+        const keys = await cache.keys();
+        const deliveredKeys = keys.filter(
+          (key) => key.url !== NOTIFICATION_CONSENT_KEY
+        );
+        await Promise.all(deliveredKeys.map((key) => cache.delete(key)));
       })()
     );
   }

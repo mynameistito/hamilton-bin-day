@@ -83,6 +83,7 @@ interface ReminderRecord {
   readonly scheduled_at: string;
   readonly notification_id: string;
   readonly claim_until: string | null;
+  readonly updated_at: string;
 }
 
 const PUSH_SERVICE_SUFFIXES = [
@@ -414,8 +415,18 @@ const CLEAR_CLAIM_SQL =
 
 const removeSubscription = async (
   database: ReminderDatabase,
-  endpoint: string
+  endpoint: string,
+  updatedAt?: string
 ): Promise<void> => {
+  if (updatedAt) {
+    await database
+      .prepare(
+        "DELETE FROM reminder_subscriptions WHERE endpoint = ? AND updated_at = ?"
+      )
+      .bind(endpoint, updatedAt)
+      .run();
+    return;
+  }
   await database.prepare(SUBSCRIPTION_ENDPOINT_SQL).bind(endpoint).run();
 };
 
@@ -532,7 +543,7 @@ const sendDueRecord = async (
       keys
     );
     if (response.status === 404 || response.status === 410) {
-      await removeSubscription(database, record.endpoint);
+      await removeSubscription(database, record.endpoint, record.updated_at);
     } else if (response.ok) {
       await advanceSubscription(database, record, now);
     } else {
@@ -577,7 +588,7 @@ export const sendDueReminders = async (
   const { results } = await database
     .prepare(
       `SELECT endpoint, subscription_json, collection_date, following_date, collection_type,
-              lead_days, local_time, time_zone, scheduled_at, notification_id, claim_until
+              lead_days, local_time, time_zone, scheduled_at, notification_id, claim_until, updated_at
        FROM reminder_subscriptions
        WHERE scheduled_at <= ? AND (claim_until IS NULL OR claim_until <= ?)
        ORDER BY scheduled_at LIMIT 100`

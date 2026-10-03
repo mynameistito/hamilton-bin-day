@@ -32,7 +32,10 @@ const makeServiceWorker = (source: string) => {
   const listeners = new Map<string, ServiceWorkerListener>();
   const entries = new Map<string, Response>();
   const cache = {
-    delete: (key: CacheKey) => Promise.resolve(entries.delete(String(key))),
+    delete: (key: CacheKey) =>
+      Promise.resolve(
+        entries.delete(key instanceof Request ? key.url : String(key))
+      ),
     keys: () =>
       Promise.resolve([...entries.keys()].map((key) => new Request(key))),
     match: (key: CacheKey) => {
@@ -143,13 +146,21 @@ describe("service worker push notifications", () => {
     });
     await Promise.all(consentPromises);
     await dispatch(worker.listeners.get("push"), {
-      json: () => ({
-        ...validPayload,
-        notificationId: `${validPayload.notificationId}:after-opt-out`,
-      }),
+      json: () => validPayload,
     });
 
-    expect(worker.showNotification).toHaveBeenCalledExactlyOnceWith(
+    consent?.({
+      data: { type: "NOTIFICATION_CONSENT", enabled: true },
+      waitUntil: (promise) => consentPromises.push(promise),
+    });
+    await Promise.all(consentPromises.slice(-1));
+    await dispatch(worker.listeners.get("push"), {
+      json: () => validPayload,
+    });
+
+    expect(worker.showNotification).toHaveBeenCalledTimes(2);
+    expect(worker.showNotification).toHaveBeenNthCalledWith(
+      1,
       validPayload.title,
       expect.objectContaining({
         body: validPayload.body,

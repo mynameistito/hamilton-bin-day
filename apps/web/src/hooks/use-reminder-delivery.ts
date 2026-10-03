@@ -330,6 +330,7 @@ export const useReminderDelivery = (
   schedule: ScheduleResponse | null,
   cancelMissingSchedule: boolean,
   preferences: NotificationPreferences,
+  storageAvailable: boolean,
   savePreferences: (next: NotificationPreferences) => boolean
 ) => {
   const [permission, setPermission] =
@@ -352,7 +353,7 @@ export const useReminderDelivery = (
       try {
         const registration = await navigator.serviceWorker.ready;
         registration.active?.postMessage({
-          enabled: preferences.enabled,
+          enabled: storageAvailable && preferences.enabled,
           type: "NOTIFICATION_CONSENT",
         });
       } catch {
@@ -360,7 +361,7 @@ export const useReminderDelivery = (
       }
     };
     void updateConsent();
-  }, [preferences.enabled]);
+  }, [preferences.enabled, storageAvailable]);
 
   const enableReminders = async () => {
     mutationVersion.current += 1;

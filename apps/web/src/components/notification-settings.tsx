@@ -81,6 +81,7 @@ export const NotificationSettings = ({
 }) => {
   const [preferences, setPreferences] = useState(readNotificationPreferences);
   const [storageAvailable, setStorageAvailable] = useState(true);
+  const [timeInputMessage, setTimeInputMessage] = useState("");
   const save = useCallback((next: NotificationPreferences) => {
     setPreferences(next);
     const saved = saveNotificationPreferences(next);
@@ -93,7 +94,13 @@ export const NotificationSettings = ({
     disableReminders,
     enableReminders,
     permission,
-  } = useReminderDelivery(schedule, cancelMissingSchedule, preferences, save);
+  } = useReminderDelivery(
+    schedule,
+    cancelMissingSchedule,
+    preferences,
+    storageAvailable,
+    save
+  );
   const timeZone = readDeviceTimeZone();
   const reminder = schedule
     ? calculateReminderSchedule(
@@ -177,6 +184,7 @@ export const NotificationSettings = ({
             disabled={!preferences.enabled}
             onChange={(event) => {
               if (event.target.value) {
+                setTimeInputMessage("");
                 const saved = save({
                   ...preferences,
                   localTime: event.target.value,
@@ -186,12 +194,20 @@ export const NotificationSettings = ({
                 }
               } else {
                 event.currentTarget.value = preferences.localTime;
+                setTimeInputMessage(
+                  "Choose a reminder time. The previous time was kept."
+                );
               }
             }}
             required
             type="time"
             value={preferences.localTime}
           />
+          {timeInputMessage && (
+            <output className="text-copy-muted mt-1 block text-xs">
+              {timeInputMessage}
+            </output>
+          )}
         </label>
       </div>
 

@@ -131,6 +131,13 @@ describe("PWA app shell", () => {
         deliveryHook.includes("registration.active?.postMessage({") &&
         deliveryHook.includes('type: "NOTIFICATION_CONSENT"') &&
         serviceWorker.includes('type === "NOTIFICATION_CONSENT"'),
+      gatesWorkerConsentOnSavedPreference: deliveryHook.includes(
+        "enabled: storageAvailable && preferences.enabled"
+      ),
+      explainsWhenClearedTimeIsRejected:
+        settings.includes("The previous time was kept.") &&
+        settings.includes("{timeInputMessage && (") &&
+        settings.includes("<output className="),
       handlesPushEvents: serviceWorker.includes('addEventListener("push"'),
     }).toStrictEqual({
       hasExplicitOptIn: true,
@@ -139,6 +146,8 @@ describe("PWA app shell", () => {
       showsPermissionState: true,
       permissionPromptLivesInOptInAction: true,
       syncsOptInToServiceWorker: true,
+      gatesWorkerConsentOnSavedPreference: true,
+      explainsWhenClearedTimeIsRejected: true,
       handlesPushEvents: true,
     });
   });
