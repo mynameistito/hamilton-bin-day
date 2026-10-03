@@ -119,6 +119,16 @@ jobs:
           mkdir -p "$package_directory"
           tar -xzf "$package_archive" -C "$package_directory" --strip-components=1
 
+          # bun pm pack resolves catalog: dependencies; don't rerun prepack outside the workspace.
+          node --input-type=module - "$package_directory/package.json" <<'EOF'
+          import { readFile, writeFile } from "node:fs/promises";
+
+          const packageJsonPath = process.argv[2];
+          const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8"));
+          delete packageJson.scripts?.prepack;
+          await writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+          EOF
+
           if publish_output=$(npm stage publish "$package_directory" --access public --provenance --allow-directory=all 2>&1); then
             printf '%s\n' "$publish_output"
             echo "staged=true" >> "$GITHUB_OUTPUT"
