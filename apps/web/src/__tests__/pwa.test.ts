@@ -7,12 +7,14 @@ const readAppFile = (relativePath: string): Promise<string> =>
 
 describe("PWA app shell", () => {
   test("declares install metadata and registers the root service worker", async () => {
-    const [manifestSource, html, main, buildScript] = await Promise.all([
-      readAppFile("../../public/manifest.webmanifest"),
-      readAppFile("../../index.html"),
-      readAppFile("../main.tsx"),
-      readAppFile("../../../../scripts/build-web.ts"),
-    ]);
+    const [manifestSource, html, main, buildScript, networkStatus] =
+      await Promise.all([
+        readAppFile("../../public/manifest.webmanifest"),
+        readAppFile("../../index.html"),
+        readAppFile("../main.tsx"),
+        readAppFile("../../../../scripts/build-web.ts"),
+        readAppFile("../hooks/use-network-status.ts"),
+      ]);
     const manifest: {
       readonly display: string;
       readonly icons: readonly {
@@ -45,8 +47,9 @@ describe("PWA app shell", () => {
     expect({
       hasManifest: html.includes('rel="manifest" href="/manifest.webmanifest"'),
       safeIosStatusBar:
-        html.includes('name="apple-mobile-web-app-status-bar-style"') &&
-        html.includes('content="black"'),
+        /<meta\s+name="apple-mobile-web-app-status-bar-style"\s+content="black"\s*\/>/u.test(
+          html
+        ),
       registersServiceWorker: main.includes('.register("/sw.js")'),
       detectsWaitingUpdates:
         main.includes("if (registration.waiting)") &&
@@ -55,6 +58,9 @@ describe("PWA app shell", () => {
       validatesPlaceholders: buildScript.includes(
         "Expected exactly one service-worker placeholder"
       ),
+      seedsFromBrowserNetworkState: networkStatus.includes(
+        'let isOnline = typeof navigator !== "undefined" && navigator.onLine;'
+      ),
     }).toStrictEqual({
       hasManifest: true,
       safeIosStatusBar: true,
@@ -62,6 +68,7 @@ describe("PWA app shell", () => {
       detectsWaitingUpdates: true,
       sortsBuildAssets: true,
       validatesPlaceholders: true,
+      seedsFromBrowserNetworkState: true,
     });
   });
 

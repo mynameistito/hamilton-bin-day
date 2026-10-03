@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-let isOnline = false;
+let isOnline = typeof navigator !== "undefined" && navigator.onLine;
 let probeId = 0;
 let interval: number | null = null;
 const listeners = new Set<() => void>();
