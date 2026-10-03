@@ -4,9 +4,10 @@ import {
   planCatalogueSync,
   renderCatalogue,
 } from "@web-scripts/sync-hcc-bin-items";
-import catalogue from "@/lib/bin-items-data.json" with { type: "json" };
-import { BIN_ITEMS, BIN_ITEM_SOURCE } from "@/lib/bin-items";
 import { describe, expect, test } from "vitest";
+
+import { BIN_ITEMS, BIN_ITEM_SOURCE } from "@/lib/bin-items";
+import catalogue from "@/lib/bin-items-data.json" with { type: "json" };
 
 const listingItem = { id: 42, text: "Glass jars & bottles" } as const;
 const detail = {
