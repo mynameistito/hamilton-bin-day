@@ -291,9 +291,20 @@ export const HomePage = () => {
             Hamilton City Council
           </a>
         </span>
-        <a className="underline underline-offset-2" href="/docs/">
-          Collection guide &amp; project docs
-        </a>
+        <nav
+          aria-label="Site information"
+          className="flex flex-wrap gap-x-4 gap-y-1"
+        >
+          <a className="underline underline-offset-2" href="/docs/">
+            Collection guide
+          </a>
+          <a className="underline underline-offset-2" href="/docs/privacy/">
+            Privacy
+          </a>
+          <a className="underline underline-offset-2" href="/docs/terms/">
+            Terms
+          </a>
+        </nav>
       </footer>
     </main>
   );
