@@ -118,14 +118,16 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
               </ul>
             ) : (
               <>
-                No catalogue item matches “{query}”. Try another name or check
-                the Council sorter.
+                No item matches “{query}”. Search again or visit the Council
+                sorter.
               </>
             )}
           </output>
         )}
 
-        <h3 className="mt-6 font-semibold">Council sorter items for this bin</h3>
+        <h3 className="mt-6 font-semibold">
+          Council sorter items for this bin
+        </h3>
         {guidance.length ? (
           <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6">
             {guidance.map((entry) => (

@@ -313,7 +313,9 @@ if (import.meta.main) {
   try {
     await main();
   } catch (error) {
-    console.error(error instanceof Error ? error.message : "Catalogue sync failed");
+    console.error(
+      error instanceof Error ? error.message : "Catalogue sync failed"
+    );
     process.exitCode = 1;
   }
 }

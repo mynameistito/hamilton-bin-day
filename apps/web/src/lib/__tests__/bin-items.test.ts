@@ -46,8 +46,9 @@ describe("verified bin item lookup", () => {
       count: BIN_ITEMS.length,
       uniqueIds: new Set(BIN_ITEMS.map(({ id }) => id)).size,
       categoryCount: new Set(BIN_ITEMS.map(({ bin }) => bin)).size,
-      medicalWasteNote: BIN_ITEMS.find(({ item }) => item === "Medical waste")
-        ?.notes,
+      medicalWasteNote: BIN_ITEMS.find(
+        ({ item }) => item === "Medical waste"
+      )?.notes,
       weedEntries: BIN_ITEMS.filter(({ item }) => item === "Weeds").length,
     }).toStrictEqual({
       url: "https://hamilton.govt.nz/fight-the-landfill",

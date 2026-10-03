@@ -50,7 +50,7 @@ describe("per-bin help", () => {
 
     fireEvent.change(search, { target: { value: "not a council item" } });
     expect(
-      screen.getByText(/No catalogue item matches “not a council item”/u)
+      screen.getByText(/No item matches “not a council item”/u)
     ).toBeTruthy();
   });
 

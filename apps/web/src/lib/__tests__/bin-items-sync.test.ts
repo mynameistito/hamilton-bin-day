@@ -98,7 +98,8 @@ describe("Council sorter catalogue sync", () => {
       detailBody: "id=42",
       isFresh: false,
       checkChanged: true,
-      checkMessage: "Council sorter catalogue is stale. Run bins:sync to refresh it.",
+      checkMessage:
+        "Council sorter catalogue is stale. Run bins:sync to refresh it.",
       checkContent: content,
       updateMessage: "Updated the Council sorter catalogue with 1 items.",
       updateContent: content,
