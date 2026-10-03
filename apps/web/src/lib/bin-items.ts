@@ -36,7 +36,7 @@ export const BIN_ITEMS: readonly BinItem[] = catalogue.items.map((entry) => ({
   bin: parseBinType(entry.bin),
 }));
 
-const normalize = (value: string): string => value.trim().toLocaleLowerCase();
+const normalize = (value: string): string => value.trim().toLowerCase();
 
 /** Find verified Council items whose names contain the user's search text. */
 export const searchBinItems = (query: string): readonly BinItem[] => {
@@ -58,6 +58,15 @@ const binTypeNames: Record<BinType, string> = {
   "food-scraps": "food scraps bin",
   other: "other disposal",
 };
+const binTypesByName = {
+  "food scraps bin": "food-scraps",
+  "glass crate": "glass",
+  "glass recycling crate": "glass",
+  "red bin": "red",
+  "red rubbish wheelie bin": "red",
+  "yellow bin": "yellow",
+  "yellow recycling wheelie bin": "yellow",
+} satisfies Record<string, BinType>;
 
 /** Human-readable Council bin name used in guidance and lookup results. */
 export const binTypeName = (bin: BinType): string => binTypeNames[bin];
@@ -65,17 +74,9 @@ export const binTypeName = (bin: BinType): string => binTypeNames[bin];
 /** Map a Council collection bin label to a known bin type without guessing. */
 export const binTypeFromName = (name: string): BinType | null => {
   const normalized = normalize(name);
-  if (normalized.includes("yellow")) {
-    return "yellow";
-  }
-  if (normalized.includes("glass")) {
-    return "glass";
-  }
-  if (normalized.includes("food scraps")) {
-    return "food-scraps";
-  }
-  if (normalized.includes("red")) {
-    return "red";
-  }
-  return null;
+  return (
+    Object.entries(binTypesByName).find(
+      ([label]) => label === normalized
+    )?.[1] ?? null
+  );
 };

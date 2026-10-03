@@ -27,6 +27,8 @@ bun run bins:sync --check # fail with a stale-data message without writing files
 
 The refresh stops without changing the checked-in data if any detail fails or the Council introduces an unknown result category.
 
+The current public sorter entries 231 and 232 classify clean cardboard/plastic takeaway containers as red-bin items. This conflicts with the Council's [kerbside collection guidance](https://hamilton.govt.nz/fight-the-landfill/kerbside-collection), which says clean cardboard and plastics numbered 1, 2, and 5 go in the yellow bin. The catalogue preserves the sorter results rather than guessing which Council source is authoritative; confirm current Council advice for these items.
+
 ## API endpoints
 
 The deployed web Worker exposes a stateless, read-only MCP Streamable HTTP endpoint:
