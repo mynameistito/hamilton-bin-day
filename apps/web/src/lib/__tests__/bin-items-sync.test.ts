@@ -4,6 +4,8 @@ import {
   planCatalogueSync,
   renderCatalogue,
 } from "@web-scripts/sync-hcc-bin-items";
+import catalogue from "@/lib/bin-items-data.json" with { type: "json" };
+import { BIN_ITEMS, BIN_ITEM_SOURCE } from "@/lib/bin-items";
 import { describe, expect, test } from "vitest";
 
 const listingItem = { id: 42, text: "Glass jars & bottles" } as const;
@@ -32,6 +34,16 @@ const failingFetch: typeof fetch = async (input, init) => {
 };
 
 describe("Council sorter catalogue sync", () => {
+  test("renders the checked-in catalogue in the same canonical format", () => {
+    const content = `${JSON.stringify(catalogue, null, 2)}\n`;
+    expect(
+      renderCatalogue({
+        checkedOn: BIN_ITEM_SOURCE.verifiedOn,
+        items: BIN_ITEMS,
+      })
+    ).toBe(content);
+  });
+
   test("normalizes HTML entities, whitespace, category, destination and notes", () => {
     expect(parseSorterDetail(listingItem, detail)).toStrictEqual({
       id: 42,
