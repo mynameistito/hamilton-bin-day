@@ -55,7 +55,7 @@ describe("Council sorter catalogue sync", () => {
     });
   });
 
-  test("fails safely for failed details, unknown categories, and name mismatches", () => {
+  test("fails safely for failed details, unknown categories, and name or destination mismatches", () => {
     expect(() =>
       parseSorterDetail(listingItem, { ...detail, success: false })
     ).toThrow("detail failed");

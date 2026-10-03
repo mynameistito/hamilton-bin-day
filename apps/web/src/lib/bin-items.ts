@@ -64,6 +64,7 @@ const binTypesByName = {
   "glass recycling crate": "glass",
   "red bin": "red",
   "red rubbish wheelie bin": "red",
+  "other disposal": "other",
   "yellow bin": "yellow",
   "yellow recycling wheelie bin": "yellow",
 } satisfies Record<string, BinType>;

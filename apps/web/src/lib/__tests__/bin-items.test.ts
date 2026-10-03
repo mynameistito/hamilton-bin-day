@@ -61,6 +61,10 @@ describe("verified bin item lookup", () => {
     expect(binTypeName("food-scraps")).toBe("food scraps bin");
   });
 
+  test("maps the human-readable other label back to its bin type", () => {
+    expect(binTypeFromName(binTypeName("other"))).toBe("other");
+  });
+
   test("records a complete checked Council catalogue with stable IDs", () => {
     expect({
       url: BIN_ITEM_SOURCE.url,
