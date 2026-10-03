@@ -30,9 +30,7 @@ describe("bin catalogue page", () => {
       }
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Wine bottles (no lids)" })
-    ).toBeTruthy();
+    expect(screen.getByText("Wine bottles (no lids)")).toBeTruthy();
     expect(
       screen.getByRole("img", { name: "glass recycling crate" })
     ).toBeTruthy();

@@ -12,7 +12,7 @@ const BinItemCard = ({ item }: BinItemCardProps) => {
   return (
     <li className="bg-panel border-sage-border flex min-h-32 items-stretch justify-between gap-4 rounded-2xl border p-4">
       <div className="min-w-0 self-center">
-        <h3 className="leading-6 font-semibold">{item.item}</h3>
+        <p className="leading-6 font-semibold">{item.item}</p>
         <p className="text-moss mt-1 text-sm font-semibold">
           Goes in: {destination}
         </p>
