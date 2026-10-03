@@ -7,6 +7,7 @@ export const isLookupAddressValid = (address: string): boolean =>
 
 const ADDRESS_COOKIE_NAME = "hcc-bin-day-address";
 const ADDRESS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+let addressWriteQueue: Promise<void> = Promise.resolve();
 
 export const normalizeRememberedAddress = (
   address: string | null | undefined
@@ -39,7 +40,7 @@ export const readRememberedAddress = async (): Promise<string | null> => {
   }
 };
 
-export const saveAddressCookie = async (address: string): Promise<void> => {
+const persistAddress = async (address: string): Promise<void> => {
   try {
     await window.cookieStore.set({
       name: ADDRESS_COOKIE_NAME,
@@ -51,4 +52,25 @@ export const saveAddressCookie = async (address: string): Promise<void> => {
   } catch {
     writeAddressStorage(address);
   }
+};
+
+const persistAddressAfter = async (
+  previousWrite: Promise<void>,
+  address: string
+): Promise<void> => {
+  try {
+    await previousWrite;
+  } catch {
+    // A failed earlier write must not block this address.
+  }
+  try {
+    await persistAddress(address);
+  } catch {
+    writeAddressStorage(address);
+  }
+};
+
+export const saveAddressCookie = (address: string): Promise<void> => {
+  addressWriteQueue = persistAddressAfter(addressWriteQueue, address);
+  return addressWriteQueue;
 };
