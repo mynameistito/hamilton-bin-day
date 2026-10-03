@@ -238,15 +238,30 @@ describe("lookup endpoint input validation", () => {
         headers: { "CF-Connecting-IP": "203.0.113.4" },
       }
     );
+    const crossOrigin = await worker.fetch(
+      new Request(request, {
+        headers: {
+          "CF-Connecting-IP": "203.0.113.4",
+          Origin: "https://attacker.test",
+        },
+      }),
+      environment
+    );
 
     const limited = await worker.fetch(request, environment);
     const unavailable = await worker.fetch(request, environment);
 
-    expect(limited.status).toBe(429);
-    expect(limited.headers.get("Retry-After")).toBe("60");
-    expect(unavailable.status).toBe(503);
-    expect(rateLimit).toHaveBeenCalledWith({ key: "203.0.113.4" });
-    expect(assets.fetch).not.toHaveBeenCalled();
+    expect({
+      statuses: [crossOrigin.status, limited.status, unavailable.status],
+      retryAfter: limited.headers.get("Retry-After"),
+      rateLimitKeys: rateLimit.mock.calls.map(([options]) => options.key),
+      assetFetches: assets.fetch.mock.calls.length,
+    }).toStrictEqual({
+      statuses: [403, 429, 503],
+      retryAfter: "60",
+      rateLimitKeys: ["203.0.113.4", "203.0.113.4"],
+      assetFetches: 0,
+    });
   });
 
   test("delegates non-lookup requests to the asset binding", async () => {

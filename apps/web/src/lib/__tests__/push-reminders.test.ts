@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
+  createPushMutationQueue,
   decodeApplicationServerKey,
   deletePushReminder,
   forgetPushEndpoint,
@@ -65,6 +66,28 @@ describe("push reminder client requests", () => {
     expect(readStoredPushEndpoint()).toBeNull();
     expect(rememberPushEndpoint("endpoint")).toBeFalsy();
     expect(forgetPushEndpoint()).toBeFalsy();
+  });
+
+  test("serializes server mutations in submission order", async () => {
+    const enqueue = createPushMutationQueue();
+    const calls: string[] = [];
+    const firstGate = Promise.withResolvers<undefined>();
+    const first = enqueue(async () => {
+      calls.push("first-start");
+      await firstGate.promise;
+      calls.push("first-finish");
+    });
+    const second = enqueue(() => {
+      calls.push("second");
+      return Promise.resolve();
+    });
+
+    await Promise.resolve();
+    expect(calls).toStrictEqual(["first-start"]);
+    firstGate.resolve();
+    await Promise.all([first, second]);
+
+    expect(calls).toStrictEqual(["first-start", "first-finish", "second"]);
   });
 
   test("decodes a base64url VAPID application server key", () => {

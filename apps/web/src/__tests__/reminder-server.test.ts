@@ -275,6 +275,31 @@ describe("reminder delivery database behavior", () => {
       });
     });
 
+    test("schedules a seven-day reminder against the following collection when the next is too close", async () => {
+      const response = await handleReminderSubscribe(
+        subscriptionRequest({
+          preferences: { enabled: true, leadDays: 7, localTime: "19:00" },
+        }),
+        environment,
+        new Date("2026-10-01T00:00:00.000Z")
+      );
+
+      expect(response.status).toBe(200);
+      expect(
+        database.sqlite
+          .prepare(
+            "SELECT collection_date, following_date, collection_type, scheduled_at, notification_id FROM reminder_subscriptions"
+          )
+          .get()
+      ).toMatchObject({
+        collection_date: "2026-10-12",
+        following_date: "2026-10-19",
+        collection_type: "yellow",
+        scheduled_at: "2026-10-05T06:00:00.000Z",
+        notification_id: "2026-10-12:7:19:00:Pacific/Auckland",
+      });
+    });
+
     test("requires the unguessable subscription endpoint and removes its record", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
@@ -390,6 +415,31 @@ describe("reminder delivery database behavior", () => {
         following_date: "2026-10-19",
         collection_type: "yellow",
       });
+    });
+
+    test("claims a due subscription before an overlapping cron can send it", async () => {
+      await handleReminderSubscribe(
+        subscriptionRequest(),
+        environment,
+        new Date("2026-10-01T00:00:00.000Z")
+      );
+      const sendGate = Promise.withResolvers<Response>();
+      const sendStarted = Promise.withResolvers<undefined>();
+      let sends = 0;
+      const send = () => {
+        sends += 1;
+        sendStarted.resolve();
+        return sendGate.promise;
+      };
+      const now = new Date("2026-10-04T08:00:00.000Z");
+
+      const firstRun = sendDueReminders(environment, now, send);
+      await sendStarted;
+      await sendDueReminders(environment, now, send);
+
+      expect(sends).toBe(1);
+      sendGate.resolve(new Response(null, { status: 201 }));
+      await firstRun;
     });
 
     test.each([404, 410])(

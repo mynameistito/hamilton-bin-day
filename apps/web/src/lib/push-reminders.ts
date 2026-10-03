@@ -5,6 +5,31 @@ import type { ScheduleResponse } from "@/lib/schedule";
 
 export const PUSH_ENDPOINT_STORAGE_KEY = "hcc-bin-day-push-endpoint-v1";
 
+/** A queue that executes browser push mutations in the order they were submitted. */
+export type PushMutationQueue = <T>(operation: () => Promise<T>) => Promise<T>;
+
+/** Create a per-component queue that applies browser push mutations in call order. */
+export const createPushMutationQueue = (): PushMutationQueue => {
+  let tail = Promise.resolve();
+  return async <T>(operation: () => Promise<T>) => {
+    const current = Promise.withResolvers<undefined>();
+    const previous = tail;
+    tail = current.promise;
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      current.resolve();
+    }
+  };
+};
+
+const pushMutationQueue = createPushMutationQueue();
+
+/** Serialize subscription mutations across reminder components in this tab. */
+export const enqueuePushMutation: PushMutationQueue = (operation) =>
+  pushMutationQueue(operation);
+
 /** Read the last endpoint locally so server cleanup still works if PushManager loses it. */
 export const readStoredPushEndpoint = (): string | null => {
   try {

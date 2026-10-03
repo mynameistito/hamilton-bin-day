@@ -2,6 +2,7 @@ import {
   handleReminderPublicKey,
   handleReminderSubscribe,
   handleReminderUnsubscribe,
+  isSameOriginRequest,
   sendDueReminders,
 } from "@/lib/reminder-server";
 import type { ReminderEnvironment } from "@/lib/reminder-server";
@@ -66,6 +67,12 @@ export default {
       return handleReminderPublicKey(environment);
     }
     if (url.pathname === "/api/reminders/subscription") {
+      if (!isSameOriginRequest(request)) {
+        return Response.json(
+          { error: "Cross-origin reminder requests are not allowed" },
+          { status: 403 }
+        );
+      }
       const rateLimitResponse = await checkReminderRateLimit(
         request,
         environment

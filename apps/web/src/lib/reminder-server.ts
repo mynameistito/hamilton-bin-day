@@ -175,7 +175,8 @@ const bearerEndpoint = (request: Request): string | null => {
   }
 };
 
-const isSameOriginRequest = (request: Request): boolean => {
+/** Check that a mutation request originates from this site's own origin. */
+export const isSameOriginRequest = (request: Request): boolean => {
   const origin = request.headers.get("origin");
   return origin === null || origin === new URL(request.url).origin;
 };
@@ -269,6 +270,15 @@ const scheduleFor = (
     timeZone
   );
 
+const collectionTypeAfter = (type: "red" | "yellow"): "red" | "yellow" =>
+  type === "red" ? "yellow" : "red";
+
+const advanceDate = (date: string, days: number): string => {
+  const instant = new Date(`${date}T00:00:00.000Z`);
+  instant.setUTCDate(instant.getUTCDate() + days);
+  return instant.toISOString().slice(0, 10);
+};
+
 /** Create/update an opt-in subscription without receiving or retaining an address. */
 export const handleReminderSubscribe = async (
   request: Request,
@@ -300,11 +310,23 @@ export const handleReminderSubscribe = async (
     return jsonError(503, "Web Push configuration is invalid");
   }
   const date = currentHamiltonDate(now);
-  if (input.schedule.collectionDate < date) {
+  const deferWeeklyReminder =
+    input.preferences.leadDays === 7 &&
+    daysBetween(date, input.schedule.collectionDate) < 7;
+  const collectionDate = deferWeeklyReminder
+    ? input.schedule.followingDate
+    : input.schedule.collectionDate;
+  const followingDate = deferWeeklyReminder
+    ? advanceDate(input.schedule.followingDate, 7)
+    : input.schedule.followingDate;
+  const collectionType = deferWeeklyReminder
+    ? collectionTypeAfter(input.schedule.collectionType)
+    : input.schedule.collectionType;
+  if (collectionDate < date) {
     return jsonError(400, "Collection date is no longer current");
   }
   const reminder = scheduleFor(
-    input.schedule.collectionDate,
+    collectionDate,
     input.preferences.leadDays,
     input.preferences.localTime,
     input.timeZone
@@ -316,7 +338,7 @@ export const handleReminderSubscribe = async (
   const scheduledAt = nextDue
     ? now.toISOString()
     : reminder.scheduledAt.toISOString();
-  const notificationId = `${input.schedule.collectionDate}:${input.preferences.leadDays}:${input.preferences.localTime}:${input.timeZone}`;
+  const notificationId = `${collectionDate}:${input.preferences.leadDays}:${input.preferences.localTime}:${input.timeZone}`;
   try {
     await database
       .prepare(
@@ -341,9 +363,9 @@ export const handleReminderSubscribe = async (
       .bind(
         input.subscription.endpoint,
         JSON.stringify(pushSubscription),
-        input.schedule.collectionDate,
-        input.schedule.followingDate,
-        input.schedule.collectionType,
+        collectionDate,
+        followingDate,
+        collectionType,
         input.preferences.leadDays,
         input.preferences.localTime,
         input.timeZone,
@@ -385,19 +407,10 @@ export const handleReminderUnsubscribe = async (
   }
 };
 
-const collectionTypeAfter = (type: "red" | "yellow"): "red" | "yellow" =>
-  type === "red" ? "yellow" : "red";
-
 const SUBSCRIPTION_ENDPOINT_SQL =
   "DELETE FROM reminder_subscriptions WHERE endpoint = ?";
 const CLEAR_CLAIM_SQL =
   "UPDATE reminder_subscriptions SET claim_until = NULL WHERE endpoint = ? AND notification_id = ?";
-
-const advanceDate = (date: string, days: number): string => {
-  const instant = new Date(`${date}T00:00:00.000Z`);
-  instant.setUTCDate(instant.getUTCDate() + days);
-  return instant.toISOString().slice(0, 10);
-};
 
 const removeSubscription = async (
   database: ReminderDatabase,

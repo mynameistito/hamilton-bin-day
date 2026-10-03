@@ -61,6 +61,9 @@ describe("PWA app shell", () => {
       readAppFile("../hooks/use-reminder-delivery.ts"),
       readAppFile("../../public/sw.js"),
     ]);
+    const enableStart = deliveryHook.indexOf("const enableReminders = async");
+    const disableStart = deliveryHook.indexOf("const disableReminders = async");
+    const enableAction = deliveryHook.slice(enableStart, disableStart);
 
     expect({
       hasExplicitOptIn:
@@ -71,7 +74,10 @@ describe("PWA app shell", () => {
       hasDayBeforeOption: settings.includes("The day before"),
       showsPermissionState: deliveryHook.includes("Notification.permission"),
       permissionPromptLivesInOptInAction:
-        deliveryHook.includes("const enableReminders = async") &&
+        enableAction.includes("requestBrowserNotificationPermission(") &&
+        deliveryHook.includes(
+          "const requestBrowserNotificationPermission = async"
+        ) &&
         deliveryHook.includes("Notification.requestPermission()") &&
         !settings.includes("Notification.requestPermission"),
       syncsOptInToServiceWorker:

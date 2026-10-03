@@ -15,3 +15,6 @@ CREATE TABLE IF NOT EXISTS reminder_subscriptions (
 
 CREATE INDEX IF NOT EXISTS reminder_subscriptions_due_idx
   ON reminder_subscriptions (scheduled_at, claim_until);
+
+CREATE INDEX IF NOT EXISTS reminder_subscriptions_updated_idx
+  ON reminder_subscriptions (updated_at);
