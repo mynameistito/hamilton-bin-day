@@ -48,6 +48,38 @@ describe("bin catalogue page", () => {
     });
   });
 
+  test("links Lincoln St Transfer Station notes to its Google Maps location", () => {
+    render(<BinCataloguePage />);
+
+    const stationLinks = screen.getAllByRole("link", {
+      name: "Lincoln St Transfer Station",
+    });
+    const stationCards = screen
+      .getAllByRole("listitem")
+      .filter((card) =>
+        card.textContent?.includes("Lincoln St Transfer Station")
+      );
+
+    expect({
+      linkCount: stationLinks.length,
+      noteCount: stationCards.length,
+      destinations: stationLinks.map((link) => link.getAttribute("href")),
+      visibleAddresses: stationCards.some((card) =>
+        /\(60 Lincoln (?:St|Street), Frankton, Hamilton\)/u.test(
+          card.textContent ?? ""
+        )
+      ),
+    }).toStrictEqual({
+      linkCount: stationCards.length,
+      noteCount: stationCards.length,
+      destinations: stationLinks.map(
+        () =>
+          "https://www.google.com/maps/place/?q=place_id:ChIJVeG03RYibW0RUifSCPuFN1w"
+      ),
+      visibleAddresses: false,
+    });
+  });
+
   test("labels non-kerbside disposal without assigning a bin photo", () => {
     render(<BinCataloguePage />);
     fireEvent.change(

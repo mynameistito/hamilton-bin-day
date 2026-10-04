@@ -3,6 +3,7 @@ import type { KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 
 import { BinItemCard } from "@/components/bin-item-card";
+import { renderBinItemNotes } from "@/components/bin-item-notes";
 import { Button } from "@/components/ui/button";
 import { BIN_ITEM_SOURCE, BIN_ITEMS, searchBinItems } from "@/lib/bin-items";
 import type { BinType } from "@/lib/bin-items";
@@ -171,7 +172,10 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                 <li key={entry.id}>
                   {entry.item}
                   {entry.notes && (
-                    <span className="text-copy-muted"> — {entry.notes}</span>
+                    <span className="text-copy-muted">
+                      {" — "}
+                      {renderBinItemNotes(entry.notes)}
+                    </span>
                   )}
                 </li>
               ))}
@@ -188,7 +192,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                       {entry.notes && (
                         <span className="text-copy-muted">
                           {" "}
-                          — {entry.notes}
+                          — {renderBinItemNotes(entry.notes)}
                         </span>
                       )}
                     </li>

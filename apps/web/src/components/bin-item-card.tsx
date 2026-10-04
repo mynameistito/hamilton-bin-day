@@ -1,3 +1,4 @@
+import { renderBinItemNotes } from "@/components/bin-item-notes";
 import { binTypeImage, binTypeName } from "@/lib/bin-items";
 import type { BinItem } from "@/lib/bin-items";
 
@@ -23,7 +24,7 @@ const BinItemCard = ({ item, imagePlacement = "bottom" }: BinItemCardProps) => {
         </p>
         {item.notes && (
           <p className="text-detail-muted mt-2 text-sm leading-6">
-            {item.notes}
+            {renderBinItemNotes(item.notes)}
           </p>
         )}
       </div>

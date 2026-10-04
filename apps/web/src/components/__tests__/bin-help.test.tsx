@@ -86,6 +86,37 @@ describe("per-bin help", () => {
     ).toContain("No item matches “not a council item”");
   });
 
+  test("links transfer station notes to Google Maps in search results", () => {
+    render(
+      <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "What goes in the yellow recycling wheelie bin?",
+      })
+    );
+    fireEvent.change(screen.getByLabelText("Search the full catalogue"), {
+      target: { value: "Batteries" },
+    });
+
+    const stationLink = screen.getByRole("link", {
+      name: "Lincoln St Transfer Station",
+    });
+    expect({
+      href: stationLink.getAttribute("href"),
+      label: stationLink.textContent,
+      target: stationLink.getAttribute("target"),
+      visibleAddress: stationLink
+        .closest("li")
+        ?.textContent?.includes("(60 Lincoln Street, Frankton, Hamilton)"),
+    }).toStrictEqual({
+      href: "https://www.google.com/maps/place/?q=place_id:ChIJVeG03RYibW0RUifSCPuFN1w",
+      label: "Lincoln St Transfer Station",
+      target: "_blank",
+      visibleAddress: false,
+    });
+  });
+
   test("shows the Council guidance conflict beside sorter entries 231 and 232", () => {
     render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
     fireEvent.click(
