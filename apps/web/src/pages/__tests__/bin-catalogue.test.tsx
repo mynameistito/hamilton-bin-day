@@ -12,6 +12,9 @@ import { afterEach, describe, expect, test } from "vitest";
 import {
   LINCOLN_FACILITIES,
   LINCOLN_FACILITY_MAPS_URL,
+  SOFT_PLASTICS_RECYCLING_URL,
+  THE_WAREHOUSE_HAMILTON_MAPS_URL,
+  WOOLWORTHS_HAMILTON_MAPS_URL,
 } from "@/components/bin-item-notes";
 import { BIN_ITEMS } from "@/lib/bin-items";
 import { BinCataloguePage } from "@/pages/bin-catalogue";
@@ -96,6 +99,69 @@ describe("bin catalogue page", () => {
       canonicalLabels: true,
       visibleAddresses: false,
     });
+  });
+
+  test("links soft plastics stores and scheme website in catalogue notes", () => {
+    render(<BinCataloguePage />);
+
+    const participatingStoreNotes = BIN_ITEMS.filter((item) =>
+      item.notes?.includes("participating Countdown and The Warehouse stores")
+    );
+    const softPlasticsSiteNotes = BIN_ITEMS.filter((item) =>
+      item.notes?.includes("www.recycling.kiwi.nz")
+    );
+    const participatingStoreIds = new Set(
+      participatingStoreNotes.map((item) => item.id)
+    );
+    const softPlasticsSiteIds = new Set(
+      softPlasticsSiteNotes.map((item) => item.id)
+    );
+    const cards = screen.getAllByRole("listitem");
+    const participatingStoreCards = cards.filter((_, index) => {
+      const item = BIN_ITEMS[index];
+      return item !== undefined && participatingStoreIds.has(item.id);
+    });
+    const softPlasticsSiteCards = cards.filter((_, index) => {
+      const item = BIN_ITEMS[index];
+      return item !== undefined && softPlasticsSiteIds.has(item.id);
+    });
+
+    expect({
+      participatingStoreNotes: participatingStoreNotes.length,
+      participatingStoreCards: participatingStoreCards.length,
+      softPlasticsSiteNotes: softPlasticsSiteNotes.length,
+      softPlasticsSiteCards: softPlasticsSiteCards.length,
+    }).toStrictEqual({
+      participatingStoreNotes: 13,
+      participatingStoreCards: 13,
+      softPlasticsSiteNotes: 12,
+      softPlasticsSiteCards: 12,
+    });
+    expect(
+      participatingStoreCards.every((card) => {
+        const woolworths = within(card).getByRole("link", {
+          name: "Woolworths",
+        });
+        const warehouse = within(card).getByRole("link", {
+          name: "The Warehouse stores",
+        });
+        return (
+          woolworths.getAttribute("href") === WOOLWORTHS_HAMILTON_MAPS_URL &&
+          warehouse.getAttribute("href") === THE_WAREHOUSE_HAMILTON_MAPS_URL &&
+          !card.textContent?.includes("Countdown")
+        );
+      })
+    ).toBeTruthy();
+    expect(
+      softPlasticsSiteCards.every((card) => {
+        const recyclingLink = within(card).getByRole("link", {
+          name: "www.recycling.kiwi.nz",
+        });
+        return (
+          recyclingLink.getAttribute("href") === SOFT_PLASTICS_RECYCLING_URL
+        );
+      })
+    ).toBeTruthy();
   });
 
   test("labels non-kerbside disposal without assigning a bin photo", () => {
