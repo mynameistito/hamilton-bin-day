@@ -58,11 +58,12 @@ export const BinCataloguePage = () => {
         </label>
         <Input
           autoComplete="off"
-          className="mt-2 w-full"
+          className="mt-2"
           id="catalogue-search"
           onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder="e.g. glass bottles"
+          placeholder="Search by item name, e.g. glass bottles"
           type="search"
+          variant="search"
           value={query}
         />
 
