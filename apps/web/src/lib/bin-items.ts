@@ -1,7 +1,13 @@
 import catalogue from "@/lib/bin-items-data.json" with { type: "json" };
 
 /** Council sorter destination groups represented in the local catalogue. */
-const BIN_TYPES = ["yellow", "red", "glass", "food-scraps", "other"] as const;
+export const BIN_TYPES = [
+  "yellow",
+  "red",
+  "glass",
+  "food-scraps",
+  "other",
+] as const;
 
 /** Council sorter destinations represented in the local catalogue. */
 export type BinType = (typeof BIN_TYPES)[number];

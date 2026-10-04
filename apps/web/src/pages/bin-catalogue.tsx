@@ -2,7 +2,14 @@ import { useState } from "react";
 
 import { BinItemCard } from "@/components/bin-item-card";
 import { Input } from "@/components/ui/input";
-import { BIN_ITEM_SOURCE, BIN_ITEMS, searchBinItems } from "@/lib/bin-items";
+import {
+  BIN_ITEM_SOURCE,
+  BIN_ITEMS,
+  BIN_TYPES,
+  binTypeName,
+  searchBinItems,
+} from "@/lib/bin-items";
+import type { BinType } from "@/lib/bin-items";
 
 const verificationDateFormatter = new Intl.DateTimeFormat("en-NZ", {
   dateStyle: "long",
@@ -11,7 +18,11 @@ const verificationDateFormatter = new Intl.DateTimeFormat("en-NZ", {
 
 export const BinCataloguePage = () => {
   const [query, setQuery] = useState("");
-  const items = query.trim() ? searchBinItems(query) : BIN_ITEMS;
+  const [selectedBin, setSelectedBin] = useState<BinType | null>(null);
+  const matchingItems = query.trim() ? searchBinItems(query) : BIN_ITEMS;
+  const items = selectedBin
+    ? matchingItems.filter((item) => item.bin === selectedBin)
+    : matchingItems;
   const itemLabel = items.length === 1 ? "item" : "items";
   const resultContext = query.trim() ? "found" : "in the catalogue";
   const resultSummary = items.length
@@ -66,6 +77,31 @@ export const BinCataloguePage = () => {
           variant="search"
           value={query}
         />
+
+        <fieldset className="mt-5">
+          <legend className="text-sm font-semibold">Filter by bin</legend>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              aria-pressed={selectedBin === null}
+              className={`focus-visible:outline-focus-leaf rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 ${selectedBin === null ? "border-focus-leaf bg-highlight text-ink" : "border-sage-border bg-panel text-ink hover:border-forest"}`}
+              onClick={() => setSelectedBin(null)}
+              type="button"
+            >
+              All bins
+            </button>
+            {BIN_TYPES.map((bin) => (
+              <button
+                aria-pressed={selectedBin === bin}
+                className={`focus-visible:outline-focus-leaf rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 ${selectedBin === bin ? "border-focus-leaf bg-highlight text-ink" : "border-sage-border bg-panel text-ink hover:border-forest"}`}
+                key={bin}
+                onClick={() => setSelectedBin(bin)}
+                type="button"
+              >
+                {binTypeName(bin)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
 
         <p aria-live="polite" className="text-copy-muted mt-4 text-sm">
           {resultSummary}

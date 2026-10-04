@@ -16,7 +16,7 @@ import {
   THE_WAREHOUSE_HAMILTON_MAPS_URL,
   WOOLWORTHS_HAMILTON_MAPS_URL,
 } from "@/components/bin-item-notes";
-import { BIN_ITEMS } from "@/lib/bin-items";
+import { BIN_ITEMS, BIN_TYPES, binTypeName } from "@/lib/bin-items";
 import { BinCataloguePage } from "@/pages/bin-catalogue";
 
 describe("bin catalogue page", () => {
@@ -59,6 +59,34 @@ describe("bin catalogue page", () => {
       containerCentered: true,
       itemCount: 1,
     });
+  });
+
+  test("filters catalogue entries by bin type and combines with search", () => {
+    render(<BinCataloguePage />);
+
+    for (const bin of BIN_TYPES) {
+      fireEvent.click(screen.getByRole("button", { name: binTypeName(bin) }));
+      const binCards = screen.getAllByRole("listitem");
+      const expectedItems = BIN_ITEMS.filter((item) => item.bin === bin);
+      expect(binCards).toHaveLength(expectedItems.length);
+      expect(
+        binCards.every((card) =>
+          within(card).getByText(`Goes in: ${binTypeName(bin)}`)
+        )
+      ).toBeTruthy();
+    }
+
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: "Search all items" }),
+      {
+        target: { value: "wine bottles" },
+      }
+    );
+    fireEvent.click(screen.getByRole("button", { name: binTypeName("glass") }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "All bins" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });
 
   test("links Lincoln facility notes to their Google Maps location", () => {
