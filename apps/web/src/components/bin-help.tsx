@@ -61,7 +61,17 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
     if (!dialog) {
       return;
     }
-    dialog.showModal?.();
+    const appRoot = document.querySelector<HTMLElement>("#root");
+    const wasRootInert = appRoot?.inert ?? false;
+    if (import.meta.env.DEV) {
+      // Native modal dialogs sit above every ordinary z-index, including React Grab.
+      if (appRoot) {
+        appRoot.inert = true;
+      }
+      dialog.show?.();
+    } else {
+      dialog.showModal?.();
+    }
     if (!dialog.open) {
       dialog.setAttribute("open", "");
     }
@@ -69,6 +79,9 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
     return () => {
       if (dialog.open) {
         dialog.close?.();
+      }
+      if (appRoot) {
+        appRoot.inert = wasRootInert;
       }
     };
   }, []);

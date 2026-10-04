@@ -19,7 +19,29 @@ import {
 } from "@/components/bin-item-notes";
 
 describe("per-bin help", () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    document.querySelector("#root")?.remove();
+  });
+
+  test("makes the app inert behind the development dialog", () => {
+    const appRoot = document.createElement("div");
+    appRoot.id = "root";
+    document.body.append(appRoot);
+
+    render(
+      <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "What goes in the yellow recycling wheelie bin?",
+      })
+    );
+
+    expect(appRoot.inert).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close bin help" }));
+    expect(appRoot.inert).toBeFalsy();
+  });
 
   test("opens for the selected bin and focuses its labelled item search", () => {
     render(
