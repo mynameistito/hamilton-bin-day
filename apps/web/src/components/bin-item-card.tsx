@@ -21,7 +21,7 @@ const BinItemCard = ({
   const objectAlignment =
     imagePlacement === "center" ? "object-center" : "object-bottom";
   const cardClassName = isCompact
-    ? "min-h-22 gap-3 p-3 sm:p-4"
+    ? "min-h-22 items-center gap-3 p-3 sm:p-4"
     : "min-h-32 items-stretch gap-4 p-4";
   const imageContainerClassName = isCompact
     ? "w-12 items-center sm:w-14"
@@ -30,7 +30,7 @@ const BinItemCard = ({
 
   return (
     <li
-      className={`bg-panel border-sage-border flex items-center justify-between rounded-2xl border ${cardClassName}`}
+      className={`bg-panel border-sage-border flex justify-between rounded-2xl border ${cardClassName}`}
     >
       <div className="min-w-0 self-center">
         <p className="leading-6 font-semibold">{item.item}</p>
