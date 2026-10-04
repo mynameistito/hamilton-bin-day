@@ -3,11 +3,16 @@ import type { BinItem } from "@/lib/bin-items";
 
 interface BinItemCardProps {
   readonly item: BinItem;
+  readonly imagePlacement?: "bottom" | "center";
 }
 
-const BinItemCard = ({ item }: BinItemCardProps) => {
+const BinItemCard = ({ item, imagePlacement = "bottom" }: BinItemCardProps) => {
   const image = binTypeImage[item.bin];
   const destination = binTypeName(item.bin);
+  const imageAlignment =
+    imagePlacement === "center" ? "items-center" : "items-end";
+  const objectAlignment =
+    imagePlacement === "center" ? "object-center" : "object-bottom";
 
   return (
     <li className="bg-panel border-sage-border flex min-h-32 items-stretch justify-between gap-4 rounded-2xl border p-4">
@@ -22,16 +27,18 @@ const BinItemCard = ({ item }: BinItemCardProps) => {
           </p>
         )}
       </div>
-      <div className="flex w-20 shrink-0 items-end justify-center self-stretch sm:w-24">
+      <div
+        className={`flex w-20 shrink-0 ${imageAlignment} justify-center self-stretch sm:w-24`}
+      >
         {image ? (
           <img
             alt={destination}
-            className="max-h-28 max-w-full object-contain object-bottom"
+            className={`max-h-28 max-w-full object-contain ${objectAlignment}`}
             decoding="async"
             loading="lazy"
             src={image.src}
             width={image.width}
-            height="310"
+            height={image.height}
           />
         ) : (
           <span className="border-sage-border text-copy-muted mb-1 rounded-lg border px-2 py-1 text-center text-xs leading-4">

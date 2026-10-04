@@ -62,12 +62,16 @@ const binTypeNames: Record<BinType, string> = {
 /** Local image dimensions for each destination; other disposal has no bin photo. */
 export const binTypeImage: Record<
   BinType,
-  { readonly src: string; readonly width: number } | null
+  {
+    readonly src: string;
+    readonly width: number;
+    readonly height: number;
+  } | null
 > = {
-  yellow: { src: "/assets/bin-yellow.png", width: 208 },
-  red: { src: "/assets/bin-red.png", width: 179 },
-  glass: { src: "/assets/bin-recycling.png", width: 156 },
-  "food-scraps": { src: "/assets/bin-food.png", width: 122 },
+  yellow: { src: "/assets/bin-yellow.png", width: 210, height: 310 },
+  red: { src: "/assets/bin-red.png", width: 211, height: 310 },
+  glass: { src: "/assets/bin-recycling.png", width: 210, height: 181 },
+  "food-scraps": { src: "/assets/bin-food.png", width: 210, height: 310 },
   other: null,
 };
 const binTypesByName = {

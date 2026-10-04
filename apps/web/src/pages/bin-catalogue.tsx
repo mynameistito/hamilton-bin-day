@@ -73,7 +73,7 @@ export const BinCataloguePage = () => {
         {items.length > 0 && (
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {items.map((item) => (
-              <BinItemCard item={item} key={item.id} />
+              <BinItemCard imagePlacement="center" item={item} key={item.id} />
             ))}
           </ul>
         )}

@@ -31,10 +31,21 @@ describe("bin catalogue page", () => {
     );
 
     expect(screen.getByText("Wine bottles (no lids)")).toBeTruthy();
-    expect(
-      screen.getByRole("img", { name: "glass recycling crate" })
-    ).toBeTruthy();
-    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    const image = screen.getByRole("img", { name: "glass recycling crate" });
+    expect({
+      width: image.getAttribute("width"),
+      height: image.getAttribute("height"),
+      imageCentered: image.classList.contains("object-center"),
+      containerCentered:
+        image.parentElement?.classList.contains("items-center"),
+      itemCount: screen.getAllByRole("listitem").length,
+    }).toStrictEqual({
+      width: "210",
+      height: "181",
+      imageCentered: true,
+      containerCentered: true,
+      itemCount: 1,
+    });
   });
 
   test("labels non-kerbside disposal without assigning a bin photo", () => {
