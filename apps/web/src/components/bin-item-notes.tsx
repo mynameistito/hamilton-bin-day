@@ -36,7 +36,7 @@ const facilityAliases = Object.values(LINCOLN_FACILITIES).flatMap(
 const escapeRegExp = (value: string): string =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 const NOTE_REFERENCE = new RegExp(
-  `(?<facilityName>${facilityAliases.map(escapeRegExp).join("|")})(?:\\s+\\([^)]*\\)|,\\s+at 60 Lincoln Street, Frankton)?|(?<countdown>Countdown)|(?<warehouse>The Warehouse stores)|(?<recyclingSite>www\\.recycling\\.kiwi\\.nz)`,
+  `(?<facilityName>${facilityAliases.map(escapeRegExp).join("|")})(?:\\s+\\([^)]*\\)|,\\s+at 60 Lincoln Street, Frankton)?|(?<countdown>Countdown)|(?<warehouse>The Warehouse stores)|(?<recyclingSite>(?:www\\.)?recycling\\.kiwi\\.nz)`,
   "giu"
 );
 

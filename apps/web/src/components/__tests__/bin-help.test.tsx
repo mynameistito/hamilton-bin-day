@@ -150,39 +150,51 @@ describe("per-bin help", () => {
     }
   );
 
-  test("links soft plastics stores and recycling site in help search results", () => {
-    render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "What goes in the red rubbish wheelie bin?",
-      })
-    );
-    fireEvent.change(screen.getByLabelText("Search the full catalogue"), {
-      target: { value: "Bread bags (soft plastic)" },
-    });
+  test.each([
+    {
+      item: "Bread bags (soft plastic)",
+      recyclingSiteLabel: "www.recycling.kiwi.nz",
+    },
+    {
+      item: "Biscuit wrapping/bags (soft plastic)",
+      recyclingSiteLabel: "recycling.kiwi.nz",
+    },
+  ])(
+    "links soft plastics stores and $recyclingSiteLabel in help results",
+    ({ item, recyclingSiteLabel }) => {
+      render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "What goes in the red rubbish wheelie bin?",
+        })
+      );
+      fireEvent.change(screen.getByLabelText("Search the full catalogue"), {
+        target: { value: item },
+      });
 
-    const resultCard = screen
-      .getByText("Bread bags (soft plastic)", { selector: "p" })
-      .closest("li");
-    if (!resultCard) {
-      throw new Error("Expected the Bread bags search result card.");
+      const resultCard = screen
+        .getByText(item, { selector: "p" })
+        .closest("li");
+      if (!resultCard) {
+        throw new Error(`Expected the ${item} search result card.`);
+      }
+      expect({
+        woolworths: within(resultCard)
+          .getByRole("link", { name: "Woolworths" })
+          .getAttribute("href"),
+        warehouse: within(resultCard)
+          .getByRole("link", { name: "The Warehouse stores" })
+          .getAttribute("href"),
+        recyclingSite: within(resultCard)
+          .getByRole("link", { name: recyclingSiteLabel })
+          .getAttribute("href"),
+      }).toStrictEqual({
+        woolworths: WOOLWORTHS_HAMILTON_MAPS_URL,
+        warehouse: THE_WAREHOUSE_HAMILTON_MAPS_URL,
+        recyclingSite: SOFT_PLASTICS_RECYCLING_URL,
+      });
     }
-    expect({
-      woolworths: within(resultCard)
-        .getByRole("link", { name: "Woolworths" })
-        .getAttribute("href"),
-      warehouse: within(resultCard)
-        .getByRole("link", { name: "The Warehouse stores" })
-        .getAttribute("href"),
-      recyclingSite: within(resultCard)
-        .getByRole("link", { name: "www.recycling.kiwi.nz" })
-        .getAttribute("href"),
-    }).toStrictEqual({
-      woolworths: WOOLWORTHS_HAMILTON_MAPS_URL,
-      warehouse: THE_WAREHOUSE_HAMILTON_MAPS_URL,
-      recyclingSite: SOFT_PLASTICS_RECYCLING_URL,
-    });
-  });
+  );
 
   test("shows the Council guidance conflict beside sorter entries 231 and 232", () => {
     render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);

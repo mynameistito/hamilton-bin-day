@@ -108,7 +108,7 @@ describe("bin catalogue page", () => {
       item.notes?.includes("participating Countdown and The Warehouse stores")
     );
     const softPlasticsSiteNotes = BIN_ITEMS.filter((item) =>
-      item.notes?.includes("www.recycling.kiwi.nz")
+      item.notes?.includes("recycling.kiwi.nz")
     );
     const participatingStoreIds = new Set(
       participatingStoreNotes.map((item) => item.id)
@@ -131,11 +131,15 @@ describe("bin catalogue page", () => {
       participatingStoreCards: participatingStoreCards.length,
       softPlasticsSiteNotes: softPlasticsSiteNotes.length,
       softPlasticsSiteCards: softPlasticsSiteCards.length,
+      wwwSiteNotes: softPlasticsSiteNotes.filter((item) =>
+        item.notes?.includes("www.recycling.kiwi.nz")
+      ).length,
     }).toStrictEqual({
       participatingStoreNotes: 13,
       participatingStoreCards: 13,
-      softPlasticsSiteNotes: 12,
-      softPlasticsSiteCards: 12,
+      softPlasticsSiteNotes: 13,
+      softPlasticsSiteCards: 13,
+      wwwSiteNotes: 12,
     });
     expect(
       participatingStoreCards.every((card) => {
@@ -155,7 +159,7 @@ describe("bin catalogue page", () => {
     expect(
       softPlasticsSiteCards.every((card) => {
         const recyclingLink = within(card).getByRole("link", {
-          name: "www.recycling.kiwi.nz",
+          name: /^(?:www\.)?recycling\.kiwi\.nz$/u,
         });
         return (
           recyclingLink.getAttribute("href") === SOFT_PLASTICS_RECYCLING_URL
