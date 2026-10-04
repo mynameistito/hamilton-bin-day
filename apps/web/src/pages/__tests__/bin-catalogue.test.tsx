@@ -76,17 +76,29 @@ describe("bin catalogue page", () => {
       ).toBeTruthy();
     }
 
+    fireEvent.click(screen.getByRole("button", { name: "All bins" }));
     fireEvent.change(
       screen.getByRole("searchbox", { name: "Search all items" }),
       {
-        target: { value: "wine bottles" },
+        target: { value: "medicine" },
       }
     );
+    const matchesAcrossBins = screen.getAllByRole("listitem").length;
+
     fireEvent.click(screen.getByRole("button", { name: binTypeName("glass") }));
-    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    const glassMatches = screen.getAllByRole("listitem").length;
 
     fireEvent.click(screen.getByRole("button", { name: "All bins" }));
-    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    const matchesAfterReset = screen.getAllByRole("listitem").length;
+    expect({
+      matchesAcrossBins,
+      glassMatches,
+      matchesAfterReset,
+    }).toStrictEqual({
+      matchesAcrossBins: 3,
+      glassMatches: 1,
+      matchesAfterReset: 3,
+    });
   });
 
   test("explains when an active bin filter hides search matches", () => {
