@@ -5,36 +5,55 @@ import type { BinItem } from "@/lib/bin-items";
 interface BinItemCardProps {
   readonly item: BinItem;
   readonly imagePlacement?: "bottom" | "center";
+  readonly variant?: "catalogue" | "compact";
 }
 
-const BinItemCard = ({ item, imagePlacement = "bottom" }: BinItemCardProps) => {
+const BinItemCard = ({
+  item,
+  imagePlacement = "bottom",
+  variant = "catalogue",
+}: BinItemCardProps) => {
   const image = binTypeImage[item.bin];
   const destination = binTypeName(item.bin);
+  const isCompact = variant === "compact";
   const imageAlignment =
     imagePlacement === "center" ? "items-center" : "items-end";
   const objectAlignment =
     imagePlacement === "center" ? "object-center" : "object-bottom";
+  const cardClassName = isCompact
+    ? "min-h-22 gap-3 p-3 sm:p-4"
+    : "min-h-32 items-stretch gap-4 p-4";
+  const imageContainerClassName = isCompact
+    ? "w-12 items-center sm:w-14"
+    : `w-20 ${imageAlignment} sm:w-24`;
+  const imageClassName = isCompact ? "max-h-16" : `max-h-28 ${objectAlignment}`;
 
   return (
-    <li className="bg-panel border-sage-border flex min-h-32 items-stretch justify-between gap-4 rounded-2xl border p-4">
+    <li
+      className={`bg-panel border-sage-border flex items-center justify-between rounded-2xl border ${cardClassName}`}
+    >
       <div className="min-w-0 self-center">
         <p className="leading-6 font-semibold">{item.item}</p>
-        <p className="text-moss mt-1 text-sm font-semibold">
-          Goes in: {destination}
-        </p>
-        {item.notes && (
-          <p className="text-detail-muted mt-2 text-sm leading-6">
-            {renderBinItemNotes(item.notes)}
-          </p>
+        {!isCompact && (
+          <>
+            <p className="text-moss mt-1 text-sm font-semibold">
+              Goes in: {destination}
+            </p>
+            {item.notes && (
+              <p className="text-detail-muted mt-2 text-sm leading-6">
+                {renderBinItemNotes(item.notes)}
+              </p>
+            )}
+          </>
         )}
       </div>
       <div
-        className={`flex w-20 shrink-0 ${imageAlignment} justify-center self-stretch sm:w-24`}
+        className={`flex shrink-0 justify-center self-stretch ${imageContainerClassName}`}
       >
         {image ? (
           <img
             alt={destination}
-            className={`max-h-28 max-w-full object-contain ${objectAlignment}`}
+            className={`max-w-full object-contain ${imageClassName}`}
             decoding="async"
             loading="lazy"
             src={image.src}

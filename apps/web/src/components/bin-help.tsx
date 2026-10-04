@@ -3,7 +3,6 @@ import type { KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 
 import { BinItemCard } from "@/components/bin-item-card";
-import { renderBinItemNotes } from "@/components/bin-item-notes";
 import { Button } from "@/components/ui/button";
 import { BIN_ITEM_SOURCE, BIN_ITEMS, searchBinItems } from "@/lib/bin-items";
 import type { BinType } from "@/lib/bin-items";
@@ -153,9 +152,9 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
         {results && (
           <output aria-live="polite" className="mt-3 block">
             {results.length ? (
-              <ul className="space-y-2">
+              <ul className="grid gap-2 sm:grid-cols-2">
                 {results.map((entry) => (
-                  <BinItemCard item={entry} key={entry.id} />
+                  <BinItemCard item={entry} key={entry.id} variant="compact" />
                 ))}
               </ul>
             ) : (
@@ -176,21 +175,11 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
 
         {showGuidance && (
           <>
-            <h3 className="mt-6 font-semibold">
-              Council sorter items for this bin
-            </h3>
+            <h3 className="mt-6 font-semibold">Items for this bin</h3>
             {hasGuidanceConflict && <KerbsideGuidanceNotice />}
-            <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6">
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               {guidance.slice(0, 10).map((entry) => (
-                <li key={entry.id}>
-                  {entry.item}
-                  {entry.notes && (
-                    <span className="text-copy-muted">
-                      {" — "}
-                      {renderBinItemNotes(entry.notes)}
-                    </span>
-                  )}
-                </li>
+                <BinItemCard item={entry} key={entry.id} variant="compact" />
               ))}
             </ul>
             {hasMoreGuidance && (
@@ -198,17 +187,13 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
                 <summary className="cursor-pointer underline underline-offset-2">
                   Show the remaining {guidance.length - 10} items
                 </summary>
-                <ul className="mt-2 list-disc space-y-2 pl-5 leading-6">
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                   {guidance.slice(10).map((entry) => (
-                    <li key={entry.id}>
-                      {entry.item}
-                      {entry.notes && (
-                        <span className="text-copy-muted">
-                          {" "}
-                          — {renderBinItemNotes(entry.notes)}
-                        </span>
-                      )}
-                    </li>
+                    <BinItemCard
+                      item={entry}
+                      key={entry.id}
+                      variant="compact"
+                    />
                   ))}
                 </ul>
               </details>

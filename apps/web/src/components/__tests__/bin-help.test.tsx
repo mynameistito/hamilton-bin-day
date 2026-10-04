@@ -10,13 +10,6 @@ import {
 import { afterEach, describe, expect, test } from "vitest";
 
 import { BinHelpControl } from "@/components/bin-help";
-import {
-  LINCOLN_FACILITIES,
-  LINCOLN_FACILITY_MAPS_URL,
-  SOFT_PLASTICS_RECYCLING_URL,
-  THE_WAREHOUSE_HAMILTON_MAPS_URL,
-  WOOLWORTHS_HAMILTON_MAPS_URL,
-} from "@/components/bin-item-notes";
 
 describe("per-bin help", () => {
   afterEach(() => {
@@ -80,24 +73,39 @@ describe("per-bin help", () => {
     );
 
     const dialog = screen.getByRole("dialog");
-    expect(
-      dialog.querySelector("section > ul")?.querySelectorAll("li").length
-    ).toBeLessThanOrEqual(10);
-    expect(screen.getByText(/Show the remaining \d+ items/u).tagName).toBe(
-      "SUMMARY"
-    );
+    const initialItems = dialog
+      .querySelector("section > ul")
+      ?.querySelectorAll("li").length;
     const sourceLink = screen.getByRole("link", {
       name: "Hamilton City Council’s item sorter",
     });
-    expect(sourceLink.closest("[aria-live]")).toBeNull();
     const catalogueLink = screen.getByRole("link", {
       name: "Browse the full catalogue",
     });
-    expect(catalogueLink.getAttribute("href")).toBe("/what-goes-where");
-    expect(catalogueLink.closest("[aria-live]")).toBeNull();
+    expect({
+      initialItemsAtMostTen: initialItems !== undefined && initialItems <= 10,
+      hasItemsHeading: Boolean(
+        within(dialog).getByRole("heading", { name: "Items for this bin" })
+      ),
+      hasNoDestinationSubtext: within(dialog).queryByText(/Goes in:/u) === null,
+      remainingItemsDisclosure: screen.getByText(
+        /Show the remaining \d+ items/u
+      ).tagName,
+      sourceOutsideLiveRegion: sourceLink.closest("[aria-live]") === null,
+      catalogueHref: catalogueLink.getAttribute("href"),
+      catalogueOutsideLiveRegion: catalogueLink.closest("[aria-live]") === null,
+    }).toStrictEqual({
+      initialItemsAtMostTen: true,
+      hasItemsHeading: true,
+      hasNoDestinationSubtext: true,
+      remainingItemsDisclosure: "SUMMARY",
+      sourceOutsideLiveRegion: true,
+      catalogueHref: "/what-goes-where",
+      catalogueOutsideLiveRegion: true,
+    });
   });
 
-  test("searches the full catalogue and announces a clear no-match state", () => {
+  test("searches the catalogue with compact photo cards and announces no matches", () => {
     render(
       <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
     );
@@ -110,113 +118,26 @@ describe("per-bin help", () => {
       name: "Search the full catalogue",
     });
 
-    fireEvent.change(search, { target: { value: "glass bottles" } });
+    fireEvent.change(search, { target: { value: "Aerosol cans" } });
+    const resultList = document.querySelector('output[aria-live="polite"]');
+    if (!resultList) {
+      throw new Error("Expected the live search results list.");
+    }
     expect(
-      screen.getAllByText("Goes in: glass recycling crate")[0].textContent
-    ).toBe("Goes in: glass recycling crate");
+      within(resultList).getAllByRole("img", {
+        name: "red rubbish wheelie bin",
+      }).length
+    ).toBeGreaterThan(0);
+    expect(within(resultList).queryByText(/Goes in:/u)).toBeNull();
+    expect(
+      within(resultList).queryByText(/Empty cans can go in your red bin/u)
+    ).toBeNull();
 
     fireEvent.change(search, { target: { value: "not a council item" } });
     expect(
       screen.getByText(/No item matches “not a council item”/u).textContent
     ).toContain("No item matches “not a council item”");
   });
-
-  test.each([
-    {
-      facility: LINCOLN_FACILITIES.transferStation,
-      item: "Batteries",
-      query: "Batteries",
-    },
-    {
-      facility: LINCOLN_FACILITIES.resourceRecoveryCentre,
-      item: "Batteries (torch)",
-      query: "Batteries (torch)",
-    },
-  ])(
-    "links $item facility notes to Google Maps in search results",
-    ({ facility, item, query }) => {
-      render(
-        <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
-      );
-      fireEvent.click(
-        screen.getByRole("button", {
-          name: "What goes in the yellow recycling wheelie bin?",
-        })
-      );
-      fireEvent.change(screen.getByLabelText("Search the full catalogue"), {
-        target: { value: query },
-      });
-
-      const resultCard = screen
-        .getByText(item, { selector: "p" })
-        .closest("li");
-      if (!resultCard) {
-        throw new Error(`Expected the ${item} search result card.`);
-      }
-      const facilityLink = within(resultCard).getByRole("link", {
-        name: facility.label,
-      });
-      expect({
-        href: facilityLink.getAttribute("href"),
-        label: facilityLink.textContent,
-        target: facilityLink.getAttribute("target"),
-        visibleAddress: facilityLink
-          .closest("li")
-          ?.textContent?.includes("60 Lincoln Street, Frankton, Hamilton"),
-      }).toStrictEqual({
-        href: LINCOLN_FACILITY_MAPS_URL,
-        label: facility.label,
-        target: "_blank",
-        visibleAddress: false,
-      });
-    }
-  );
-
-  test.each([
-    {
-      item: "Bread bags (soft plastic)",
-      recyclingSiteLabel: "www.recycling.kiwi.nz",
-    },
-    {
-      item: "Biscuit wrapping/bags (soft plastic)",
-      recyclingSiteLabel: "recycling.kiwi.nz",
-    },
-  ])(
-    "links soft plastics stores and $recyclingSiteLabel in help results",
-    ({ item, recyclingSiteLabel }) => {
-      render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
-      fireEvent.click(
-        screen.getByRole("button", {
-          name: "What goes in the red rubbish wheelie bin?",
-        })
-      );
-      fireEvent.change(screen.getByLabelText("Search the full catalogue"), {
-        target: { value: item },
-      });
-
-      const resultCard = screen
-        .getByText(item, { selector: "p" })
-        .closest("li");
-      if (!resultCard) {
-        throw new Error(`Expected the ${item} search result card.`);
-      }
-      expect({
-        woolworths: within(resultCard)
-          .getByRole("link", { name: "Woolworths" })
-          .getAttribute("href"),
-        warehouse: within(resultCard)
-          .getByRole("link", { name: "The Warehouse stores" })
-          .getAttribute("href"),
-        recyclingSite: within(resultCard)
-          .getByRole("link", { name: recyclingSiteLabel })
-          .getAttribute("href"),
-      }).toStrictEqual({
-        woolworths: WOOLWORTHS_HAMILTON_MAPS_URL,
-        warehouse: THE_WAREHOUSE_HAMILTON_MAPS_URL,
-        recyclingSite: SOFT_PLASTICS_RECYCLING_URL,
-      });
-    }
-  );
 
   test("shows the Council guidance conflict beside sorter entries 231 and 232", () => {
     render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
