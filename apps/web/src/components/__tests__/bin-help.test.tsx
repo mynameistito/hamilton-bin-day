@@ -1,6 +1,12 @@
 // @vitest-environment happy-dom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { BinHelpControl } from "@/components/bin-help";
@@ -99,7 +105,13 @@ describe("per-bin help", () => {
       target: { value: "Batteries" },
     });
 
-    const stationLink = screen.getByRole("link", {
+    const batteryCard = screen
+      .getByText("Batteries", { selector: "p" })
+      .closest("li");
+    if (!batteryCard) {
+      throw new Error("Expected the Batteries search result card.");
+    }
+    const stationLink = within(batteryCard).getByRole("link", {
       name: "Lincoln St Transfer Station",
     });
     expect({
@@ -112,6 +124,37 @@ describe("per-bin help", () => {
     }).toStrictEqual({
       href: "https://www.google.com/maps/place/?q=place_id:ChIJVeG03RYibW0RUifSCPuFN1w",
       label: "Lincoln St Transfer Station",
+      target: "_blank",
+      visibleAddress: false,
+    });
+  });
+
+  test("links resource recovery centre notes to Google Maps in search results", () => {
+    render(
+      <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "What goes in the yellow recycling wheelie bin?",
+      })
+    );
+    fireEvent.change(screen.getByLabelText("Search the full catalogue"), {
+      target: { value: "Batteries (torch)" },
+    });
+
+    const centreLink = screen.getByRole("link", {
+      name: "Lincoln Street Resource Recovery Centre",
+    });
+    expect({
+      href: centreLink.getAttribute("href"),
+      label: centreLink.textContent,
+      target: centreLink.getAttribute("target"),
+      visibleAddress: centreLink
+        .closest("li")
+        ?.textContent?.includes("(60 Lincoln Street, Frankton, Hamilton)"),
+    }).toStrictEqual({
+      href: "https://www.google.com/maps/place/?q=place_id:ChIJVeG03RYibW0RUifSCPuFN1w",
+      label: "Lincoln Street Resource Recovery Centre",
       target: "_blank",
       visibleAddress: false,
     });

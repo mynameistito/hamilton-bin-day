@@ -1,6 +1,12 @@
 // @vitest-environment happy-dom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { BIN_ITEMS } from "@/lib/bin-items";
@@ -48,31 +54,36 @@ describe("bin catalogue page", () => {
     });
   });
 
-  test("links Lincoln St Transfer Station notes to its Google Maps location", () => {
+  test("links Lincoln facility notes to their Google Maps location", () => {
     render(<BinCataloguePage />);
 
-    const stationLinks = screen.getAllByRole("link", {
-      name: "Lincoln St Transfer Station",
+    const facilityNotes = BIN_ITEMS.filter((item) =>
+      /Lincoln (?:St(?:reet)? Transfer Station|Street Resource Recovery Centre)/u.test(
+        item.notes ?? ""
+      )
+    );
+    const facilityIds = new Set(facilityNotes.map((item) => item.id));
+    const facilityCards = screen.getAllByRole("listitem").filter((_, index) => {
+      const item = BIN_ITEMS[index];
+      return item !== undefined && facilityIds.has(item.id);
     });
-    const stationCards = screen
-      .getAllByRole("listitem")
-      .filter((card) =>
-        card.textContent?.includes("Lincoln St Transfer Station")
-      );
+    const facilityLinks = facilityCards.map((card) =>
+      within(card).getByRole("link", {
+        name: /^(?:Lincoln St Transfer Station|Lincoln Street Resource Recovery Centre)$/u,
+      })
+    );
 
     expect({
-      linkCount: stationLinks.length,
-      noteCount: stationCards.length,
-      destinations: stationLinks.map((link) => link.getAttribute("href")),
-      visibleAddresses: stationCards.some((card) =>
-        /\(60 Lincoln (?:St|Street), Frankton, Hamilton\)/u.test(
+      linkCount: facilityLinks.length,
+      destinations: facilityLinks.map((link) => link.getAttribute("href")),
+      visibleAddresses: facilityCards.some((card) =>
+        /\(60 Lincoln (?:St|Street), Frankton, Hamilton\)|, at 60 Lincoln Street, Frankton/u.test(
           card.textContent ?? ""
         )
       ),
     }).toStrictEqual({
-      linkCount: stationCards.length,
-      noteCount: stationCards.length,
-      destinations: stationLinks.map(
+      linkCount: facilityNotes.length,
+      destinations: facilityNotes.map(
         () =>
           "https://www.google.com/maps/place/?q=place_id:ChIJVeG03RYibW0RUifSCPuFN1w"
       ),
