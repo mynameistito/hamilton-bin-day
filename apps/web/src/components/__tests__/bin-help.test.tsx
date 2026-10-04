@@ -139,7 +139,7 @@ describe("per-bin help", () => {
     ).toContain("No item matches “not a council item”");
   });
 
-  test("shows the Council guidance conflict beside sorter entries 231 and 232", () => {
+  test("shows a compact Council guidance conflict note for the red bin", () => {
     render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
     fireEvent.click(
       screen.getByRole("button", {
@@ -147,8 +147,9 @@ describe("per-bin help", () => {
       })
     );
 
-    const conflictNotice = screen.getByText(
-      /Council sorter entries 231 and 232/u
+    const conflictNotice = screen.getByRole("note");
+    expect(conflictNotice.textContent).toContain(
+      "Council sources conflict on takeaway containers"
     );
     expect(conflictNotice.closest("details")).toBeNull();
     expect(

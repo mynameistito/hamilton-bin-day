@@ -26,9 +26,12 @@ const hasConflictingKerbsideGuidance = (itemId: number): boolean =>
   itemId === 231 || itemId === 232;
 
 const KerbsideGuidanceNotice = () => (
-  <p className="text-copy-muted mt-1 block text-xs">
-    Council sorter entries 231 and 232 classify these takeaway containers as
-    red, while separate Council{" "}
+  <p
+    className="text-copy-muted bg-panel border-sage-border mt-2 rounded-lg border px-3 py-2 text-xs leading-5"
+    role="note"
+  >
+    Council sources conflict on takeaway containers: the sorter lists them as
+    red, while its{" "}
     <a
       className="underline underline-offset-2"
       href="https://hamilton.govt.nz/fight-the-landfill/kerbside-collection"
@@ -37,8 +40,8 @@ const KerbsideGuidanceNotice = () => (
     >
       kerbside guidance
     </a>{" "}
-    says clean cardboard and eligible plastics numbered 1, 2 or 5 go in yellow
-    recycling. Check current Council advice before disposal.
+    lists clean cardboard and eligible #1, #2 and #5 plastics for yellow. Check
+    current advice before disposal.
   </p>
 );
 
