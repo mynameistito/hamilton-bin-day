@@ -89,6 +89,25 @@ describe("bin catalogue page", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });
 
+  test("explains when an active bin filter hides search matches", () => {
+    render(<BinCataloguePage />);
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: "Search all items" }),
+      {
+        target: { value: "medicine" },
+      }
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: binTypeName("food-scraps") })
+    );
+
+    expect(
+      screen.getByText(
+        "No items match “medicine” with the food scraps bin filter. Try another search or choose All bins."
+      )
+    ).toBeTruthy();
+  });
+
   test("links Lincoln facility notes to their Google Maps location", () => {
     render(<BinCataloguePage />);
 

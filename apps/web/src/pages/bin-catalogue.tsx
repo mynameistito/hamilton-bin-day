@@ -25,9 +25,12 @@ export const BinCataloguePage = () => {
     : matchingItems;
   const itemLabel = items.length === 1 ? "item" : "items";
   const resultContext = query.trim() ? "found" : "in the catalogue";
+  const emptyResultSummary = selectedBin
+    ? `No items match “${query}” with the ${binTypeName(selectedBin)} filter. Try another search or choose All bins.`
+    : `No item matches “${query}”. Try another search.`;
   const resultSummary = items.length
     ? `${items.length} ${itemLabel} ${resultContext}`
-    : `No item matches “${query}”. Try another search.`;
+    : emptyResultSummary;
 
   return (
     <main className="bg-canvas text-ink min-h-dvh px-4 pb-10 sm:px-5">
