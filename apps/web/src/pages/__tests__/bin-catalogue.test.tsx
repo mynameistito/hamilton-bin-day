@@ -9,6 +9,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 
+import {
+  LINCOLN_FACILITIES,
+  LINCOLN_FACILITY_MAPS_URL,
+} from "@/components/bin-item-notes";
 import { BIN_ITEMS } from "@/lib/bin-items";
 import { BinCataloguePage } from "@/pages/bin-catalogue";
 
@@ -57,9 +61,10 @@ describe("bin catalogue page", () => {
   test("links Lincoln facility notes to their Google Maps location", () => {
     render(<BinCataloguePage />);
 
+    const facilities = Object.values(LINCOLN_FACILITIES);
     const facilityNotes = BIN_ITEMS.filter((item) =>
-      /Lincoln (?:St(?:reet)? Transfer Station|Street Resource Recovery Centre)/u.test(
-        item.notes ?? ""
+      facilities.some((facility) =>
+        facility.aliases.some((alias) => item.notes?.includes(alias))
       )
     );
     const facilityIds = new Set(facilityNotes.map((item) => item.id));
@@ -68,14 +73,18 @@ describe("bin catalogue page", () => {
       return item !== undefined && facilityIds.has(item.id);
     });
     const facilityLinks = facilityCards.map((card) =>
-      within(card).getByRole("link", {
-        name: /^(?:Lincoln St Transfer Station|Lincoln Street Resource Recovery Centre)$/u,
-      })
+      within(card).getByRole("link")
+    );
+    const facilityLabels = new Set(
+      facilities.map((facility) => facility.label)
     );
 
     expect({
       linkCount: facilityLinks.length,
       destinations: facilityLinks.map((link) => link.getAttribute("href")),
+      canonicalLabels: facilityLinks.every((link) =>
+        facilityLabels.has(link.textContent ?? "")
+      ),
       visibleAddresses: facilityCards.some((card) =>
         /\(60 Lincoln (?:St|Street), Frankton, Hamilton\)|, at 60 Lincoln Street, Frankton/u.test(
           card.textContent ?? ""
@@ -83,10 +92,8 @@ describe("bin catalogue page", () => {
       ),
     }).toStrictEqual({
       linkCount: facilityNotes.length,
-      destinations: facilityNotes.map(
-        () =>
-          "https://www.google.com/maps/place/?q=place_id:ChIJVeG03RYibW0RUifSCPuFN1w"
-      ),
+      destinations: facilityNotes.map(() => LINCOLN_FACILITY_MAPS_URL),
+      canonicalLabels: true,
       visibleAddresses: false,
     });
   });

@@ -10,6 +10,10 @@ import {
 import { afterEach, describe, expect, test } from "vitest";
 
 import { BinHelpControl } from "@/components/bin-help";
+import {
+  LINCOLN_FACILITIES,
+  LINCOLN_FACILITY_MAPS_URL,
+} from "@/components/bin-item-notes";
 
 describe("per-bin help", () => {
   afterEach(cleanup);
@@ -92,73 +96,56 @@ describe("per-bin help", () => {
     ).toContain("No item matches “not a council item”");
   });
 
-  test("links transfer station notes to Google Maps in search results", () => {
-    render(
-      <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
-    );
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "What goes in the yellow recycling wheelie bin?",
-      })
-    );
-    fireEvent.change(screen.getByLabelText("Search the full catalogue"), {
-      target: { value: "Batteries" },
-    });
+  test.each([
+    {
+      facility: LINCOLN_FACILITIES.transferStation,
+      item: "Batteries",
+      query: "Batteries",
+    },
+    {
+      facility: LINCOLN_FACILITIES.resourceRecoveryCentre,
+      item: "Batteries (torch)",
+      query: "Batteries (torch)",
+    },
+  ])(
+    "links $item facility notes to Google Maps in search results",
+    ({ facility, item, query }) => {
+      render(
+        <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
+      );
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "What goes in the yellow recycling wheelie bin?",
+        })
+      );
+      fireEvent.change(screen.getByLabelText("Search the full catalogue"), {
+        target: { value: query },
+      });
 
-    const batteryCard = screen
-      .getByText("Batteries", { selector: "p" })
-      .closest("li");
-    if (!batteryCard) {
-      throw new Error("Expected the Batteries search result card.");
+      const resultCard = screen
+        .getByText(item, { selector: "p" })
+        .closest("li");
+      if (!resultCard) {
+        throw new Error(`Expected the ${item} search result card.`);
+      }
+      const facilityLink = within(resultCard).getByRole("link", {
+        name: facility.label,
+      });
+      expect({
+        href: facilityLink.getAttribute("href"),
+        label: facilityLink.textContent,
+        target: facilityLink.getAttribute("target"),
+        visibleAddress: facilityLink
+          .closest("li")
+          ?.textContent?.includes("60 Lincoln Street, Frankton, Hamilton"),
+      }).toStrictEqual({
+        href: LINCOLN_FACILITY_MAPS_URL,
+        label: facility.label,
+        target: "_blank",
+        visibleAddress: false,
+      });
     }
-    const stationLink = within(batteryCard).getByRole("link", {
-      name: "Lincoln St Transfer Station",
-    });
-    expect({
-      href: stationLink.getAttribute("href"),
-      label: stationLink.textContent,
-      target: stationLink.getAttribute("target"),
-      visibleAddress: stationLink
-        .closest("li")
-        ?.textContent?.includes("(60 Lincoln Street, Frankton, Hamilton)"),
-    }).toStrictEqual({
-      href: "https://www.google.com/maps/place/?q=place_id:ChIJVeG03RYibW0RUifSCPuFN1w",
-      label: "Lincoln St Transfer Station",
-      target: "_blank",
-      visibleAddress: false,
-    });
-  });
-
-  test("links resource recovery centre notes to Google Maps in search results", () => {
-    render(
-      <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
-    );
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "What goes in the yellow recycling wheelie bin?",
-      })
-    );
-    fireEvent.change(screen.getByLabelText("Search the full catalogue"), {
-      target: { value: "Batteries (torch)" },
-    });
-
-    const centreLink = screen.getByRole("link", {
-      name: "Lincoln Street Resource Recovery Centre",
-    });
-    expect({
-      href: centreLink.getAttribute("href"),
-      label: centreLink.textContent,
-      target: centreLink.getAttribute("target"),
-      visibleAddress: centreLink
-        .closest("li")
-        ?.textContent?.includes("(60 Lincoln Street, Frankton, Hamilton)"),
-    }).toStrictEqual({
-      href: "https://www.google.com/maps/place/?q=place_id:ChIJVeG03RYibW0RUifSCPuFN1w",
-      label: "Lincoln Street Resource Recovery Centre",
-      target: "_blank",
-      visibleAddress: false,
-    });
-  });
+  );
 
   test("shows the Council guidance conflict beside sorter entries 231 and 232", () => {
     render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
