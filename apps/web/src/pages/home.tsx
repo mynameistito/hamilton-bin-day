@@ -1,10 +1,12 @@
 import { useState } from "react";
 
+import { BinHelpControl } from "@/components/bin-help";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
 import { ADDRESS_LENGTH_LIMIT } from "@/lib/address";
+import { binTypeFromName } from "@/lib/bin-items";
 import { daysUntilCollection, formatCollectionDate } from "@/lib/schedule";
 import type { ScheduleResponse } from "@/lib/schedule";
 
@@ -50,6 +52,166 @@ const collectionBadgeClass = (
   }
 };
 
+type Theme = "dark" | "light";
+
+interface HomeHeaderProps {
+  readonly onToggleTheme: () => void;
+  readonly theme: Theme;
+}
+
+const HomeHeader = ({ onToggleTheme, theme }: HomeHeaderProps) => (
+  <header className="home-header mx-auto flex w-full max-w-6xl items-center justify-between gap-3 py-4 sm:py-5">
+    <a
+      aria-label="Hamilton Bin Day home"
+      className="flex items-center gap-2.5 font-bold tracking-tight sm:gap-3"
+      href="/"
+    >
+      <span
+        aria-hidden="true"
+        className="bg-forest grid size-9 shrink-0 place-items-center rounded-xl text-lg text-white sm:size-10"
+      >
+        ♻
+      </span>
+      <span>
+        Hamilton <span className="text-copy-muted font-normal">Bin Day</span>
+      </span>
+    </a>
+    <nav
+      aria-label="Main navigation"
+      className="flex shrink-0 items-center gap-2 sm:gap-3"
+    >
+      <a
+        className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        href="/what-goes-where"
+      >
+        <span className="sm:hidden">Items</span>
+        <span className="hidden sm:inline">What goes where?</span>
+      </a>
+      <a
+        className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        href="/docs/"
+      >
+        <span className="sm:hidden">Guide</span>
+        <span className="hidden sm:inline">How collections work</span>
+      </a>
+      <button
+        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+        aria-pressed={theme === "light"}
+        className="border-sage-border bg-panel text-ink focus-visible:outline-focus-leaf inline-flex min-h-11 items-center gap-2 rounded-full border px-2.5 py-2 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-3"
+        onClick={onToggleTheme}
+        type="button"
+      >
+        <span aria-hidden="true">{theme === "dark" ? "☼" : "☾"}</span>
+        <span className="hidden sm:inline">
+          {theme === "dark" ? "Light" : "Dark"}
+        </span>
+      </button>
+    </nav>
+  </header>
+);
+
+interface CollectionCardProps {
+  readonly relativeCollectionDate: string;
+  readonly schedule: ScheduleResponse | null;
+}
+
+const CollectionCard = ({
+  relativeCollectionDate,
+  schedule,
+}: CollectionCardProps) => (
+  <div
+    aria-live="polite"
+    className="home-schedule relative mx-auto w-full max-w-md"
+  >
+    <div
+      className={`${collectionHighlightClass(schedule?.nextCollection.type)} absolute -inset-2 rounded-4xl sm:-inset-5`}
+    />
+    <Card className="relative">
+      <div className="border-card-border flex items-start justify-between gap-3 border-b p-5 sm:p-6">
+        <div className="min-w-0">
+          <p className="tracking-caption text-caption text-xs font-bold uppercase">
+            Next collection
+          </p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
+            {schedule
+              ? formatCollectionDate(schedule.nextCollection.date)
+              : "Your collection day"}
+          </h2>
+          <p className="text-address-muted mt-1 text-sm">
+            {schedule?.address ?? "Your address, at a glance"}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2.5 py-1.5 text-xs font-bold tracking-wide whitespace-nowrap uppercase sm:px-3 ${collectionBadgeClass(schedule?.nextCollection.type)}`}
+        >
+          {schedule ? `${schedule.nextCollection.type} week` : "Hamilton"}
+        </span>
+      </div>
+      <div className="p-5 sm:p-6">
+        {schedule ? (
+          <>
+            <p className="text-detail-muted text-sm">
+              {relativeCollectionDate}
+            </p>
+            <ul className="mt-4 space-y-3">
+              {schedule.nextCollection.bins.map((bin) => (
+                <li
+                  className="bg-panel flex items-center justify-between gap-3 rounded-xl px-4 py-3"
+                  key={bin}
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="text-check bg-surface grid size-8 shrink-0 place-items-center rounded-lg"
+                    >
+                      ✓
+                    </span>
+                    <span className="font-medium">{bin}</span>
+                  </span>
+                  <BinHelpControl bin={binTypeFromName(bin)} binName={bin} />
+                </li>
+              ))}
+            </ul>
+            <p className="text-detail-muted mt-5 text-sm">
+              Regular collection: {schedule.collectionDayName}
+            </p>
+          </>
+        ) : (
+          <div className="bg-panel rounded-2xl p-5 text-center sm:p-6">
+            <span
+              aria-hidden="true"
+              className="text-moss-dark bg-surface mx-auto grid size-14 place-items-center rounded-2xl text-2xl"
+            >
+              ⌂
+            </span>
+            <p className="mt-4 font-semibold">Your schedule, made simple</p>
+            <p className="text-detail-muted mt-2 text-sm leading-6">
+              Enter a Hamilton address to see your next bin collection and which
+              bins to put out.
+            </p>
+          </div>
+        )}
+      </div>
+      {schedule && (
+        <div className="border-card-border grid grid-cols-2 border-t text-center text-sm">
+          <div className="p-4">
+            <span className="text-caption block text-xs">Next red week</span>
+            <span className="mt-1 block font-semibold">
+              {formatCollectionDate(schedule.redBin)}
+            </span>
+          </div>
+          <div className="border-card-border border-l p-4">
+            <span className="text-caption block text-xs">Next yellow week</span>
+            <span className="mt-1 block font-semibold">
+              {formatCollectionDate(schedule.yellowBin)}
+            </span>
+          </div>
+        </div>
+      )}
+    </Card>
+  </div>
+);
+
 export const HomePage = () => {
   const { address, setAddress, state, submitLookup } = useAddressLookup();
   const [theme, setTheme] = useState<"dark" | "light">(() =>
@@ -79,45 +241,7 @@ export const HomePage = () => {
 
   return (
     <main className="home-page bg-canvas text-ink flex min-h-dvh flex-col px-4 pb-6 sm:px-5">
-      <header className="home-header mx-auto flex w-full max-w-6xl items-center justify-between gap-3 py-4 sm:py-5">
-        <a
-          className="flex items-center gap-2.5 font-bold tracking-tight sm:gap-3"
-          href="/"
-          aria-label="Hamilton Bin Day home"
-        >
-          <span
-            className="bg-forest grid size-9 shrink-0 place-items-center rounded-xl text-lg text-white sm:size-10"
-            aria-hidden="true"
-          >
-            ♻
-          </span>
-          <span>
-            Hamilton{" "}
-            <span className="text-copy-muted font-normal">Bin Day</span>
-          </span>
-        </a>
-        <nav className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <a
-            className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
-            href="/docs/"
-          >
-            <span className="sm:hidden">Guide</span>
-            <span className="hidden sm:inline">How collections work</span>
-          </a>
-          <button
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            aria-pressed={theme === "light"}
-            className="border-sage-border bg-panel text-ink focus-visible:outline-focus-leaf inline-flex min-h-11 items-center gap-2 rounded-full border px-2.5 py-2 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-3"
-            onClick={toggleTheme}
-            type="button"
-          >
-            <span aria-hidden="true">{theme === "dark" ? "☼" : "☾"}</span>
-            <span className="hidden sm:inline">
-              {theme === "dark" ? "Light" : "Dark"}
-            </span>
-          </button>
-        </nav>
-      </header>
+      <HomeHeader onToggleTheme={toggleTheme} theme={theme} />
 
       <section className="home-lookup mx-auto grid w-full max-w-6xl gap-9 pt-8 pb-10 sm:gap-12 sm:pt-12 sm:pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-12">
         <div className="home-lookup-copy">
@@ -165,102 +289,11 @@ export const HomePage = () => {
           </p>
         </div>
 
-        <div
-          aria-live="polite"
-          className="home-schedule relative mx-auto w-full max-w-md"
-        >
-          <div
-            className={`${collectionHighlightClass(schedule?.nextCollection.type)} absolute -inset-2 rounded-4xl sm:-inset-5`}
-          />
-          <Card className="relative">
-            <div className="border-card-border flex items-start justify-between gap-3 border-b p-5 sm:p-6">
-              <div className="min-w-0">
-                <p className="tracking-caption text-caption text-xs font-bold uppercase">
-                  Next collection
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
-                  {schedule
-                    ? formatCollectionDate(schedule.nextCollection.date)
-                    : "Your collection day"}
-                </h2>
-                <p className="text-address-muted mt-1 text-sm">
-                  {schedule?.address ?? "Your address, at a glance"}
-                </p>
-              </div>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-1.5 text-xs font-bold tracking-wide whitespace-nowrap uppercase sm:px-3 ${collectionBadgeClass(schedule?.nextCollection.type)}`}
-              >
-                {schedule ? `${schedule.nextCollection.type} week` : "Hamilton"}
-              </span>
-            </div>
-            <div className="p-5 sm:p-6">
-              {schedule ? (
-                <>
-                  <p className="text-detail-muted text-sm">
-                    {relativeCollectionDate}
-                  </p>
-                  <ul className="mt-4 space-y-3">
-                    {schedule.nextCollection.bins.map((bin) => (
-                      <li
-                        className="bg-panel flex items-center gap-3 rounded-xl px-4 py-3"
-                        key={bin}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="text-check bg-surface grid size-8 place-items-center rounded-lg"
-                        >
-                          ✓
-                        </span>
-                        <span className="font-medium">{bin}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-detail-muted mt-5 text-sm">
-                    Regular collection: {schedule.collectionDayName}
-                  </p>
-                </>
-              ) : (
-                <div className="bg-panel rounded-2xl p-5 text-center sm:p-6">
-                  <span
-                    aria-hidden="true"
-                    className="text-moss-dark bg-surface mx-auto grid size-14 place-items-center rounded-2xl text-2xl"
-                  >
-                    ⌂
-                  </span>
-                  <p className="mt-4 font-semibold">
-                    Your schedule, made simple
-                  </p>
-                  <p className="text-detail-muted mt-2 text-sm leading-6">
-                    Enter a Hamilton address to see your next bin collection and
-                    which bins to put out.
-                  </p>
-                </div>
-              )}
-            </div>
-            {schedule && (
-              <div className="border-card-border grid grid-cols-2 border-t text-center text-sm">
-                <div className="p-4">
-                  <span className="text-caption block text-xs">
-                    Next red week
-                  </span>
-                  <span className="mt-1 block font-semibold">
-                    {formatCollectionDate(schedule.redBin)}
-                  </span>
-                </div>
-                <div className="border-card-border border-l p-4">
-                  <span className="text-caption block text-xs">
-                    Next yellow week
-                  </span>
-                  <span className="mt-1 block font-semibold">
-                    {formatCollectionDate(schedule.yellowBin)}
-                  </span>
-                </div>
-              </div>
-            )}
-          </Card>
-        </div>
+        <CollectionCard
+          relativeCollectionDate={relativeCollectionDate}
+          schedule={schedule}
+        />
       </section>
-
       <section className="home-steps border-footer-border text-footer-copy mx-auto grid w-full max-w-6xl gap-5 border-t py-6 text-sm md:grid-cols-3 md:gap-4 md:pt-6">
         <div>
           <span className="text-step-copy font-semibold">
@@ -300,6 +333,9 @@ export const HomePage = () => {
           </a>
           <a className="underline underline-offset-2" href="/docs/privacy/">
             Privacy
+          </a>
+          <a className="underline underline-offset-2" href="/what-goes-where">
+            What goes where?
           </a>
           <a className="underline underline-offset-2" href="/docs/terms/">
             Terms
