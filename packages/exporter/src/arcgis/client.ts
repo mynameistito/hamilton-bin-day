@@ -4,22 +4,30 @@ import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
 
 import { ArcGisError } from "@/arcgis/error";
 
-/** URL of the HCC ArcGIS feature service used as the export source. */
+/**
+ * URL of the HCC ArcGIS query endpoint used to retrieve property records.
+ *
+ * This URL is also recorded in each generated dataset as its data source.
+ */
 export const sourceUrl =
   "https://services1.arcgis.com/R6s0QqCMQdwKY6yp/ArcGIS/rest/services/app_basedata/FeatureServer/2/query";
+/** Maximum number of attempts made for transient ArcGIS request failures. */
 const RETRIES = 5;
 
+/** ArcGIS error envelope used by the query endpoint. */
 const ArcGisErrorSchema = Schema.Struct({
   code: Schema.Number,
   details: Schema.optional(Schema.Array(Schema.String)),
   message: Schema.String,
 });
 
+/** Object-ID query response schema. */
 const IdResponseSchema = Schema.Struct({
   error: Schema.optional(ArcGisErrorSchema),
   objectIds: Schema.optional(Schema.Array(Schema.Number)),
 });
 
+/** Property feature schema limited to fields consumed by the exporter. */
 const FeatureSchema = Schema.Struct({
   attributes: Schema.Struct({
     OBJECTID: Schema.Number,
@@ -29,33 +37,70 @@ const FeatureSchema = Schema.Struct({
   }),
 });
 
+/** Feature batch query response schema. */
 const FeatureResponseSchema = Schema.Struct({
   error: Schema.optional(ArcGisErrorSchema),
   exceededTransferLimit: Schema.optional(Schema.Boolean),
   features: Schema.optional(Schema.Array(FeatureSchema)),
 });
 
-/** A validated ArcGIS feature used by the transformation layer. */
-export type ArcGisFeature = Schema.Schema.Type<typeof FeatureSchema>;
+/**
+ * An ArcGIS feature decoded from the query response and passed to dataset
+ * transformation.
+ */
+export interface ArcGisFeature {
+  /** ArcGIS attribute values used to build the public address record. */
+  readonly attributes: {
+    /** Stable object ID identifying the source feature. */
+    readonly OBJECTID: number;
+    /** Council-provided street address, if present. */
+    readonly Parcel_Street_Address?: string | null | undefined;
+    /** Council-provided collection weekday or `Not Serviced`, if present. */
+    readonly RubbishRecycling_Area_Day?: string | null | undefined;
+    /** Council collection area label, if present. */
+    readonly RubbishRecycling_Area_Type?: string | null | undefined;
+  };
+}
 
-/** Operations needed to retrieve HCC's ArcGIS feature records. */
+/**
+ * Effect service for retrieving the HCC property IDs and corresponding
+ * address features.
+ */
 export class ArcGisClient extends Context.Service<
   ArcGisClient,
   {
-    /** Retrieve the complete OBJECTID set for the service layer. */
+    /**
+     * Retrieve the complete set of object IDs in the feature layer.
+     *
+     * @returns All ArcGIS OBJECTIDs, or an `ArcGisError` if the request or
+     * response decoding fails.
+     */
     readonly allObjectIds: Effect.Effect<readonly number[], ArcGisError>;
-    /** Retrieve property features for a batch of OBJECTIDs. */
+    /**
+     * Retrieve property features for one batch of object IDs.
+     *
+     * @param objectIds - OBJECTIDs to include in the ArcGIS query.
+     * @returns The decoded features for the requested IDs, or an `ArcGisError`
+     * if the request or response decoding fails.
+     */
     readonly featuresByObjectIds: (
       objectIds: readonly number[]
     ) => Effect.Effect<readonly ArcGisFeature[], ArcGisError>;
   }
 >()("hcc-bin-day-exporter/arcgis/Client") {}
 
+/**
+ * Convert an ArcGIS response error envelope to the adapter's typed error.
+ *
+ * @param error - The validated error envelope returned by ArcGIS.
+ * @returns A typed adapter error containing the ArcGIS code and message.
+ */
 const decodeError = (error: Schema.Schema.Type<typeof ArcGisErrorSchema>) => {
   const details = error.details?.length ? ` ${error.details.join(" ")}` : "";
   return new ArcGisError(`ArcGIS ${error.code}: ${error.message}${details}`);
 };
 
+/** Build the ArcGIS service using the HTTP client supplied by the Layer graph. */
 const make = Effect.gen(function* make() {
   const rawClient = yield* HttpClient.HttpClient;
   const client = rawClient.pipe(
@@ -66,6 +111,15 @@ const make = Effect.gen(function* make() {
     })
   );
 
+  /**
+   * Send a form-encoded query and decode its JSON response schema.
+   *
+   * @template S - The response schema used to decode the ArcGIS JSON body.
+   * @param params - Query parameters encoded as form fields.
+   * @param schema - Schema for the response body.
+   * @returns A decoded response or an `ArcGisError` when the request or decode
+   * fails.
+   */
   const request = <S extends Schema.Constraint>(
     params: Readonly<Record<string, string>>,
     schema: S
@@ -128,10 +182,11 @@ const make = Effect.gen(function* make() {
   return ArcGisClient.of({ allObjectIds, featuresByObjectIds });
 });
 
-/** Production ArcGIS client backed by Effect's Node HTTP client. */
+/**
+ * Production ArcGIS client Layer backed by Effect's Node HTTP client.
+ *
+ * @returns A Layer providing `ArcGisClient` without external requirements.
+ */
 export const layer = Layer.effect(ArcGisClient, make).pipe(
   Layer.provide(nodeHttpClientLayer)
 );
-
-/** ArcGIS client layer that keeps the HTTP client dependency available to callers. */
-export const layerWithoutDependencies = Layer.effect(ArcGisClient, make);

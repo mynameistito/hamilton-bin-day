@@ -3,25 +3,44 @@ import type { CollectionArea } from "@/bin-week";
 
 /** Normalized output row containing one address schedule. */
 export interface AddressRecord {
+  /** Council-provided street address, trimmed of surrounding whitespace. */
   readonly address: string;
+  /** HCC collection area associated with this schedule. */
   readonly area: CollectionArea;
+  /** Monday-based weekday number, or `null` when no service is scheduled. */
   readonly dayOfWeek: number | null;
+  /** Whether the address has a collection day or is not serviced. */
   readonly serviceStatus: "scheduled" | "not_serviced";
 }
 
-/** Per-reason counts for source records excluded from the dataset. */
-export interface SkippedRecords {
+/**
+ * Counts of source features excluded because required address data was missing
+ * or the HCC collection area was unsupported.
+ */
+interface SkippedRecords {
+  /** Features without a non-empty street address. */
   readonly missingAddress: number;
+  /** Features without a non-empty collection day. */
   readonly missingDay: number;
+  /** Features without a non-empty collection area. */
   readonly missingArea: number;
+  /** Features assigned to an area outside Area 1 and Area 2. */
   readonly unsupportedArea: number;
 }
 
+/** Intermediate result of parsing one ArcGIS feature for dataset output. */
 type FeatureResult =
   | { readonly _tag: "Record"; readonly record: AddressRecord }
   | { readonly _tag: "Skipped"; readonly reason: keyof SkippedRecords }
   | { readonly _tag: "InvalidDay"; readonly day: string };
 
+/**
+ * Parse a validated ArcGIS feature into a record or a categorized exclusion.
+ *
+ * @param feature - Feature whose attributes were decoded by the ArcGIS client.
+ * @param days - Case-normalized collection weekday names and their numbers.
+ * @returns A record, a reason the feature was skipped, or an unrecognized day.
+ */
 const parseFeature = (
   feature: ArcGisFeature,
   days: ReadonlyMap<string, number>
@@ -63,10 +82,16 @@ const parseFeature = (
 };
 
 /**
- * Extract usable address records and remove exact schedule duplicates.
+ * Project ArcGIS features into the sorted, de-duplicated dataset records.
  *
- * @param features - Validated features returned by the ArcGIS adapter.
- * @returns Sorted records, source-quality counts, and duplicate/conflict data.
+ * Records missing required fields or using an unsupported area are counted in
+ * `skipped`. Unrecognized collection days are returned in `invalidDays` so the
+ * export workflow can fail rather than silently publish incomplete data.
+ *
+ * @param features - Features decoded by the ArcGIS client.
+ * @returns Sorted unique records, skip counts, invalid day values, the number
+ * of removed duplicate schedules, and the number of addresses with conflicting
+ * schedules.
  */
 export const transformFeatures = (features: readonly ArcGisFeature[]) => {
   const records: AddressRecord[] = [];

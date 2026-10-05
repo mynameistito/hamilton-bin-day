@@ -4,11 +4,14 @@ export type BinWeek = "red" | "yellow";
 /** An area identifier used by HCC's rubbish/recycling dataset. */
 export type CollectionArea = "Area 1" | "Area 2";
 
-/** The relevant collection rotation for both HCC areas. */
-export type BinWeekByArea = Readonly<Record<CollectionArea, BinWeek>>;
+/** The collection rotation for each HCC area. */
+type BinWeekByArea = Readonly<Record<CollectionArea, BinWeek>>;
 
+/** IANA time zone used to determine HCC's local collection week. */
 const TIME_ZONE = "Pacific/Auckland";
+/** Monday of the verified reference week used to anchor the fortnight rotation. */
 const REFERENCE_WEEK = "2026-10-05";
+/** Verified bin color in each area during the reference week. */
 const REFERENCE_BIN_WEEKS: BinWeekByArea = {
   "Area 1": "yellow",
   "Area 2": "red",
@@ -20,6 +23,13 @@ const DATE_PARTS_FORMATTER = new Intl.DateTimeFormat("en-NZ", {
   year: "numeric",
 });
 
+/**
+ * Format an instant as a calendar date in the HCC service time zone.
+ *
+ * @param date - Instant to format.
+ * @returns ISO calendar date in `Pacific/Auckland`.
+ * @throws {TypeError} If the supplied date is invalid.
+ */
 const getAucklandDate = (date: Date): string => {
   if (Number.isNaN(date.getTime())) {
     throw new TypeError("Cannot determine bin week from an invalid date.");
@@ -37,6 +47,12 @@ const getAucklandDate = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+/**
+ * Return the Monday on or before an ISO calendar date.
+ *
+ * @param date - ISO calendar date.
+ * @returns The Monday calendar date as `YYYY-MM-DD`.
+ */
 const getMonday = (date: string): string => {
   const year = Number(date.slice(0, 4));
   const month = Number(date.slice(5, 7));
@@ -52,6 +68,13 @@ const getMonday = (date: string): string => {
   ].join("-");
 };
 
+/**
+ * Count whole Monday-based weeks between two ISO calendar dates.
+ *
+ * @param fromWeek - Start Monday as `YYYY-MM-DD`.
+ * @param toWeek - End Monday as `YYYY-MM-DD`.
+ * @returns Signed whole-week distance from the first Monday to the second.
+ */
 const weeksBetween = (fromWeek: string, toWeek: string): number => {
   const fromYear = Number(fromWeek.slice(0, 4));
   const fromMonth = Number(fromWeek.slice(5, 7));
@@ -74,6 +97,7 @@ const weeksBetween = (fromWeek: string, toWeek: string): number => {
  * @param area - The HCC rubbish/recycling area.
  * @param date - The instant to evaluate, defaulting to the current instant.
  * @returns The color collected from that area in the relevant week.
+ * @throws {TypeError} If `date` is invalid or `area` is not a supported HCC area.
  */
 export const getBinWeek = (
   area: CollectionArea,
@@ -100,6 +124,7 @@ export const getBinWeek = (
  *
  * @param date - The instant to evaluate.
  * @returns The Monday date as an ISO calendar date.
+ * @throws {TypeError} If `date` is invalid.
  */
 export const getWeekStarting = (date: Date): string =>
   getMonday(getAucklandDate(date));

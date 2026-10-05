@@ -4,24 +4,66 @@ import { ArcGisClient, sourceUrl } from "@/arcgis/client";
 import { getBinWeek, getWeekStarting } from "@/bin-week";
 import { transformFeatures } from "@/dataset/transform";
 
+/** Maximum number of OBJECTIDs sent in one sequential ArcGIS query. */
 const BATCH_SIZE = 1000;
-/** A typed failure while validating or writing the exported dataset. */
-export class ExportError extends Error {
-  /** Stable error tag for typed Effect error handling. */
+
+/**
+ * Typed workflow failure raised when source data is incomplete or output cannot
+ * be written.
+ */
+class ExportError extends Error {
+  /** Stable tag identifying this failure in the Effect error channel. */
   readonly _tag = "ExportError" as const;
 
-  /** Identifies the workflow error in runtime diagnostics. */
+  /** Error name used by runtime diagnostics and stack traces. */
   override readonly name = "ExportError";
 }
 
+/** Summary returned after an export has been completely written. */
+interface ExportSummary {
+  /** Path where the generated dataset was written. */
+  readonly outputPath: string;
+  /** Number of OBJECTIDs reported by the ArcGIS feature layer. */
+  readonly sourceRecords: number;
+  /** Number of distinct address schedule records in the output. */
+  readonly uniqueRecords: number;
+  /** Number of usable records before exact schedule duplicates were removed. */
+  readonly usableRecords: number;
+}
+
+/**
+ * Format a count using New Zealand locale separators for CLI progress output.
+ *
+ * @param value - Count to format.
+ * @returns The locale-formatted count.
+ */
 const formatNumber = (value: number): string => value.toLocaleString("en-NZ");
 
+/**
+ * Split an input list into ordered batches of at most `size` items.
+ *
+ * @template A - Type of each input item.
+ * @param values - Ordered items to split.
+ * @param size - Maximum number of items in each batch.
+ * @returns Ordered batches that preserve the input order.
+ */
 const chunks = <A>(values: readonly A[], size: number) =>
   Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
     values.slice(index * size, (index + 1) * size)
   );
 
-/** Fetch, validate, transform, and write the HCC address dataset. */
+/**
+ * Fetch, validate, transform, and write the complete HCC address dataset.
+ *
+ * All external work is provided through Effect services. The dataset is only
+ * written after the downloaded OBJECTIDs are verified and every collection
+ * day is recognized; an error leaves the existing output file untouched.
+ *
+ * @param outputPath - Filesystem path for the generated JSON dataset.
+ * @returns Export counts and the destination path after a successful write.
+ * The Effect fails with `ArcGisError` for retrieval failures or `ExportError`
+ * for incomplete source data and file-write failures.
+ */
 export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
   outputPath: string
 ) {
@@ -139,6 +181,6 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
     outputPath,
     sourceRecords: ids.length,
     uniqueRecords: transformed.records.length,
-    usableRecords: transformed.records.length,
-  };
+    usableRecords: transformed.records.length + transformed.duplicateCount,
+  } satisfies ExportSummary;
 });
