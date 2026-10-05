@@ -121,7 +121,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
       onKeyDown={handleKeyDown}
       ref={dialogRef}
     >
-      <section className="border-card-border bg-surface text-ink max-h-[90dvh] w-full overflow-y-auto rounded-t-3xl border p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-6">
+      <section className="border-card-border bg-surface text-ink h-dvh max-h-none w-full overflow-y-auto rounded-none border p-5 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-lg sm:rounded-3xl sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-caption text-xs font-bold tracking-wide uppercase">
