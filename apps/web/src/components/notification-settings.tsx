@@ -249,8 +249,11 @@ export const NotificationSettings = ({
         </div>
 
         <p className="text-copy-muted mt-4 text-xs leading-5">
-          Works on Android and desktop. On iPhone or iPad, add this app to your
-          Home Screen. Your address is not saved for reminders.{" "}
+          Reminders continue each week until you turn them off. Dates are
+          projected from your latest lookup, so exceptional Council changes
+          require a fresh lookup. Works on Android and desktop. On iPhone or
+          iPad, add this app to your Home Screen. Your address is not saved for
+          reminders.{" "}
           <a className="underline underline-offset-2" href="/docs/privacy/">
             Privacy details
           </a>
