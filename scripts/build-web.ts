@@ -9,14 +9,32 @@ const docsOutput = path.resolve(import.meta.dir, "../apps/docs/dist");
 const webOutput = path.resolve(webDirectory, "dist");
 
 await $`bun x vite build`.cwd(webDirectory);
-const indexHtml = await readFile(path.resolve(webOutput, "index.html"));
-const buildId = createHash("sha256")
-  .update(indexHtml)
-  .digest("hex")
-  .slice(0, 12);
 const assetFiles = await readdir(path.resolve(webOutput, "assets"));
 // oxlint-disable-next-line unicorn/no-array-sort -- SAFETY: This fresh list is sorted only to stabilize the emitted service-worker cache key.
 const builtAssets = assetFiles.sort().map((asset) => `/assets/${asset}`);
+const fixedShellFiles = [
+  "/index.html",
+  "/sw.js",
+  "/manifest.webmanifest",
+  "/icons/apple-touch-icon.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/icon-maskable-192.png",
+  "/icons/icon-maskable-512.png",
+];
+const shellFiles = [...fixedShellFiles, ...builtAssets];
+const buildHash = createHash("sha256");
+const shellContents = await Promise.all(
+  shellFiles.map(async (shellFile) => ({
+    contents: await readFile(path.resolve(webOutput, `.${shellFile}`)),
+    shellFile,
+  }))
+);
+for (const { contents, shellFile } of shellContents) {
+  buildHash.update(shellFile);
+  buildHash.update(contents);
+}
+const buildId = buildHash.digest("hex").slice(0, 12);
 const serviceWorkerPath = path.resolve(webOutput, "sw.js");
 const serviceWorker = await readFile(serviceWorkerPath, "utf-8");
 const replaceExactlyOnce = (

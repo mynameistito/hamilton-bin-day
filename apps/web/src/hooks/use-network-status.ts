@@ -6,10 +6,6 @@ let interval: number | null = null;
 const listeners = new Set<() => void>();
 
 const probeNetwork = async (): Promise<boolean> => {
-  if (!navigator.onLine) {
-    return false;
-  }
-
   try {
     const response = await fetch("/api/health", {
       cache: "no-store",
@@ -46,8 +42,8 @@ const handleOnline = async () => {
 };
 
 const handleOffline = () => {
-  probeId += 1;
   publish(false);
+  void refresh();
 };
 
 const subscribe = (listener: () => void): (() => void) => {

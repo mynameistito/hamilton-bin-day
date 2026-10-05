@@ -195,6 +195,15 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+const cacheResponse = async (request, response) => {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(request, response.clone());
+  } catch {
+    // Caching is best-effort; a successful network response is still usable.
+  }
+};
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -212,8 +221,7 @@ self.addEventListener("fetch", (event) => {
         try {
           const response = await fetch(request);
           if (response.ok) {
-            const cache = await caches.open(CACHE_NAME);
-            await cache.put(request, response.clone());
+            await cacheResponse(request, response);
           }
           return response;
         } catch {
@@ -231,8 +239,7 @@ self.addEventListener("fetch", (event) => {
       try {
         const response = await fetch(request);
         if (response.ok) {
-          const cache = await caches.open(CACHE_NAME);
-          await cache.put(request, response.clone());
+          await cacheResponse(request, response);
         }
         return response;
       } catch {
