@@ -7,6 +7,7 @@ import {
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { BinCataloguePage } from "./pages/bin-catalogue";
 import { HomePage } from "./pages/home";
 
 import "./styles.css";
@@ -23,9 +24,18 @@ if (import.meta.env.DEV) {
   void loadReactGrab();
 }
 
-const rootRoute = createRootRoute({ component: () => <HomePage /> });
-const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/" });
-const routeTree = rootRoute.addChildren([indexRoute]);
+const rootRoute = createRootRoute();
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: HomePage,
+});
+const binCatalogueRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/what-goes-where",
+  component: BinCataloguePage,
+});
+const routeTree = rootRoute.addChildren([indexRoute, binCatalogueRoute]);
 const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
