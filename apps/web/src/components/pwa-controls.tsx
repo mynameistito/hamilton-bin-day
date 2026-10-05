@@ -11,12 +11,12 @@ const applyWaitingUpdate = async (): Promise<void> => {
 
 /** Show browser-specific instructions for adding the site to a home screen. */
 export const PwaInstallHelp = () => (
-  <details className="relative">
-    <summary className="text-sage-dark min-h-11 cursor-pointer rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0">
+  <details className="relative flex shrink-0 items-center">
+    <summary className="text-sage-dark inline-flex min-h-11 cursor-pointer list-none items-center rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0 [&::-webkit-details-marker]:hidden">
       <span className="sm:hidden">Install</span>
       <span className="hidden sm:inline">Install app</span>
     </summary>
-    <div className="bg-surface border-paper-border absolute right-0 z-10 mt-2 w-72 rounded-xl border p-4 text-sm shadow-lg">
+    <div className="bg-surface border-paper-border absolute top-full right-0 z-10 mt-2 w-72 rounded-xl border p-4 text-sm shadow-lg">
       <p className="font-semibold">Add Hamilton Bin Day</p>
       <p className="text-copy-muted mt-2">
         Android: use your browser menu and choose “Install app” or “Add to Home

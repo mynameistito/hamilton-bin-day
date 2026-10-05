@@ -100,14 +100,14 @@ const HomeHeader = ({ onToggleTheme, theme }: HomeHeaderProps) => (
     >
       <PwaInstallHelp />
       <a
-        className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
         href="/what-goes-where"
       >
         <span className="sm:hidden">Items</span>
         <span className="hidden sm:inline">What goes where?</span>
       </a>
       <a
-        className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
         href="/docs/"
       >
         <span className="sm:hidden">Guide</span>
