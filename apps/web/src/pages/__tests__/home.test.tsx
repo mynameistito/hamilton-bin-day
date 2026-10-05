@@ -33,5 +33,8 @@ describe("home page navigation", () => {
     render(<HomePage />);
 
     expect(screen.getByRole("article").className).toContain("min-h-[30rem]");
+    expect(
+      screen.getByText("Your schedule, made simple").parentElement?.className
+    ).toContain("my-auto");
   });
 });
