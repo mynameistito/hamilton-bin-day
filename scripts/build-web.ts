@@ -9,6 +9,7 @@ const docsOutput = path.resolve(import.meta.dir, "../apps/docs/dist");
 const webOutput = path.resolve(webDirectory, "dist");
 
 await $`bun x vite build`.cwd(webDirectory);
+await $`bun build ${path.resolve(webDirectory, "src/service-worker-entry.js")} --target browser --outfile ${path.resolve(webOutput, "sw.js")}`;
 const assetFiles = await readdir(path.resolve(webOutput, "assets"));
 const builtAssets = assetFiles.toSorted().map((asset) => `/assets/${asset}`);
 const fixedShellFiles = [
