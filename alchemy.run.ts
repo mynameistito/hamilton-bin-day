@@ -1,6 +1,8 @@
 import { Stack } from "alchemy";
 import { D1, providers, state, Website, Workers } from "alchemy/Cloudflare";
 import { gen } from "effect/Effect";
+import { make as makeRedacted } from "effect/Redacted";
+import type { Redacted as RedactedValue } from "effect/Redacted";
 
 const resolveStackValue = Stack.useSync.bind(Stack);
 
@@ -35,6 +37,34 @@ const Reminders = D1.Database(
   }))
 );
 
+interface ProductionVapidEnvironment {
+  VAPID_PRIVATE_KEY?: RedactedValue<string>;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_SUBJECT?: string;
+}
+
+const productionVapidEnvironment = (
+  stage: string
+): ProductionVapidEnvironment => {
+  if (stage !== "prod") {
+    return {};
+  }
+  const privateKey = Bun.env.VAPID_PRIVATE_KEY?.trim();
+  const publicKey = Bun.env.VAPID_PUBLIC_KEY?.trim();
+  const subject = Bun.env.VAPID_SUBJECT?.trim();
+  const environment: ProductionVapidEnvironment = {};
+  if (privateKey) {
+    environment.VAPID_PRIVATE_KEY = makeRedacted(privateKey);
+  }
+  if (publicKey) {
+    environment.VAPID_PUBLIC_KEY = publicKey;
+  }
+  if (subject) {
+    environment.VAPID_SUBJECT = subject;
+  }
+  return environment;
+};
+
 const Site = Website.StaticSite(
   "Website",
   resolveStackValue((stack) => ({
@@ -45,6 +75,7 @@ const Site = Website.StaticSite(
         namespaceId: `hcc-bin-day-reminders-${stack.stage}`,
         simple: { limit: 30, period: 60 },
       }),
+      ...productionVapidEnvironment(stack.stage),
     },
   }))
 );
