@@ -28,4 +28,10 @@ describe("home page navigation", () => {
       screen.getByRole("navigation", { name: "Site information" })
     ).toBeTruthy();
   });
+
+  test("reserves space for the loaded collection card", () => {
+    render(<HomePage />);
+
+    expect(screen.getByRole("article").className).toContain("min-h-[30rem]");
+  });
 });

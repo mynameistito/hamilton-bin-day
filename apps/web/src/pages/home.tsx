@@ -145,7 +145,7 @@ const CollectionCard = ({
     <div
       className={`${collectionHighlightClass(schedule?.nextCollection.type)} absolute -inset-2 rounded-4xl sm:-inset-5`}
     />
-    <Card className="relative">
+    <Card className="relative min-h-[30rem]">
       <div className="border-card-border flex items-start justify-between gap-3 border-b p-5 sm:p-6">
         <div className="min-w-0">
           <p className="tracking-caption text-caption text-xs font-bold uppercase">
