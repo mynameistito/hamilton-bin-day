@@ -26,4 +26,16 @@ describe("PWA install controls", () => {
     expect(details.open).toBeFalsy();
     expect(summary).toBe(document.activeElement);
   });
+
+  test("keeps the install panel inside the viewport on narrow screens", () => {
+    render(<PwaInstallHelp />);
+    const closeButton = screen.getByRole("button", {
+      name: "Close install instructions",
+    });
+    const panel = closeButton.parentElement?.parentElement;
+
+    expect(panel?.className).toContain("fixed");
+    expect(panel?.className).toContain("inset-x-4");
+    expect(panel?.className).toContain("sm:absolute");
+  });
 });

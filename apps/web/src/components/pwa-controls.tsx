@@ -48,7 +48,7 @@ export const PwaInstallHelp = () => {
           ▾
         </span>
       </summary>
-      <div className="bg-surface border-paper-border absolute top-full right-0 z-10 mt-2 w-72 rounded-xl border p-4 text-sm shadow-lg">
+      <div className="bg-surface border-paper-border fixed inset-x-4 top-16 z-10 w-auto rounded-xl border p-4 text-sm shadow-lg sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:w-72">
         <div className="flex items-start justify-between gap-3">
           <p className="pt-2 font-semibold">Add Hamilton Bin Day</p>
           <Button
