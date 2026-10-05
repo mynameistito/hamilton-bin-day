@@ -79,16 +79,21 @@ describe("home page navigation", () => {
     await waitFor(() =>
       expect(screen.getByText("Change address")).toBeTruthy()
     );
-    expect(screen.getByRole("article").className).toContain("min-h-0");
-    expect(screen.getByRole("article").parentElement?.className).toContain(
-      "order-1"
-    );
     expect(
-      screen.getByText("Change address").parentElement?.className
-    ).toContain("order-2");
+      screen.getByRole("article").classList.contains("min-h-0")
+    ).toBeTruthy();
     expect(
-      screen.getByRole("heading", { name: "Never miss your bin day again." })
-        .className
-    ).toContain("sr-only");
+      screen.getByRole("article").parentElement?.classList.contains("order-1")
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByText("Change address")
+        .parentElement?.classList.contains("order-2")
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("heading", { name: "Never miss your bin day again." })
+        .classList.contains("sr-only")
+    ).toBeTruthy();
   });
 });
