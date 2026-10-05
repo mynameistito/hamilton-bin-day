@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { BinHelpControl } from "@/components/bin-help";
+import { PwaInstallHelp, PwaStatus } from "@/components/pwa-controls";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
+import { useNetworkStatus } from "@/hooks/use-network-status";
 import { ADDRESS_LENGTH_LIMIT } from "@/lib/address";
 import { binTypeFromName } from "@/lib/bin-items";
 import {
@@ -56,6 +58,17 @@ const collectionBadgeClass = (
   }
 };
 
+const selectVisibleSchedule = (
+  canShowSchedule: boolean,
+  state: ReturnType<typeof useAddressLookup>["state"],
+  now: Date
+): ScheduleResponse | null => {
+  if (!canShowSchedule || state.kind !== "success") {
+    return null;
+  }
+  return resolveNextCollection(state.schedule, now);
+};
+
 type Theme = "dark" | "light";
 
 interface HomeHeaderProps {
@@ -77,22 +90,24 @@ const HomeHeader = ({ onToggleTheme, theme }: HomeHeaderProps) => (
         ♻
       </span>
       <span>
-        Hamilton <span className="text-copy-muted font-normal">Bin Day</span>
+        <span className="hidden min-[360px]:inline">Hamilton </span>
+        <span className="text-copy-muted font-normal">Bin Day</span>
       </span>
     </a>
     <nav
       aria-label="Main navigation"
       className="flex shrink-0 items-center gap-2 sm:gap-3"
     >
+      <PwaInstallHelp />
       <a
-        className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
         href="/what-goes-where"
       >
         <span className="sm:hidden">Items</span>
         <span className="hidden sm:inline">What goes where?</span>
       </a>
       <a
-        className="text-sage-dark rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
         href="/docs/"
       >
         <span className="sm:hidden">Guide</span>
@@ -217,11 +232,23 @@ const CollectionCard = ({
 );
 
 export const HomePage = () => {
-  const { address, setAddress, state, submitLookup } = useAddressLookup();
+  const { address, lookupRevision, setAddress, state, submitLookup } =
+    useAddressLookup();
+  const isOnline = useNetworkStatus();
+  const previousOnline = useRef(isOnline);
+  const [minimumVisibleLookupRevision, setMinimumVisibleLookupRevision] =
+    useState(0);
   const [theme, setTheme] = useState<"dark" | "light">(() =>
     document.documentElement.dataset.theme === "light" ? "light" : "dark"
   );
   const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    if (!isOnline || !previousOnline.current) {
+      setMinimumVisibleLookupRevision(lookupRevision + 1);
+    }
+    previousOnline.current = isOnline;
+  }, [isOnline, lookupRevision]);
 
   useEffect(() => {
     const refreshNow = () => setNow(new Date());
@@ -248,10 +275,11 @@ export const HomePage = () => {
     }
   };
 
-  const schedule =
-    state.kind === "success"
-      ? resolveNextCollection(state.schedule, now)
-      : null;
+  const schedule = selectVisibleSchedule(
+    isOnline && lookupRevision >= minimumVisibleLookupRevision,
+    state,
+    now
+  );
   const until = schedule
     ? daysUntilCollection(schedule.nextCollection.date, now)
     : null;
@@ -261,6 +289,8 @@ export const HomePage = () => {
   return (
     <main className="home-page bg-canvas text-ink flex min-h-dvh flex-col px-4 pb-6 sm:px-5">
       <HomeHeader onToggleTheme={toggleTheme} theme={theme} />
+
+      <PwaStatus isOnline={isOnline} />
 
       <section className="home-lookup mx-auto grid w-full max-w-6xl gap-9 pt-8 pb-10 sm:gap-12 sm:pt-12 sm:pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-12">
         <div className="home-lookup-copy">

@@ -69,6 +69,7 @@ export const useAddressLookup = () => {
     return query ?? "";
   });
   const [state, setState] = useState<LookupState>({ kind: "idle" });
+  const [lookupRevision, setLookupRevision] = useState(0);
   const latestRequest = useRef(0);
 
   const runLookup = useCallback(async (query: string) => {
@@ -82,6 +83,7 @@ export const useAddressLookup = () => {
       }
       setState(result);
       if (result.kind === "success") {
+        setLookupRevision((revision) => revision + 1);
         await saveAddressCookie(query);
       }
     } catch (error) {
@@ -140,5 +142,5 @@ export const useAddressLookup = () => {
     await runLookup(query);
   };
 
-  return { address, setAddress, state, submitLookup };
+  return { address, lookupRevision, setAddress, state, submitLookup };
 };
