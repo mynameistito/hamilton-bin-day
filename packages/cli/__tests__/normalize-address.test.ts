@@ -8,7 +8,7 @@ import {
 
 describe("address normalization", () => {
   test("expands street types and normalizes unit suffixes", () => {
-    expect(expandAddressQuery(" 12 grey st ")).toBe("12 grey street");
+    expect(expandAddressQuery(" 12b grey st ")).toBe("12B grey street");
   });
 
   test("returns the unique normalized exact match", () => {
