@@ -167,4 +167,66 @@ describe("PWA app shell", () => {
     }
     await expect(response).resolves.toBe(networkResponse);
   });
+
+  test("returns the app shell for an offline navigation", async () => {
+    const serviceWorker = await readAppFile("../../public/sw.js");
+    interface FetchEvent {
+      readonly request: {
+        readonly method: string;
+        readonly mode: string;
+        readonly url: string;
+      };
+      respondWith: (response: Promise<Response>) => void;
+    }
+
+    const fetchHandlers: ((event: FetchEvent) => void)[] = [];
+    const self = {
+      addEventListener: (
+        type: string,
+        handler: (event: FetchEvent) => void
+      ) => {
+        if (type === "fetch") {
+          fetchHandlers.push(handler);
+        }
+      },
+      location: { origin: "https://example.test" },
+    };
+    const appShell = new Response("app shell");
+    const caches = {
+      match: (request: Request | string) =>
+        request === "/" ? appShell : undefined,
+    };
+
+    // oxlint-disable-next-line sonarjs/code-eval -- SAFETY: This executes the checked-in service-worker source in a controlled test scope to verify its fetch behavior.
+    runInNewContext(serviceWorker, {
+      Response,
+      URL,
+      caches,
+      fetch: () => Promise.reject(new Error("offline")),
+      self,
+    });
+
+    const [fetchHandler] = fetchHandlers;
+    expect(fetchHandler).toBeTypeOf("function");
+    if (!fetchHandler) {
+      return;
+    }
+
+    let response: Promise<Response> | undefined;
+    fetchHandler({
+      request: {
+        method: "GET",
+        mode: "navigate",
+        url: "https://example.test/",
+      },
+      respondWith: (value) => {
+        response = value;
+      },
+    });
+    expect(response).toBeDefined();
+    if (!response) {
+      return;
+    }
+    await expect(response).resolves.toBe(appShell);
+  });
 });
