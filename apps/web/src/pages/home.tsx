@@ -145,7 +145,7 @@ const CollectionCard = ({
     <div
       className={`${collectionHighlightClass(schedule?.nextCollection.type)} absolute -inset-2 rounded-4xl sm:-inset-5`}
     />
-    <Card className="relative">
+    <Card className="relative flex min-h-[30rem] flex-col">
       <div className="border-card-border flex items-start justify-between gap-3 border-b p-5 sm:p-6">
         <div className="min-w-0">
           <p className="tracking-caption text-caption text-xs font-bold uppercase">
@@ -166,7 +166,7 @@ const CollectionCard = ({
           {schedule ? `${schedule.nextCollection.type} week` : "Hamilton"}
         </span>
       </div>
-      <div className="p-5 sm:p-6">
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
         {schedule ? (
           <>
             <p className="text-detail-muted text-sm">
@@ -196,7 +196,7 @@ const CollectionCard = ({
             </p>
           </>
         ) : (
-          <div className="bg-panel rounded-2xl p-5 text-center sm:p-6">
+          <div className="bg-panel my-auto rounded-2xl p-5 text-center sm:p-6">
             <span
               aria-hidden="true"
               className="text-moss-dark bg-surface mx-auto grid size-14 place-items-center rounded-2xl text-2xl"

@@ -132,6 +132,10 @@ input {
     padding: 0.75rem;
   }
 
+  .home-schedule > article {
+    min-height: 30rem;
+  }
+
   .home-schedule > article h2 {
     font-size: 1.25rem;
   }
