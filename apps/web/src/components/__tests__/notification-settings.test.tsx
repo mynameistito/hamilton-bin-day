@@ -114,13 +114,17 @@ describe("reminder settings dialog", () => {
     );
 
     const dialog = screen.getByRole("dialog", { hidden: true });
-    expect(dialog.hasAttribute("open")).toBeFalsy();
-
+    expect(
+      dialog.classList.contains("hidden") &&
+        dialog.classList.contains("open:grid")
+    ).toBeTruthy();
     dialogRef.current?.showModal();
 
     expect(dialog.hasAttribute("open")).toBeTruthy();
-    expect(dialog.textContent).toContain("Android and desktop reminders work");
-    expect(dialog.textContent).toContain("On iPhone and iPad");
+    expect(dialog.textContent).toMatch(
+      /Works on Android and desktop\..*On iPhone or iPad/u
+    );
+    expect(dialog.textContent).not.toContain("push subscription");
 
     fireEvent.click(
       screen.getByRole("button", { name: "Close reminder settings" })

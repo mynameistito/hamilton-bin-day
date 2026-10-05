@@ -367,7 +367,7 @@ export const useReminderDelivery = (
     if (!publicKey) {
       if (operationVersion === mutationVersion.current) {
         setDeliveryMessage(
-          "Background delivery is unavailable on the server. No reminder was saved."
+          "Reminders aren’t available on this site right now. Please try again later."
         );
       }
       return;

@@ -75,7 +75,7 @@ describe("reminder delivery configuration", () => {
     });
 
     expect(result.current.deliveryMessage).toContain(
-      "Background delivery is unavailable on the server"
+      "Reminders aren’t available on this site right now"
     );
     expect(fetcher).toHaveBeenCalledExactlyOnceWith(
       "/api/reminders/public-key"

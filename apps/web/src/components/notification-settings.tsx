@@ -17,19 +17,6 @@ import type { ScheduleResponse } from "@/lib/schedule";
 const readDeviceTimeZone = (): string =>
   Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const describeReminderDelivery = (
-  enabled: boolean,
-  deliveryActive: boolean
-): string => {
-  if (!enabled) {
-    return "Reminders are off. Enabling them asks for browser permission and saves a push subscription.";
-  }
-  if (deliveryActive) {
-    return "Your reminder subscription is active. Delivery is checked every five minutes; push timing also depends on your browser and platform.";
-  }
-  return "Reminders are on in this browser; server delivery status is being checked or needs attention.";
-};
-
 const leadDaysFromValue = (value: string): ReminderLeadDays => {
   switch (value) {
     case "0": {
@@ -49,27 +36,33 @@ const leadDaysFromValue = (value: string): ReminderLeadDays => {
 
 const describePermission = (
   permission: string,
-  enabled: boolean,
   storageAvailable: boolean
-): string => {
-  if (permission === "unsupported") {
-    return "This browser does not support web notifications.";
-  }
-  if (permission === "insecure") {
-    return "Notifications require a secure HTTPS connection.";
-  }
+): string | null => {
   if (permission === "denied") {
-    return "Notifications are blocked. Change this site's permission in browser settings.";
-  }
-  if (permission === "granted") {
-    return "Browser notification permission is granted.";
+    return "Notifications are blocked. Allow them in your browser settings.";
   }
   if (!storageAvailable) {
-    return "Your reminder preference could not be saved on this device.";
+    return "Your settings could not be saved on this device.";
   }
-  return enabled
-    ? "Your reminder preference is saved on this device."
-    : "Turn reminders on to choose your reminder settings.";
+  return null;
+};
+
+const describeReminderStatus = (
+  deliveryMessage: string,
+  permissionMessage: string | null,
+  enabled: boolean,
+  deliveryActive: boolean
+): string => {
+  if (deliveryMessage) {
+    return deliveryMessage;
+  }
+  if (permissionMessage) {
+    return permissionMessage;
+  }
+  if (!enabled) {
+    return "Reminders are off.";
+  }
+  return deliveryActive ? "Reminders are on." : "Setting up your reminders…";
 };
 
 /** Render consent, schedule, and delivery status for bin-day reminders. */
@@ -112,7 +105,10 @@ export const NotificationSettings = ({
         timeZone
       )
     : null;
-  const reminderStatus = describeReminderDelivery(
+  const permissionMessage = describePermission(permission, storageAvailable);
+  const statusMessage = describeReminderStatus(
+    deliveryMessage,
+    permissionMessage,
     preferences.enabled,
     deliveryActive
   );
@@ -127,51 +123,54 @@ export const NotificationSettings = ({
   return (
     <dialog
       aria-labelledby="notification-settings-title"
-      className="bg-surface text-ink border-paper-border m-auto max-h-[min(90dvh,48rem)] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-2xl border p-5 backdrop:bg-black/60 sm:p-6"
+      aria-modal="true"
+      className="fixed inset-0 z-50 m-0 hidden h-dvh max-h-none w-full max-w-none items-end border-0 bg-black/55 p-0 open:grid sm:place-items-center sm:p-5"
       id="notification-settings-dialog"
       ref={dialogRef}
     >
-      <section aria-labelledby="notification-settings-title">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="max-w-2xl">
+      <section className="border-card-border bg-surface text-ink h-dvh max-h-none w-full overflow-y-auto rounded-none border p-5 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-lg sm:rounded-3xl sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
             <h2
-              className="text-lg font-semibold"
+              className="text-xl font-semibold"
               id="notification-settings-title"
             >
               Bin-day reminders
             </h2>
             <p className="text-copy-muted mt-2 text-sm leading-6">
-              Choose when you would like a reminder. When you turn reminders on,
-              this app asks for notification permission and sends the push
-              subscription, schedule dates, timezone, and reminder settings to
-              the delivery service. Your street address is never stored there. A
-              copy of the opaque push endpoint stays in this browser so the
-              service subscription can still be removed if the browser no longer
-              reports it.
+              Choose when to get a notification before collection.
             </p>
           </div>
-          <label className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-3 font-semibold">
-            <input
-              checked={preferences.enabled}
-              className="accent-forest size-5"
-              onChange={(event) => {
-                if (event.target.checked) {
-                  void enableReminders();
-                } else {
-                  void disableReminders();
-                }
-              }}
-              type="checkbox"
-            />
-            Reminders {preferences.enabled ? "on" : "off"}
-          </label>
+          <button
+            aria-label="Close reminder settings"
+            className="border-sage-border bg-surface text-step-copy focus-visible:outline-focus-leaf hover:bg-panel inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border text-xl transition focus-visible:outline-2 focus-visible:outline-offset-2"
+            onClick={() => dialogRef.current?.close()}
+            type="button"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
         </div>
+        <label className="mt-5 inline-flex min-h-11 cursor-pointer items-center gap-3 font-semibold">
+          <input
+            checked={preferences.enabled}
+            className="accent-forest size-5"
+            onChange={(event) => {
+              if (event.target.checked) {
+                void enableReminders();
+              } else {
+                void disableReminders();
+              }
+            }}
+            type="checkbox"
+          />
+          Get reminders
+        </label>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="text-sm font-medium">
             Remind me
             <select
-              className="border-sage-border bg-panel text-ink mt-2 min-h-11 w-full rounded-xl border px-3"
+              className="border-sage-border bg-panel text-ink mt-2 min-h-11 w-full rounded-xl border px-3 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!preferences.enabled}
               onChange={(event) => {
                 const saved = save({
@@ -193,7 +192,7 @@ export const NotificationSettings = ({
           <label className="text-sm font-medium">
             At my local time
             <input
-              className="border-sage-border bg-panel text-ink mt-2 min-h-11 w-full rounded-xl border px-3"
+              className="border-sage-border bg-panel text-ink mt-2 min-h-11 w-full rounded-xl border px-3 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!preferences.enabled}
               onChange={(event) => {
                 if (event.target.value) {
@@ -226,53 +225,25 @@ export const NotificationSettings = ({
 
         {reminder && (
           <p className="bg-panel mt-4 rounded-xl p-4 text-sm">
-            Planned reminder:{" "}
-            {formatCollectionDate(reminder.scheduledLocalDate)}
-            at {reminder.scheduledLocalTime} ({reminder.timeZone}).
+            Next reminder: {formatCollectionDate(reminder.scheduledLocalDate)}
+            at {reminder.scheduledLocalTime}.
           </p>
         )}
 
         <div
           aria-live="polite"
-          className="bg-panel mt-5 rounded-xl p-4 text-sm"
+          className="bg-panel mt-4 rounded-xl p-3 text-sm"
         >
-          <output className="block">{reminderStatus}</output>
-          {!storageAvailable && (
-            <output className="block">
-              This browser blocked local storage, so your preference could not
-              be saved.
-            </output>
-          )}
-          <output className="block">
-            {describePermission(
-              permission,
-              preferences.enabled,
-              storageAvailable
-            )}
-          </output>
-          {deliveryMessage && (
-            <output className="block">{deliveryMessage}</output>
-          )}
+          <output>{statusMessage}</output>
         </div>
 
-        <p className="text-copy-muted mt-3 text-xs leading-5">
-          Android and desktop reminders work in browsers that support web
-          notifications. On iPhone and iPad, add this app to your Home Screen
-          and open it there to use reminders. If you turn reminders off after
-          blocking permission, change this site’s notification setting in your
-          browser settings.
+        <p className="text-copy-muted mt-4 text-xs leading-5">
+          Works on Android and desktop. On iPhone or iPad, add this app to your
+          Home Screen. Your address is not saved for reminders.{" "}
+          <a className="underline underline-offset-2" href="/docs/privacy/">
+            Privacy details
+          </a>
         </p>
-        <div className="mt-5 flex justify-end">
-          <button
-            aria-label="Close reminder settings"
-            autoFocus
-            className="border-sage-border bg-surface text-step-copy focus-visible:outline-focus-leaf hover:bg-panel inline-flex min-h-11 items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2"
-            onClick={() => dialogRef.current?.close()}
-            type="button"
-          >
-            Close
-          </button>
-        </div>
       </section>
     </dialog>
   );
