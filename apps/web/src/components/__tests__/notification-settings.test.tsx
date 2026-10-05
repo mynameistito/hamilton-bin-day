@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { NotificationSettings } from "@/components/notification-settings";
@@ -75,15 +76,20 @@ describe("reminder settings dialog", () => {
 
   test("hides the reminder entry point when web push is unsupported", () => {
     vi.stubGlobal("Notification", { permission: "default" });
+    const dialogRef = createRef<HTMLDialogElement>();
 
     render(
-      <NotificationSettings cancelMissingSchedule={false} schedule={null} />
+      <NotificationSettings
+        cancelMissingSchedule={false}
+        dialogRef={dialogRef}
+        schedule={null}
+      />
     );
 
-    expect(screen.queryByRole("button", { name: "Reminders" })).toBeNull();
+    expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
   });
 
-  test("opens the settings on demand and explains Android, desktop, and iOS support", () => {
+  test("keeps the settings in a dialog and explains Android, desktop, and iOS support", () => {
     vi.stubGlobal("Notification", {
       permission: "default",
       requestPermission: vi.fn<() => Promise<NotificationPermission>>(),
@@ -97,16 +103,20 @@ describe("reminder settings dialog", () => {
         }),
       },
     });
+    const dialogRef = createRef<HTMLDialogElement>();
 
     render(
-      <NotificationSettings cancelMissingSchedule={false} schedule={null} />
+      <NotificationSettings
+        cancelMissingSchedule={false}
+        dialogRef={dialogRef}
+        schedule={null}
+      />
     );
 
-    const trigger = screen.getByRole("button", { name: "Reminders" });
     const dialog = screen.getByRole("dialog", { hidden: true });
     expect(dialog.hasAttribute("open")).toBeFalsy();
 
-    fireEvent.click(trigger);
+    dialogRef.current?.showModal();
 
     expect(dialog.hasAttribute("open")).toBeTruthy();
     expect(dialog.textContent).toContain("Android and desktop reminders work");

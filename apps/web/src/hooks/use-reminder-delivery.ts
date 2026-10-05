@@ -37,6 +37,12 @@ const readPermissionState = (): NotificationPermissionState => {
   });
 };
 
+/** Whether this secure browser exposes the APIs needed for web push. */
+export const isReminderBrowserSupported = (): boolean => {
+  const permission = readPermissionState();
+  return permission !== "unsupported" && permission !== "insecure";
+};
+
 const isInstalledIosApp = (): boolean => {
   const isIos = /iPad|iPhone|iPod/u.test(navigator.userAgent);
   const isStandalone =
