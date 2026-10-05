@@ -409,26 +409,20 @@ export const handleReminderUnsubscribe = async (
   }
 };
 
-const SUBSCRIPTION_ENDPOINT_SQL =
-  "DELETE FROM reminder_subscriptions WHERE endpoint = ?";
 const CLEAR_CLAIM_SQL =
   "UPDATE reminder_subscriptions SET claim_until = NULL WHERE endpoint = ? AND notification_id = ?";
 
 const removeSubscription = async (
   database: ReminderDatabase,
-  endpoint: string,
-  revision?: number
+  record: ReminderRecord
 ): Promise<void> => {
-  if (revision !== undefined) {
-    await database
-      .prepare(
-        "DELETE FROM reminder_subscriptions WHERE endpoint = ? AND revision = ?"
-      )
-      .bind(endpoint, revision)
-      .run();
-    return;
-  }
-  await database.prepare(SUBSCRIPTION_ENDPOINT_SQL).bind(endpoint).run();
+  await database
+    .prepare(
+      `DELETE FROM reminder_subscriptions
+       WHERE endpoint = ? AND notification_id = ? AND revision = ?`
+    )
+    .bind(record.endpoint, record.notification_id, record.revision)
+    .run();
 };
 
 const releaseClaim = async (
@@ -445,11 +439,25 @@ const advanceSubscription = async (
   database: ReminderDatabase,
   record: ReminderRecord,
   now: Date,
-  notBeforeDate?: string
+  notBeforeDate?: string,
+  attempt = 0
 ): Promise<void> => {
-  let nextDate = record.following_date;
+  const currentRecord = await database
+    .prepare(
+      `SELECT endpoint, subscription_json, collection_date, following_date,
+              collection_type, lead_days, local_time, time_zone, scheduled_at,
+              notification_id, claim_until, revision
+       FROM reminder_subscriptions WHERE endpoint = ? AND notification_id = ?`
+    )
+    .bind(record.endpoint, record.notification_id)
+    .first<ReminderRecord>();
+  if (!currentRecord) {
+    return;
+  }
+
+  let nextDate = currentRecord.following_date;
   let nextFollowingDate = advanceDate(nextDate, 7);
-  let nextType = collectionTypeAfter(record.collection_type);
+  let nextType = collectionTypeAfter(currentRecord.collection_type);
   if (notBeforeDate && nextDate < notBeforeDate) {
     const weeksToSkip = Math.ceil(daysBetween(nextDate, notBeforeDate) / 7);
     nextDate = advanceDate(nextDate, weeksToSkip * 7);
@@ -460,20 +468,20 @@ const advanceSubscription = async (
   }
   const nextReminder = scheduleFor(
     nextDate,
-    record.lead_days,
-    record.local_time,
-    record.time_zone
+    currentRecord.lead_days,
+    currentRecord.local_time,
+    currentRecord.time_zone
   );
   if (!nextReminder) {
-    await removeSubscription(database, record.endpoint);
+    await removeSubscription(database, currentRecord);
     return;
   }
-  const nextNotificationId = `${nextDate}:${record.lead_days}:${record.local_time}:${record.time_zone}`;
-  await database
+  const nextNotificationId = `${nextDate}:${currentRecord.lead_days}:${currentRecord.local_time}:${currentRecord.time_zone}`;
+  const update = await database
     .prepare(
       `UPDATE reminder_subscriptions SET collection_date = ?, following_date = ?,
          collection_type = ?, scheduled_at = ?, notification_id = ?, claim_until = NULL,
-         updated_at = ? WHERE endpoint = ? AND notification_id = ?`
+         updated_at = ? WHERE endpoint = ? AND notification_id = ? AND revision = ?`
     )
     .bind(
       nextDate,
@@ -482,10 +490,20 @@ const advanceSubscription = async (
       nextReminder.scheduledAt.toISOString(),
       nextNotificationId,
       now.toISOString(),
-      record.endpoint,
-      record.notification_id
+      currentRecord.endpoint,
+      currentRecord.notification_id,
+      currentRecord.revision
     )
     .run();
+  if (update.meta?.changes !== 1 && attempt < 2) {
+    await advanceSubscription(
+      database,
+      record,
+      now,
+      notBeforeDate,
+      attempt + 1
+    );
+  }
 };
 
 const sendDueRecord = async (
@@ -529,12 +547,12 @@ const sendDueRecord = async (
   try {
     storedSubscription = JSON.parse(record.subscription_json);
   } catch {
-    await removeSubscription(database, record.endpoint);
+    await removeSubscription(database, record);
     return;
   }
   const subscription = parseWebPushSubscription(storedSubscription);
   if (!subscription) {
-    await removeSubscription(database, record.endpoint);
+    await removeSubscription(database, record);
     return;
   }
 
@@ -558,7 +576,7 @@ const sendDueRecord = async (
   try {
     const response = await send(subscription, body, keys);
     if (response.status === 404 || response.status === 410) {
-      await removeSubscription(database, record.endpoint, record.revision);
+      await removeSubscription(database, record);
     } else if (response.ok) {
       await advanceSubscription(database, record, now);
     } else if (

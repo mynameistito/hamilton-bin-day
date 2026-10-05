@@ -597,6 +597,65 @@ describe("reminder delivery database behavior", () => {
       ).toMatchObject({ revision: 2 });
     });
 
+    test("advances the current schedule revision after an in-flight successful send", async () => {
+      await handleReminderSubscribe(
+        subscriptionRequest(),
+        environment,
+        new Date("2026-10-01T00:00:00.000Z")
+      );
+      const sendGate = Promise.withResolvers<Response>();
+      const sendStarted = Promise.withResolvers<undefined>();
+      const firstRun = sendDueReminders(
+        environment,
+        new Date("2026-10-04T08:00:00.000Z"),
+        () => {
+          sendStarted.resolve();
+          return sendGate.promise;
+        }
+      );
+      await sendStarted;
+
+      const renewed = await handleReminderSubscribe(
+        subscriptionRequest({
+          schedule: {
+            collectionDate: "2026-10-05",
+            followingDate: "2026-10-19",
+            collectionType: "red",
+            redDate: "2026-10-05",
+            yellowDate: "2026-10-19",
+          },
+        }),
+        environment,
+        new Date("2026-10-01T00:00:00.000Z")
+      );
+      expect(renewed.status).toBe(200);
+      expect(
+        database.sqlite
+          .prepare(
+            "SELECT notification_id, revision FROM reminder_subscriptions"
+          )
+          .get()
+      ).toMatchObject({
+        notification_id: "2026-10-05:1:19:00:Pacific/Auckland",
+        revision: 2,
+      });
+
+      sendGate.resolve(new Response(null, { status: 201 }));
+      await firstRun;
+
+      expect(
+        database.sqlite
+          .prepare(
+            "SELECT collection_date, following_date, collection_type FROM reminder_subscriptions"
+          )
+          .get()
+      ).toMatchObject({
+        collection_date: "2026-10-19",
+        following_date: "2026-10-26",
+        collection_type: "yellow",
+      });
+    });
+
     test("retries a transient push failure on the next cron instead of suppressing delivery", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
