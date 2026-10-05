@@ -128,6 +128,7 @@ packages/
 ```bash
 bun install
 bun run dev                 # TanStack React site
+bun run dev:tunnel          # Web app with an opt-in Cloudflare Quick Tunnel
 bun run --filter @mynameistito/hcc-bin-day-docs dev # Blume docs
 bun run check
 bun run typecheck
@@ -135,7 +136,7 @@ bun run test
 bun run build
 ```
 
-The repository is a Bun workspace. The CLI package remains `@mynameistito/hcc-bin-day` in `packages/cli`; the web app and Blume documentation have their own package scripts. The docs are built into the website's `/docs` path and deployed together as one Cloudflare Worker.
+The repository is a Bun workspace. The CLI package remains `@mynameistito/hcc-bin-day` in `packages/cli`; the web app and Blume documentation have their own package scripts. To share the web app temporarily, run `bun run dev:tunnel`; the Cloudflare Vite plugin starts a Quick Tunnel and prints its public `trycloudflare.com` URL. Anyone with the URL can reach the development server and its HMR endpoints, so only share it with people you trust. Press `t` then Enter to toggle the tunnel, or stop the dev server to close it. `bun run dev` stays local-only. The docs are built into the website's `/docs` path and deployed together as one Cloudflare Worker.
 
 ## Deployment
 

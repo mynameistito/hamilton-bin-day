@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "bun run ../../scripts/build-web.ts",
-    "dev": "vite --host 0.0.0.0",
+    "dev": "vite",
+    "dev:tunnel": "vite --mode tunnel",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "vapid:generate": "bun src/lib/generate-vapid.ts"
@@ -19,6 +20,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.62.5",
     "@tailwindcss/vite": "^4.1.11",
     "@testing-library/react": "^16.3.3",
     "@types/node": "catalog:",

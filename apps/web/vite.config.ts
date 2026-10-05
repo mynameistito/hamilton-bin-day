@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 
+import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
@@ -47,8 +48,13 @@ const lookupDevPlugin: Plugin = {
   name: "hcc-bin-day-dev-api",
 };
 
-export default defineConfig({
-  plugins: [react(), tailwindcss(), lookupDevPlugin],
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    ...(mode === "tunnel" ? [cloudflare({ tunnel: { autoStart: true } })] : []),
+    react(),
+    tailwindcss(),
+    lookupDevPlugin,
+  ],
   resolve: {
     alias: [
       {
@@ -78,4 +84,4 @@ export default defineConfig({
       },
     ],
   },
-});
+}));
