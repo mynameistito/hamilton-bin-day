@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { BinHelpControl } from "@/components/bin-help";
 import { PwaInstallHelp, PwaStatus } from "@/components/pwa-controls";
@@ -59,11 +59,11 @@ const collectionBadgeClass = (
 };
 
 const selectVisibleSchedule = (
-  isOnline: boolean,
+  canShowSchedule: boolean,
   state: ReturnType<typeof useAddressLookup>["state"],
   now: Date
 ): ScheduleResponse | null => {
-  if (!isOnline || state.kind !== "success") {
+  if (!canShowSchedule || state.kind !== "success") {
     return null;
   }
   return resolveNextCollection(state.schedule, now);
@@ -232,12 +232,23 @@ const CollectionCard = ({
 );
 
 export const HomePage = () => {
-  const { address, setAddress, state, submitLookup } = useAddressLookup();
+  const { address, lookupRevision, setAddress, state, submitLookup } =
+    useAddressLookup();
   const isOnline = useNetworkStatus();
+  const previousOnline = useRef(isOnline);
+  const [minimumVisibleLookupRevision, setMinimumVisibleLookupRevision] =
+    useState(0);
   const [theme, setTheme] = useState<"dark" | "light">(() =>
     document.documentElement.dataset.theme === "light" ? "light" : "dark"
   );
   const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    if (!isOnline || !previousOnline.current) {
+      setMinimumVisibleLookupRevision(lookupRevision + 1);
+    }
+    previousOnline.current = isOnline;
+  }, [isOnline, lookupRevision]);
 
   useEffect(() => {
     const refreshNow = () => setNow(new Date());
@@ -264,7 +275,11 @@ export const HomePage = () => {
     }
   };
 
-  const schedule = selectVisibleSchedule(isOnline, state, now);
+  const schedule = selectVisibleSchedule(
+    isOnline && lookupRevision >= minimumVisibleLookupRevision,
+    state,
+    now
+  );
   const until = schedule
     ? daysUntilCollection(schedule.nextCollection.date, now)
     : null;
