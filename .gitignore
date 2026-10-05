@@ -5,3 +5,4 @@ coverage/
 *.log
 apps/docs/.blume/
 apps/web/.wrangler/
+.alchemy/
