@@ -11,6 +11,17 @@ const applyWaitingUpdate = async (): Promise<void> => {
   }
 };
 
+const isStandalonePwa = (): boolean => {
+  // SAFETY: `standalone` is the iOS Safari marker for an installed web app.
+  const navigatorWithStandalone = navigator as Navigator & {
+    readonly standalone?: boolean;
+  };
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches === true ||
+    navigatorWithStandalone.standalone === true
+  );
+};
+
 /** Show browser-specific instructions for adding the site to a home screen. */
 export const PwaInstallHelp = () => {
   const detailsRef = useRef<HTMLDetailsElement>(null);
@@ -38,7 +49,7 @@ export const PwaInstallHelp = () => {
       className="group relative flex shrink-0 items-center"
       ref={detailsRef}
     >
-      <summary className="text-sage-dark inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0 [&::-webkit-details-marker]:hidden">
+      <summary className="text-sage-dark inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0 [&::-webkit-details-marker]:hidden">
         <span className="sm:hidden">Install</span>
         <span className="hidden sm:inline">Install app</span>
         <span
@@ -76,11 +87,15 @@ export const PwaInstallHelp = () => {
   );
 };
 
-/** Explain offline data freshness and let users apply a ready app update. */
+/** Explain offline data freshness and let installed PWAs apply ready updates. */
 export const PwaStatus = ({ isOnline }: { readonly isOnline: boolean }) => {
+  const isPwa = isStandalonePwa();
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
+    if (!isPwa) {
+      return;
+    }
     const showUpdate = () => setUpdateAvailable(true);
     window.addEventListener("app-update-available", showUpdate);
     const checkForWaitingUpdate = async () => {
@@ -97,9 +112,9 @@ export const PwaStatus = ({ isOnline }: { readonly isOnline: boolean }) => {
     return () => {
       window.removeEventListener("app-update-available", showUpdate);
     };
-  }, []);
+  }, [isPwa]);
 
-  if (isOnline && !updateAvailable) {
+  if (isOnline && (!isPwa || !updateAvailable)) {
     return null;
   }
 

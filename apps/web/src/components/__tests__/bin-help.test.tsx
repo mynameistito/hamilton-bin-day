@@ -57,6 +57,16 @@ describe("per-bin help", () => {
     expect(screen.getByLabelText("Search the full catalogue")).toBe(
       document.activeElement
     );
+    const panel = screen.getByRole("dialog").querySelector("section");
+    expect({
+      fullViewportHeight: panel?.classList.contains("h-dvh"),
+      noMobileMaxHeight: panel?.classList.contains("max-h-none"),
+      noMobileCornerRadius: panel?.classList.contains("rounded-none"),
+    }).toStrictEqual({
+      fullViewportHeight: true,
+      noMobileMaxHeight: true,
+      noMobileCornerRadius: true,
+    });
     expect(screen.getByText("Aluminium cans").textContent).toBe(
       "Aluminium cans"
     );

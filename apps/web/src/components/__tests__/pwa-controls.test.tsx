@@ -1,13 +1,24 @@
 // @vitest-environment happy-dom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { PwaInstallHelp } from "@/components/pwa-controls";
+import { PwaInstallHelp, PwaStatus } from "@/components/pwa-controls";
 
 describe("PWA install controls", () => {
+  beforeEach(() => {
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
+  });
+
   afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
   });
 
   test("returns focus to the install trigger when closed", () => {
@@ -37,5 +48,24 @@ describe("PWA install controls", () => {
     expect(panel?.className).toContain("fixed");
     expect(panel?.className).toContain("inset-x-4");
     expect(panel?.className).toContain("sm:absolute");
+  });
+
+  test("does not show app updates in a browser tab", () => {
+    render(<PwaStatus isOnline />);
+
+    fireEvent(window, new Event("app-update-available"));
+
+    expect(screen.queryByRole("button", { name: "Update app" })).toBeNull();
+  });
+
+  test("shows app updates in an installed PWA", async () => {
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+    render(<PwaStatus isOnline />);
+
+    fireEvent(window, new Event("app-update-available"));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Update app" })).toBeTruthy()
+    );
   });
 });
