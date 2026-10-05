@@ -1,0 +1,45 @@
+{
+  "$schema": "https://www.schemastore.org/package.json",
+  "name": "@mynameistito/hcc-bin-day-exporter",
+  "private": true,
+  "description": "Internal tool for exporting Hamilton City Council bin-day address and rotation data.",
+  "keywords": [
+    "bin-day",
+    "hamilton-city-council",
+    "new-zealand",
+    "waste"
+  ],
+  "homepage": "https://github.com/mynameistito/hcc-bin-day#readme",
+  "bugs": {
+    "url": "https://github.com/mynameistito/hcc-bin-day/issues"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Tito",
+    "email": "github@mynameistito.com",
+    "url": "https://github.com/mynameistito"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mynameistito/hcc-bin-day.git",
+    "directory": "packages/exporter"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsdown",
+    "export": "bun run build && node dist/cli.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-node": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
