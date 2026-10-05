@@ -4,3 +4,4 @@ coverage/
 .DS_Store
 *.log
 apps/docs/.blume/
+apps/web/.wrangler/
