@@ -36,6 +36,17 @@ export const PwaStatus = ({ isOnline }: { readonly isOnline: boolean }) => {
   useEffect(() => {
     const showUpdate = () => setUpdateAvailable(true);
     window.addEventListener("app-update-available", showUpdate);
+    const checkForWaitingUpdate = async () => {
+      try {
+        const registration = await navigator.serviceWorker?.getRegistration();
+        if (registration?.waiting) {
+          showUpdate();
+        }
+      } catch {
+        console.error("Failed to check for a pending app update.");
+      }
+    };
+    void checkForWaitingUpdate();
     return () => {
       window.removeEventListener("app-update-available", showUpdate);
     };
