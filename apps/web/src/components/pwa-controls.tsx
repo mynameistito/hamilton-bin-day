@@ -49,7 +49,7 @@ export const PwaInstallHelp = () => {
       className="group relative flex shrink-0 items-center"
       ref={detailsRef}
     >
-      <summary className="text-sage-dark inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0 [&::-webkit-details-marker]:hidden">
+      <summary className="text-sage-dark inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0 [&::-webkit-details-marker]:hidden">
         <span className="sm:hidden">Install</span>
         <span className="hidden sm:inline">Install app</span>
         <span

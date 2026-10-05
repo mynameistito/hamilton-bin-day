@@ -77,10 +77,10 @@ interface HomeHeaderProps {
 }
 
 const HomeHeader = ({ onToggleTheme, theme }: HomeHeaderProps) => (
-  <header className="home-header mx-auto flex w-full max-w-6xl items-center justify-between gap-3 py-4 sm:py-5">
+  <header className="home-header mx-auto flex w-full max-w-6xl items-center justify-between gap-1 py-4 sm:gap-3 sm:py-5">
     <a
       aria-label="Hamilton Bin Day home"
-      className="flex items-center gap-2.5 font-bold tracking-tight sm:gap-3"
+      className="flex min-w-0 shrink items-center gap-2.5 leading-tight font-bold tracking-tight sm:gap-3"
       href="/"
     >
       <span
@@ -89,25 +89,27 @@ const HomeHeader = ({ onToggleTheme, theme }: HomeHeaderProps) => (
       >
         ♻
       </span>
-      <span>
-        <span className="hidden min-[360px]:inline">Hamilton </span>
-        <span className="text-copy-muted font-normal">Bin Day</span>
+      <span className="min-w-0">
+        <span className="hidden min-[360px]:block sm:inline">Hamilton</span>
+        <span className="text-copy-muted block font-normal sm:ml-1 sm:inline">
+          Bin Day
+        </span>
       </span>
     </a>
     <nav
       aria-label="Main navigation"
-      className="flex shrink-0 items-center gap-2 sm:gap-3"
+      className="flex shrink-0 items-center gap-0.5 sm:gap-3"
     >
       <PwaInstallHelp />
       <a
-        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-1 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
         href="/what-goes-where"
       >
         <span className="sm:hidden">Items</span>
         <span className="hidden sm:inline">What goes where?</span>
       </a>
       <a
-        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-1 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
         href="/docs/"
       >
         <span className="sm:hidden">Guide</span>
@@ -116,7 +118,7 @@ const HomeHeader = ({ onToggleTheme, theme }: HomeHeaderProps) => (
       <button
         aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         aria-pressed={theme === "light"}
-        className="border-sage-border bg-panel text-ink focus-visible:outline-focus-leaf inline-flex min-h-11 items-center gap-2 rounded-full border px-2.5 py-2 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-3"
+        className="border-sage-border bg-panel text-ink focus-visible:outline-focus-leaf inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border px-1.5 py-2 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-3"
         onClick={onToggleTheme}
         type="button"
       >
@@ -140,12 +142,14 @@ const CollectionCard = ({
 }: CollectionCardProps) => (
   <div
     aria-live="polite"
-    className="home-schedule relative mx-auto w-full max-w-md"
+    className={`home-schedule relative mx-auto w-full max-w-md ${schedule ? "order-1 md:order-none" : ""}`}
   >
     <div
       className={`${collectionHighlightClass(schedule?.nextCollection.type)} absolute -inset-2 rounded-4xl sm:-inset-5`}
     />
-    <Card className="relative flex min-h-[30rem] flex-col">
+    <Card
+      className={`relative flex flex-col ${schedule ? "min-h-0 md:min-h-[30rem]" : "min-h-[30rem]"}`}
+    >
       <div className="border-card-border flex items-start justify-between gap-3 border-b p-5 sm:p-6">
         <div className="min-w-0">
           <p className="tracking-caption text-caption text-xs font-bold uppercase">
@@ -293,20 +297,33 @@ export const HomePage = () => {
       <PwaStatus isOnline={isOnline} />
 
       <section className="home-lookup mx-auto grid w-full max-w-6xl gap-9 pt-8 pb-10 sm:gap-12 sm:pt-12 sm:pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-12">
-        <div className="home-lookup-copy">
-          <p className="border-sage-border tracking-eyebrow text-sage-copy bg-surface mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase sm:mb-5">
+        <div
+          className={`home-lookup-copy ${schedule ? "order-2 md:order-none" : ""}`}
+        >
+          <p
+            className={`border-sage-border tracking-eyebrow text-sage-copy bg-surface mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase sm:mb-5 ${schedule ? "hidden md:inline-flex" : ""}`}
+          >
             <span className="bg-leaf size-2 rounded-full" /> Hamilton, New
             Zealand
           </p>
-          <h1 className="leading-heading tracking-heading max-w-xl text-4xl font-semibold sm:text-6xl">
+          <h1
+            className={`leading-heading tracking-heading max-w-xl text-4xl font-semibold sm:text-6xl ${schedule ? "hidden md:block" : ""}`}
+          >
             Never miss your <span className="text-moss">bin day</span> again.
           </h1>
-          <p className="text-body-muted mt-4 max-w-lg text-base leading-7 sm:mt-6 sm:text-lg sm:leading-8">
+          <p
+            className={`text-body-muted mt-4 max-w-lg text-base leading-7 sm:mt-6 sm:text-lg sm:leading-8 ${schedule ? "hidden md:block" : ""}`}
+          >
             Look up your address to see exactly what to put out and when your
             next collection is.
           </p>
+          {schedule && (
+            <p className="text-copy-muted mb-2 text-sm font-semibold md:hidden">
+              Change address
+            </p>
+          )}
           <form
-            className="border-paper-border shadow-lookup bg-surface mt-6 flex max-w-xl flex-col gap-2 rounded-2xl border p-2 sm:mt-9 sm:flex-row sm:gap-3"
+            className={`border-paper-border shadow-lookup bg-surface flex max-w-xl flex-col gap-2 rounded-2xl border p-2 sm:flex-row sm:gap-3 ${schedule ? "mt-0 md:mt-9" : "mt-6 sm:mt-9"}`}
             onSubmit={submitLookup}
           >
             <label className="sr-only" htmlFor="address">
