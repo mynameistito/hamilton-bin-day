@@ -1,39 +1,42 @@
-/* oxlint-disable max-classes-per-file, sonarjs/no-wildcard-import, sonarjs/no-nested-functions, no-nested-ternary, no-nested-conditional */
-import * as NodeHttpClient from "@effect/platform-node/NodeHttpClient";
-import * as Context from "effect/Context";
-import * as Effect from "effect/Effect";
-import * as HttpClient from "effect/http/HttpClient";
-import * as Layer from "effect/Layer";
-import * as Schema from "effect/Schema";
+import { layerFetch } from "@effect/platform-node/NodeHttpClient";
+import { Service } from "effect/Context";
+import {
+  fail,
+  flatMap,
+  gen,
+  map,
+  mapError,
+  succeed,
+  try as tryEffect,
+} from "effect/Effect";
+import type { Effect as EffectType } from "effect/Effect";
+import { HttpClient } from "effect/http/HttpClient";
+import type { HttpClient as HttpClientService } from "effect/http/HttpClient";
+import type { HttpClientResponse } from "effect/http/HttpClientResponse";
+import { effect as layerEffect, provide as provideLayer } from "effect/Layer";
+import { decodeUnknownSync } from "effect/Schema";
+import type { ConstraintDecoder, Schema as SchemaTypes } from "effect/Schema";
 
 import {
   AddressLookupResultsSchema,
   CollectionDatesResultsSchema,
 } from "@/council-schema";
-import type {
-  AddressLookupResultSchema,
-  CollectionDatesResultSchema,
-} from "@/council-schema";
+import { HccApiError } from "@/hcc-api-error";
 import { buildSchedule } from "@/schedule";
 import type { CollectionSchedule } from "@/schedule";
 
-type AddressLookup = Schema.Schema.Type<typeof AddressLookupResultSchema>;
-type CollectionDates = Schema.Schema.Type<typeof CollectionDatesResultSchema>;
+export { HccApiError } from "@/hcc-api-error";
 
-/** Errors raised while communicating with or decoding the council API. */
-// oxlint-disable-next-line unicorn/throw-new-error -- Schema.TaggedError is a class factory, not a constructor.
-export class HccApiError extends Schema.TaggedError<HccApiError>()(
-  "HccApiError",
-  {
-    cause: Schema.Unknown,
-    operation: Schema.Literals(["searchAddresses", "getCollectionSchedule"]),
-    reason: Schema.Literals(["transport", "http", "decode", "domain"]),
-    status: Schema.optional(Schema.Number),
-  }
-) {}
+type AddressLookup = SchemaTypes.Type<
+  typeof AddressLookupResultsSchema
+>[number];
+type CollectionDates = SchemaTypes.Type<
+  typeof CollectionDatesResultsSchema
+>[number];
+type ApiOperation = HccApiError["operation"];
 
 /** The application-owned council API capability. */
-export class HccApi extends Context.Service<HccApi, HccApiService>()(
+export class HccApi extends Service<HccApi, HccApiService>()(
   "hcc-api/HccApi"
 ) {}
 
@@ -41,169 +44,164 @@ export class HccApi extends Context.Service<HccApi, HccApiService>()(
 export interface HccApiService {
   readonly searchAddresses: (
     searchString: string
-  ) => Effect.Effect<readonly string[], HccApiError>;
+  ) => EffectType<readonly string[], HccApiError>;
   readonly getCollectionSchedule: (
     address: string
-  ) => Effect.Effect<CollectionSchedule | null, HccApiError>;
+  ) => EffectType<CollectionSchedule | null, HccApiError>;
 }
 
-/** Construct the council API service using the Effect HTTP client. */
+const decodeResponseBody = <S extends ConstraintDecoder<unknown>>(
+  response: HttpClientResponse,
+  operation: ApiOperation,
+  schema: S
+) =>
+  response.json.pipe(
+    mapError(
+      (cause) => new HccApiError({ cause, operation, reason: "decode" })
+    ),
+    flatMap((untrustedJson) =>
+      tryEffect({
+        catch: (cause) =>
+          new HccApiError({ cause, operation, reason: "decode" }),
+        try: () => decodeUnknownSync(schema)(untrustedJson),
+      })
+    )
+  );
+
+const getHttpResult = <S extends ConstraintDecoder<unknown>>(
+  response: HttpClientResponse,
+  operation: ApiOperation,
+  schema: S,
+  emptyResult: S["Type"]
+) => {
+  if (response.status === 404) {
+    return succeed(emptyResult);
+  }
+
+  if (response.status < 200 || response.status >= 300) {
+    return fail(
+      new HccApiError({
+        cause: response,
+        operation,
+        reason: "http",
+        status: response.status,
+      })
+    );
+  }
+
+  return decodeResponseBody(response, operation, schema);
+};
+
+const mapTransportError = <A>(
+  effect: EffectType<A, unknown>,
+  operation: ApiOperation
+): EffectType<A, HccApiError> =>
+  effect.pipe(
+    mapError((cause) =>
+      cause instanceof HccApiError
+        ? cause
+        : new HccApiError({ cause, operation, reason: "transport" })
+    )
+  );
+
+const projectAddresses = (
+  results: readonly AddressLookup[]
+): readonly string[] => results.map((result) => result.Collection_Address);
+
+const EMPTY_ADDRESS_RESULTS: readonly AddressLookup[] = [];
+const EMPTY_COLLECTION_RESULTS: readonly CollectionDates[] = [];
+
+const buildFirstSchedule = (
+  results: readonly CollectionDates[],
+  scheduleBuilder: typeof buildSchedule
+) => {
+  const [first] = results;
+  if (!first) {
+    return succeed(null);
+  }
+
+  return tryEffect({
+    catch: (cause) =>
+      new HccApiError({
+        cause,
+        operation: "getCollectionSchedule",
+        reason: "domain",
+      }),
+    try: () => scheduleBuilder(first),
+  });
+};
+
+/**
+ * Build the API service using a supplied schedule converter.
+ *
+ * @param scheduleBuilder - Converts a validated collection record into a schedule.
+ * @returns An API service effect requiring the Effect HTTP client.
+ */
 const make = (
   scheduleBuilder: typeof buildSchedule = buildSchedule
-): Effect.Effect<HccApiService, never, HttpClient.HttpClient> =>
-  Effect.gen(function* makeApi() {
-    const client = yield* HttpClient.HttpClient;
+): EffectType<HccApiService, never, HttpClientService> =>
+  gen(function* makeApi() {
+    const client = yield* HttpClient;
 
-    const searchAddresses = (
-      searchString: string
-    ): Effect.Effect<readonly string[], HccApiError> => {
+    const searchAddresses = (searchString: string) => {
       const url = new URL(
         "/FightTheLandFill/get_Addresses",
         "https://api2.hcc.govt.nz"
       );
       url.searchParams.set("search_string", searchString);
 
-      return client.get(url).pipe(
-        // oxlint-disable-next-line no-nested-ternary, sonarjs/no-nested-conditional
-        Effect.flatMap((response) =>
-          // oxlint-disable-next-line no-nested-ternary, sonarjs/no-nested-conditional
-          response.status === 404
-            ? Effect.succeed<readonly AddressLookup[]>([])
-            : // oxlint-disable-next-line sonarjs/no-nested-conditional
-              response.status >= 200 && response.status < 300
-              ? response.json.pipe(
-                  Effect.mapError(
-                    (cause) =>
-                      new HccApiError({
-                        cause,
-                        operation: "searchAddresses",
-                        reason: "decode",
-                      })
-                  ),
-                  Effect.flatMap((body) =>
-                    Effect.try({
-                      catch: (cause) =>
-                        new HccApiError({
-                          cause,
-                          operation: "searchAddresses",
-                          reason: "decode",
-                        }),
-                      try: () =>
-                        Schema.decodeUnknownSync(AddressLookupResultsSchema)(
-                          body
-                        ),
-                    })
-                  )
-                )
-              : Effect.fail(
-                  new HccApiError({
-                    cause: response,
-                    operation: "searchAddresses",
-                    reason: "http",
-                    status: response.status,
-                  })
-                )
+      return mapTransportError(
+        client.get(url).pipe(
+          flatMap((response) =>
+            getHttpResult(
+              response,
+              "searchAddresses",
+              AddressLookupResultsSchema,
+              EMPTY_ADDRESS_RESULTS
+            )
+          ),
+          map(projectAddresses)
         ),
-        Effect.map((results) =>
-          results.map((result) => result.Collection_Address)
-        ),
-        Effect.mapError((cause) =>
-          cause instanceof HccApiError
-            ? cause
-            : new HccApiError({
-                cause,
-                operation: "searchAddresses",
-                reason: "transport",
-              })
-        )
+        "searchAddresses"
       );
     };
 
-    const getCollectionSchedule = (
-      address: string
-    ): Effect.Effect<CollectionSchedule | null, HccApiError> => {
+    const getCollectionSchedule = (address: string) => {
       const url = new URL(
         "/FightTheLandFill/get_Collection_Dates",
         "https://api2.hcc.govt.nz"
       );
       url.searchParams.set("address_string", address);
 
-      return client.get(url).pipe(
-        // oxlint-disable-next-line no-nested-ternary, sonarjs/no-nested-conditional
-        Effect.flatMap((response) =>
-          // oxlint-disable-next-line no-nested-ternary, sonarjs/no-nested-conditional
-          response.status === 404
-            ? Effect.succeed<readonly CollectionDates[]>([])
-            : // oxlint-disable-next-line sonarjs/no-nested-conditional
-              response.status >= 200 && response.status < 300
-              ? response.json.pipe(
-                  Effect.mapError(
-                    (cause) =>
-                      new HccApiError({
-                        cause,
-                        operation: "getCollectionSchedule",
-                        reason: "decode",
-                      })
-                  ),
-                  Effect.flatMap((body) =>
-                    Effect.try({
-                      catch: (cause) =>
-                        new HccApiError({
-                          cause,
-                          operation: "getCollectionSchedule",
-                          reason: "decode",
-                        }),
-                      try: () =>
-                        Schema.decodeUnknownSync(CollectionDatesResultsSchema)(
-                          body
-                        ),
-                    })
-                  )
-                )
-              : Effect.fail(
-                  new HccApiError({
-                    cause: response,
-                    operation: "getCollectionSchedule",
-                    reason: "http",
-                    status: response.status,
-                  })
-                )
+      const result = client.get(url).pipe(
+        flatMap((response) =>
+          getHttpResult(
+            response,
+            "getCollectionSchedule",
+            CollectionDatesResultsSchema,
+            EMPTY_COLLECTION_RESULTS
+          )
         ),
-        Effect.flatMap((results) => {
-          const [first] = results;
-          return first
-            ? Effect.try({
-                catch: (cause) =>
-                  new HccApiError({
-                    cause,
-                    operation: "getCollectionSchedule",
-                    reason: "domain",
-                  }),
-                try: () => scheduleBuilder(first),
-              })
-            : Effect.succeed(null);
-        }),
-        Effect.mapError((cause) =>
-          cause instanceof HccApiError
-            ? cause
-            : new HccApiError({
-                cause,
-                operation: "getCollectionSchedule",
-                reason: "transport",
-              })
-        )
+        flatMap((results) => buildFirstSchedule(results, scheduleBuilder))
       );
+
+      return mapTransportError(result, "getCollectionSchedule");
     };
 
     return { getCollectionSchedule, searchAddresses };
   });
 
-/** API layer factory with an injectable schedule builder and HTTP client. */
+/**
+ * Create an API layer with an injectable schedule builder and HTTP client.
+ *
+ * @param scheduleBuilder - Converts validated Council data into a schedule.
+ * @returns The API service layer, requiring an HTTP client.
+ */
 export const hccApiLayerWithoutDependencies = (
   scheduleBuilder: typeof buildSchedule = buildSchedule
-) => Layer.effect(HccApi, make(scheduleBuilder));
+) => layerEffect(HccApi, make(scheduleBuilder));
 
 /** Production API layer using the Effect Node HTTP client. */
 export const hccApiLayer = hccApiLayerWithoutDependencies().pipe(
-  Layer.provide(NodeHttpClient.layerFetch)
+  provideLayer(layerFetch)
 );

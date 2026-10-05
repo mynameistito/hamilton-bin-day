@@ -1,14 +1,10 @@
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as Effect from "effect/Effect";
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as HttpClient from "effect/http/HttpClient";
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as HttpClientError from "effect/http/HttpClientError";
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as HttpClientResponse from "effect/http/HttpClientResponse";
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as Layer from "effect/Layer";
-import { describe, expect, test } from "vitest";
+import { flatMap, match, provide, runPromise, tryPromise } from "effect/Effect";
+import type { Effect as EffectType } from "effect/Effect";
+import { HttpClient, make } from "effect/http/HttpClient";
+import { HttpClientError, TransportError } from "effect/http/HttpClientError";
+import { fromWeb } from "effect/http/HttpClientResponse";
+import { provide as provideLayer, succeed as layerSucceed } from "effect/Layer";
+import { describe, expect, it } from "vitest";
 
 import { HccApi, hccApiLayerWithoutDependencies } from "@/hcc-api";
 import type { buildSchedule } from "@/schedule";
@@ -30,41 +26,41 @@ const apiLayer = (
   respond: (url: URL) => Response | Promise<Response>,
   scheduleBuilder?: typeof buildSchedule
 ) => {
-  const client = HttpClient.make((request, url) =>
-    Effect.tryPromise({
+  const client = make((request, url) =>
+    tryPromise({
       catch: (cause) =>
-        new HttpClientError.HttpClientError({
-          reason: new HttpClientError.TransportError({ cause, request }),
+        new HttpClientError({
+          reason: new TransportError({ cause, request }),
         }),
-      try: async () => HttpClientResponse.fromWeb(request, await respond(url)),
+      try: async () => fromWeb(request, await respond(url)),
     })
   );
   return hccApiLayerWithoutDependencies(scheduleBuilder).pipe(
-    Layer.provide(Layer.succeed(HttpClient.HttpClient, client))
+    provideLayer(layerSucceed(HttpClient, client))
   );
 };
 
 const runWithApi = <A>(
   layer: ReturnType<typeof apiLayer>,
-  use: (api: typeof HccApi.Service) => Effect.Effect<A, unknown>
+  use: (api: typeof HccApi.Service) => EffectType<A, unknown>
 ) =>
-  Effect.runPromise(
+  runPromise(
     HccApi.pipe(
-      Effect.flatMap((api) => use(api)),
-      Effect.provide(layer)
+      flatMap((api) => use(api)),
+      provide(layer)
     )
   );
 
-const capture = <A>(effect: Effect.Effect<A, unknown>) =>
+const capture = <A>(effect: EffectType<A, unknown>) =>
   effect.pipe(
-    Effect.match({
+    match({
       onFailure: (error) => ({ error }),
       onSuccess: (value) => ({ value }),
     })
   );
 
 describe("HccApi HTTP adapter", () => {
-  test("searches and decodes council address results", async () => {
+  it("searches and decodes council address results", async () => {
     let requestedUrl: URL | undefined;
     const layer = apiLayer((url) => {
       requestedUrl = url;
@@ -77,7 +73,7 @@ describe("HccApi HTTP adapter", () => {
     expect(requestedUrl?.searchParams.get("search_string")).toBe("12 grey st");
   });
 
-  test("returns empty arrays and null for council 404 responses", async () => {
+  it("returns empty arrays and null for council 404 responses", async () => {
     const layer = apiLayer(() => new Response(null, { status: 404 }));
 
     await expect(
@@ -88,7 +84,7 @@ describe("HccApi HTTP adapter", () => {
     ).resolves.toBeNull();
   });
 
-  test("maps unsuccessful HTTP responses with operation and status", async () => {
+  it("maps unsuccessful HTTP responses with operation and status", async () => {
     const layer = apiLayer(() => new Response(null, { status: 503 }));
     const result = await runWithApi(layer, (api) =>
       capture(api.searchAddresses("query"))
@@ -115,7 +111,7 @@ describe("HccApi HTTP adapter", () => {
     });
   });
 
-  test("maps malformed response bodies and transport failures", async () => {
+  it("maps malformed response bodies and transport failures", async () => {
     const badBody = await runWithApi(
       apiLayer(() => Response.json([{ wrong: true }])),
       (api) => capture(api.searchAddresses("query"))
@@ -155,7 +151,7 @@ describe("HccApi HTTP adapter", () => {
     });
   });
 
-  test("builds collection schedules and maps invalid collection responses", async () => {
+  it("builds collection schedules and maps invalid collection responses", async () => {
     const result = await runWithApi(
       apiLayer(() => Response.json([collection])),
       (api) => api.getCollectionSchedule("12 Grey Street")
@@ -174,7 +170,7 @@ describe("HccApi HTTP adapter", () => {
     });
   });
 
-  test("maps schedule construction failures to a domain error", async () => {
+  it("maps schedule construction failures to a domain error", async () => {
     const result = await runWithApi(
       apiLayer(
         () => Response.json([collection]),

@@ -37,6 +37,12 @@ const STREET_TYPE_ALIASES = {
 const STREET_TYPE_ALIASES_MAP = new Map(Object.entries(STREET_TYPE_ALIASES));
 const NO_ADDRESS_FOUND = "No address found";
 
+/**
+ * Remove the Council's placeholder value from search results.
+ *
+ * @param matches - Addresses returned by the Council API.
+ * @returns Search results containing actual addresses only.
+ */
 export const filterAddressMatches = (
   matches: readonly string[]
 ): readonly string[] => matches.filter((match) => match !== NO_ADDRESS_FOUND);
@@ -64,12 +70,25 @@ const normalizeAddress = (address: string): string => {
   return expandStreetTypes(normalizeUnitSuffix(normalized));
 };
 
+/**
+ * Expand supported street abbreviations and normalize unit suffixes.
+ *
+ * @param query - An address query from the user.
+ * @returns The query with street type aliases expanded.
+ */
 export const expandAddressQuery = (query: string): string => {
   const normalized = collapseWhitespace(query);
 
   return expandStreetTypes(normalizeUnitSuffix(normalized));
 };
 
+/**
+ * Find the unique result equivalent to the normalized query.
+ *
+ * @param query - The original user query.
+ * @param matches - Candidate addresses returned by the Council API.
+ * @returns The unique matching address, or `null` when none or multiple match.
+ */
 export const pickMatchingAddress = (
   query: string,
   matches: readonly string[]

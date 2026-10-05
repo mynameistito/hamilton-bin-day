@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildSchedule, formatScheduleText, toScheduleJson } from "@/schedule";
 import type { CollectionDatesResult } from "@/types";
@@ -12,7 +12,7 @@ const councilResult = {
 };
 
 describe("collection schedules", () => {
-  test("builds the next collection from council data", () => {
+  it("builds the next collection from council data", () => {
     expect(buildSchedule(councilResult)).toMatchObject({
       address: "12 Grey Street",
       collectionDayName: "Monday",
@@ -24,7 +24,7 @@ describe("collection schedules", () => {
     });
   });
 
-  test("projects a stable JSON output shape", () => {
+  it("projects a stable JSON output shape", () => {
     const output = toScheduleJson(buildSchedule(councilResult));
 
     expect(output.upcoming.week).toBe("red");
@@ -32,7 +32,7 @@ describe("collection schedules", () => {
     expect(output.upcoming.dateFormatted).toContain("September");
   });
 
-  test("formats the yellow week first when it is the next collection", () => {
+  it("formats the yellow week first when it is the next collection", () => {
     const schedule = buildSchedule({
       ...councilResult,
       RedBin: "2026-10-05T00:00:00",
@@ -61,7 +61,7 @@ describe("collection schedules", () => {
     expect(formatScheduleText(schedule)).toContain("Red week");
   });
 
-  test("formats red-week schedules as readable text", () => {
+  it("formats red-week schedules as readable text", () => {
     const text = formatScheduleText(buildSchedule(councilResult));
 
     expect(text).toContain("12 Grey Street — Monday collection");
@@ -69,7 +69,7 @@ describe("collection schedules", () => {
     expect(text).toContain("Yellow week");
   });
 
-  test("rejects a collection day outside the schedule's supported range", () => {
+  it("rejects a collection day outside the schedule's supported range", () => {
     const invalidDay = {
       ...councilResult,
       CollectionDay: 8,

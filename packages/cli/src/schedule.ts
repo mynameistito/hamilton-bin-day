@@ -17,6 +17,7 @@ const BINS_BY_WEEK: Record<BinWeek, readonly string[]> = {
   yellow: ["yellow bin", "glass crate", "food scraps bin"],
 };
 
+/** A collection schedule derived from a Council collection-date record. */
 export interface CollectionSchedule {
   address: string;
   collectionDay: number;
@@ -44,6 +45,12 @@ const collectionDayName = (day: number): string => {
   return name;
 };
 
+/**
+ * Build a bin collection schedule from a Council API record.
+ *
+ * @param result - The validated Council collection-date record.
+ * @returns The upcoming collection schedule.
+ */
 export const buildSchedule = (
   result: CollectionDatesResult
 ): CollectionSchedule => {
@@ -82,6 +89,12 @@ const formatScheduleDate = (date: string): string => {
   });
 };
 
+/**
+ * Format a collection schedule for terminal display.
+ *
+ * @param schedule - The collection schedule to render.
+ * @returns A human-readable schedule with both alternating weeks.
+ */
 export const formatScheduleText = (schedule: CollectionSchedule): string => {
   const oppositeWeek: BinWeek =
     schedule.upcomingWeek === "red" ? "yellow" : "red";
@@ -97,6 +110,12 @@ export const formatScheduleText = (schedule: CollectionSchedule): string => {
   ].join("\n");
 };
 
+/**
+ * Project a collection schedule into its stable JSON output shape.
+ *
+ * @param schedule - The collection schedule to project.
+ * @returns A JSON-serializable representation of the schedule.
+ */
 export const toScheduleJson = (schedule: CollectionSchedule) => {
   const followingWeek: BinWeek =
     schedule.upcomingWeek === "red" ? "yellow" : "red";
