@@ -25,8 +25,6 @@ import { HccApiError } from "@/hcc-api-error";
 import { buildSchedule } from "@/schedule";
 import type { CollectionSchedule } from "@/schedule";
 
-export { HccApiError } from "@/hcc-api-error";
-
 type AddressLookup = SchemaTypes.Type<
   typeof AddressLookupResultsSchema
 >[number];
