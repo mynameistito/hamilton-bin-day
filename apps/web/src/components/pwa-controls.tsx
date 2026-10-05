@@ -54,8 +54,10 @@ export const PwaInstallHelp = () => {
           <Button
             aria-label="Close install instructions"
             className="min-h-11 min-w-11 shrink-0"
-            onClick={(event) => {
-              event.currentTarget.closest("details")?.removeAttribute("open");
+            onClick={() => {
+              const details = detailsRef.current;
+              details?.removeAttribute("open");
+              details?.querySelector<HTMLElement>("summary")?.focus();
             }}
             variant="outline"
           >
