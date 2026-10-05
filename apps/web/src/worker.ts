@@ -1,3 +1,5 @@
+import { runPromise } from "effect/Effect";
+
 import {
   handleReminderPublicKey,
   handleReminderSubscribe,
@@ -115,7 +117,9 @@ export default {
     context: { readonly waitUntil: (promise: Promise<unknown>) => void }
   ): void => {
     context.waitUntil(
-      sendDueReminders(environment, new Date(controller.scheduledTime))
+      runPromise(
+        sendDueReminders(environment, new Date(controller.scheduledTime))
+      )
     );
   },
 };

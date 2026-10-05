@@ -1,3 +1,5 @@
+import { all, gen, tryPromise } from "effect/Effect";
+import type { Effect as EffectType } from "effect/Effect";
 import { z } from "zod";
 
 import { calculateReminderSchedule } from "@/lib/notifications";
@@ -103,6 +105,29 @@ const validPushOrigin = (endpoint: string): boolean => {
 const jsonError = (status: number, error: string): Response =>
   Response.json({ error }, { status });
 const DELIVERY_UNAVAILABLE = "Reminder delivery is not configured";
+
+/** A scheduled reminder run could not complete a storage operation. */
+export class ReminderDeliveryError extends Error {
+  /** Stable tag for matching scheduled-delivery failures. */
+  readonly _tag = "ReminderDeliveryError" as const;
+
+  /** Underlying safe operational failure. */
+  override readonly cause: unknown;
+
+  /** Sender step that could not complete. */
+  readonly operation: "loadConfiguration" | "selectDue" | "deliver";
+
+  /** Create a typed failure for one scheduled-sender operation. */
+  constructor(
+    operation: "loadConfiguration" | "selectDue" | "deliver",
+    cause: unknown
+  ) {
+    super(`Reminder delivery failed during ${operation}`);
+    this.name = "ReminderDeliveryError";
+    this.operation = operation;
+    this.cause = cause;
+  }
+}
 
 /** Respond with a public key only when the complete VAPID configuration exists. */
 export const handleReminderPublicKey = async (
@@ -594,8 +619,8 @@ const sendDueRecord = async (
   }
 };
 
-/** Send due notifications once, advance the two-week schedule snapshot, and remove expired subscriptions. */
-export const sendDueReminders = async (
+/** Send due notifications and advance the rolling schedule snapshot. */
+export const sendDueReminders = (
   environment: ReminderEnvironment,
   now = new Date(),
   send: (
@@ -604,35 +629,44 @@ export const sendDueReminders = async (
     keys: VapidConfiguration
   ) => Promise<Response> = (subscription, payload, vapid) =>
     sendWebPush({ subscription, payload, vapid, ttl: 60 * 60 * 24 })
-): Promise<void> => {
-  const database = environment.REMINDERS;
-  if (!database) {
-    return;
-  }
-  const nowIso = now.toISOString();
-  await database
-    .prepare("DELETE FROM reminder_subscriptions WHERE updated_at < ?")
-    .bind(new Date(now.getTime() - 90 * 24 * 60 * 60_000).toISOString())
-    .run();
-  const keys = await readVapidConfiguration(environment);
-  if (!keys) {
-    return;
-  }
-  const claimedThrough = new Date(now.getTime() + 30 * 60_000).toISOString();
-  const { results } = await database
-    .prepare(
-      `SELECT endpoint, subscription_json, collection_date, following_date, collection_type,
-              lead_days, local_time, time_zone, scheduled_at, notification_id, claim_until, revision
-       FROM reminder_subscriptions
-       WHERE scheduled_at <= ? AND (claim_until IS NULL OR claim_until <= ?)
-       ORDER BY scheduled_at LIMIT 100`
-    )
-    .bind(nowIso, nowIso)
-    .all<ReminderRecord>();
+): EffectType<void, ReminderDeliveryError> =>
+  gen(function* sendDueRemindersEffect() {
+    const database = environment.REMINDERS;
+    if (!database) {
+      return;
+    }
+    const keys = yield* tryPromise({
+      try: () => readVapidConfiguration(environment),
+      catch: (cause) => new ReminderDeliveryError("loadConfiguration", cause),
+    });
+    if (!keys) {
+      return;
+    }
+    const nowIso = now.toISOString();
+    const claimedThrough = new Date(now.getTime() + 30 * 60_000).toISOString();
+    const { results } = yield* tryPromise({
+      try: () =>
+        database
+          .prepare(
+            `SELECT endpoint, subscription_json, collection_date, following_date, collection_type,
+                    lead_days, local_time, time_zone, scheduled_at, notification_id, claim_until, revision
+             FROM reminder_subscriptions
+             WHERE scheduled_at <= ? AND (claim_until IS NULL OR claim_until <= ?)
+             ORDER BY scheduled_at LIMIT 100`
+          )
+          .bind(nowIso, nowIso)
+          .all<ReminderRecord>(),
+      catch: (cause) => new ReminderDeliveryError("selectDue", cause),
+    });
 
-  await Promise.all(
-    results.map((record) =>
-      sendDueRecord(database, record, keys, now, claimedThrough, send)
-    )
-  );
-};
+    yield* all(
+      results.map((record) =>
+        tryPromise({
+          try: () =>
+            sendDueRecord(database, record, keys, now, claimedThrough, send),
+          catch: (cause) => new ReminderDeliveryError("deliver", cause),
+        })
+      ),
+      { concurrency: "unbounded" }
+    );
+  });

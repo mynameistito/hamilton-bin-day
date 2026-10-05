@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
+import { runPromise } from "effect/Effect";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
@@ -97,6 +98,9 @@ const environment = {
   VAPID_PRIVATE_KEY: testPrivateJwk.d,
   VAPID_SUBJECT: "mailto:contact@example.test",
 };
+
+const runDueReminders = (...args: Parameters<typeof sendDueReminders>) =>
+  runPromise(sendDueReminders(...args));
 
 const schedule = {
   collectionDate: "2026-10-05",
@@ -332,6 +336,17 @@ describe("reminder delivery database behavior", () => {
           .prepare("SELECT count(*) AS count FROM reminder_subscriptions")
           .get()
       ).toMatchObject({ count: 0 });
+
+      let sends = 0;
+      await runDueReminders(
+        environment,
+        new Date("2026-10-04T08:00:00.000Z"),
+        () => {
+          sends += 1;
+          return Promise.resolve(new Response(null, { status: 201 }));
+        }
+      );
+      expect(sends).toBe(0);
     });
   });
 
@@ -387,7 +402,7 @@ describe("reminder delivery database behavior", () => {
         .mockResolvedValue(new Response(null, { status: 201 }));
       vi.stubGlobal("fetch", fetcher);
 
-      await sendDueReminders(environment, new Date("2026-10-04T08:00:00.000Z"));
+      await runDueReminders(environment, new Date("2026-10-04T08:00:00.000Z"));
 
       const [call] = fetcher.mock.calls;
       if (!call) {
@@ -446,8 +461,8 @@ describe("reminder delivery database behavior", () => {
       };
       const now = new Date("2026-10-04T08:00:00.000Z");
 
-      await sendDueReminders(environment, now, send);
-      await sendDueReminders(environment, now, send);
+      await runDueReminders(environment, now, send);
+      await runDueReminders(environment, now, send);
 
       expect(sends).toBe(1);
       expect(JSON.parse(sentPayload)).toMatchObject({
@@ -466,12 +481,94 @@ describe("reminder delivery database behavior", () => {
       });
     });
 
+    test("continues recurring reminders for more than a year with unique IDs and alternating bins", async () => {
+      await handleReminderSubscribe(
+        subscriptionRequest(),
+        environment,
+        new Date("2026-10-01T00:00:00.000Z")
+      );
+      const notificationIds = new Set<string>();
+      let sends = 0;
+
+      const runCycle = async (remainingCycles: number): Promise<void> => {
+        if (remainingCycles === 0) {
+          return;
+        }
+        // SAFETY: This row is selected from the schema created by the real migrations.
+        const current = database.sqlite
+          .prepare(
+            `SELECT collection_date, following_date, collection_type, scheduled_at,
+                    notification_id FROM reminder_subscriptions`
+          )
+          .get() as {
+          collection_date: string;
+          following_date: string;
+          collection_type: "red" | "yellow";
+          scheduled_at: string;
+          notification_id: string;
+        };
+        const now = new Date(current.scheduled_at);
+        let sentNotificationId = "";
+
+        await runDueReminders(environment, now, (_subscription, payload) => {
+          sends += 1;
+          sentNotificationId = JSON.parse(payload).notificationId;
+          return Promise.resolve(new Response(null, { status: 201 }));
+        });
+        await runDueReminders(environment, now, () => {
+          sends += 1;
+          return Promise.resolve(new Response(null, { status: 201 }));
+        });
+
+        expect(sentNotificationId).toBe(current.notification_id);
+        expect(notificationIds.has(sentNotificationId)).toBeFalsy();
+        notificationIds.add(sentNotificationId);
+
+        // SAFETY: The updated row is selected from the migrated test database.
+        const next = database.sqlite
+          .prepare(
+            `SELECT collection_date, following_date, collection_type, updated_at
+             FROM reminder_subscriptions`
+          )
+          .get() as {
+          collection_date: string;
+          following_date: string;
+          collection_type: "red" | "yellow";
+          updated_at: string;
+        };
+        expect(next).toMatchObject({
+          collection_date: current.following_date,
+          collection_type: current.collection_type === "red" ? "yellow" : "red",
+          updated_at: now.toISOString(),
+        });
+        expect(Date.parse(next.following_date)).toBe(
+          Date.parse(next.collection_date) + 7 * 24 * 60 * 60 * 1000
+        );
+        expect(sends).toBe(54 - remainingCycles);
+        await runCycle(remainingCycles - 1);
+      };
+
+      await runCycle(53);
+
+      expect(notificationIds.size).toBe(53);
+      expect(
+        database.sqlite
+          .prepare("SELECT count(*) AS count FROM reminder_subscriptions")
+          .get()
+      ).toMatchObject({ count: 1 });
+      expect(
+        database.sqlite
+          .prepare("SELECT collection_date FROM reminder_subscriptions")
+          .get()
+      ).toMatchObject({ collection_date: "2027-10-11" });
+    });
+
     test("describes the actual collection date when a lead-time reminder is already due", async () => {
       const now = new Date("2026-10-05T08:00:00.000Z");
       await handleReminderSubscribe(subscriptionRequest(), environment, now);
       let sentPayload = "";
 
-      await sendDueReminders(environment, now, (_subscription, payload) => {
+      await runDueReminders(environment, now, (_subscription, payload) => {
         sentPayload = payload;
         return Promise.resolve(new Response(null, { status: 201 }));
       });
@@ -489,7 +586,7 @@ describe("reminder delivery database behavior", () => {
       );
       let sends = 0;
 
-      await sendDueReminders(
+      await runDueReminders(
         environment,
         new Date("2026-10-05T12:00:00.000Z"),
         () => {
@@ -527,9 +624,9 @@ describe("reminder delivery database behavior", () => {
       };
       const now = new Date("2026-10-04T08:00:00.000Z");
 
-      const firstRun = sendDueReminders(environment, now, send);
+      const firstRun = runDueReminders(environment, now, send);
       await sendStarted;
-      await sendDueReminders(environment, now, send);
+      await runDueReminders(environment, now, send);
 
       expect(sends).toBe(1);
       sendGate.resolve(new Response(null, { status: 201 }));
@@ -544,7 +641,7 @@ describe("reminder delivery database behavior", () => {
           environment,
           new Date("2026-10-01T00:00:00.000Z")
         );
-        await sendDueReminders(
+        await runDueReminders(
           environment,
           new Date("2026-10-04T08:00:00.000Z"),
           () => Promise.resolve(new Response(null, { status }))
@@ -566,7 +663,7 @@ describe("reminder delivery database behavior", () => {
       );
       const sendGate = Promise.withResolvers<Response>();
       const sendStarted = Promise.withResolvers<undefined>();
-      const firstRun = sendDueReminders(
+      const firstRun = runDueReminders(
         environment,
         new Date("2026-10-04T08:00:00.000Z"),
         () => {
@@ -605,7 +702,7 @@ describe("reminder delivery database behavior", () => {
       );
       const sendGate = Promise.withResolvers<Response>();
       const sendStarted = Promise.withResolvers<undefined>();
-      const firstRun = sendDueReminders(
+      const firstRun = runDueReminders(
         environment,
         new Date("2026-10-04T08:00:00.000Z"),
         () => {
@@ -670,8 +767,8 @@ describe("reminder delivery database behavior", () => {
         );
       };
       const now = new Date("2026-10-04T08:00:00.000Z");
-      await sendDueReminders(environment, now, send);
-      await sendDueReminders(environment, now, send);
+      await runDueReminders(environment, now, send);
+      await runDueReminders(environment, now, send);
 
       expect(attempts).toBe(2);
       expect(
@@ -688,7 +785,7 @@ describe("reminder delivery database behavior", () => {
         new Date("2026-10-01T00:00:00.000Z")
       );
 
-      await sendDueReminders(
+      await runDueReminders(
         environment,
         new Date("2026-10-04T08:00:00.000Z"),
         () => Promise.resolve(new Response(null, { status: 403 }))
@@ -718,8 +815,8 @@ describe("reminder delivery database behavior", () => {
         };
         const now = new Date("2026-10-04T08:00:00.000Z");
 
-        await sendDueReminders(environment, now, send);
-        await sendDueReminders(environment, now, send);
+        await runDueReminders(environment, now, send);
+        await runDueReminders(environment, now, send);
 
         expect(attempts).toBe(2);
         expect(
@@ -730,23 +827,23 @@ describe("reminder delivery database behavior", () => {
       }
     );
 
-    test("prunes inactive records after 90 days even when VAPID delivery is disabled", async () => {
+    test("retains an opted-in subscription beyond 90 days when VAPID delivery is unavailable", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
         new Date("2026-10-01T00:00:00.000Z")
       );
 
-      await sendDueReminders(
+      await runDueReminders(
         { REMINDERS: database },
         new Date("2027-01-05T00:00:00.000Z")
       );
 
       expect(
         database.sqlite
-          .prepare("SELECT count(*) AS count FROM reminder_subscriptions")
+          .prepare("SELECT collection_date FROM reminder_subscriptions")
           .get()
-      ).toMatchObject({ count: 0 });
+      ).toMatchObject({ collection_date: schedule.collectionDate });
     });
   });
 });
