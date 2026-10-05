@@ -42,6 +42,7 @@ const handleOnline = async () => {
 };
 
 const handleOffline = () => {
+  publish(false);
   void refresh();
 };
 
