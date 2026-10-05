@@ -39,6 +39,9 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
   yield* Effect.log(`Found ${formatNumber(ids.length)} property records.`);
 
   const batches = chunks(ids, BATCH_SIZE);
+  yield* Effect.log(
+    `Fetching ${formatNumber(ids.length)} records in ${formatNumber(batches.length)} batches...`
+  );
   const downloadedFeatures = yield* Effect.all(
     batches.map((batch, index) =>
       Effect.gen(function* fetchBatch() {
@@ -56,12 +59,18 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
   );
   const missingIds = ids.filter((id) => !fetchedIds.has(id));
   if (missingIds.length > 0) {
+    yield* Effect.logWarning(
+      `Missing ${formatNumber(missingIds.length)} records.`
+    );
     return yield* Effect.fail(
       new ExportError(
         `Download was incomplete: ${formatNumber(missingIds.length)} OBJECTIDs were missing. Output was not written.`
       )
     );
   }
+  yield* Effect.log(
+    `Verified all ${formatNumber(ids.length)} records were fetched.`
+  );
 
   const transformed = transformFeatures(downloadedFeatures);
   if (transformed.invalidDays.length > 0) {
@@ -111,7 +120,21 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
       )
     );
 
-  yield* Effect.log(`Created ${outputPath}`);
+  yield* Effect.log("Done.");
+  yield* Effect.log(`Current NZ collection week: ${output.weekStarting}`);
+  yield* Effect.log(`Area 1: ${output.binWeek["Area 1"]}`);
+  yield* Effect.log(`Area 2: ${output.binWeek["Area 2"]}`);
+  yield* Effect.log(`Source records: ${formatNumber(ids.length)}`);
+  yield* Effect.log(
+    `Usable records: ${formatNumber(transformed.records.length)}`
+  );
+  yield* Effect.log(
+    `Unique address rows: ${formatNumber(transformed.records.length)}`
+  );
+  yield* Effect.log(
+    `Conflicting addresses: ${formatNumber(transformed.conflictingAddresses)}`
+  );
+  yield* Effect.log(`Created: ${outputPath}`);
   return {
     outputPath,
     sourceRecords: ids.length,

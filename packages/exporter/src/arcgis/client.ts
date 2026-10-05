@@ -112,7 +112,16 @@ const make = Effect.gen(function* make() {
       if (response.error) {
         return yield* Effect.fail(decodeError(response.error));
       }
-      return response.features ?? [];
+      const features = response.features ?? [];
+      if (response.exceededTransferLimit) {
+        yield* Effect.logWarning("ArcGIS reported exceededTransferLimit=true.");
+      }
+      if (features.length !== objectIds.length) {
+        yield* Effect.logWarning(
+          `ArcGIS returned ${features.length} features for a batch of ${objectIds.length} OBJECTIDs.`
+        );
+      }
+      return features;
     }
   );
 
