@@ -80,5 +80,15 @@ describe("home page navigation", () => {
       expect(screen.getByText("Change address")).toBeTruthy()
     );
     expect(screen.getByRole("article").className).toContain("min-h-0");
+    expect(screen.getByRole("article").parentElement?.className).toContain(
+      "order-1"
+    );
+    expect(
+      screen.getByText("Change address").parentElement?.className
+    ).toContain("order-2");
+    expect(
+      screen.getByRole("heading", { name: "Never miss your bin day again." })
+        .className
+    ).toContain("sr-only");
   });
 });

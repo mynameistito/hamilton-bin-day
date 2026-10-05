@@ -132,17 +132,19 @@ const HomeHeader = ({ onToggleTheme, theme }: HomeHeaderProps) => (
 );
 
 interface CollectionCardProps {
+  readonly className?: string;
   readonly relativeCollectionDate: string;
   readonly schedule: ScheduleResponse | null;
 }
 
 const CollectionCard = ({
+  className = "",
   relativeCollectionDate,
   schedule,
 }: CollectionCardProps) => (
   <div
     aria-live="polite"
-    className={`home-schedule relative mx-auto w-full max-w-md ${schedule ? "order-1 md:order-none" : ""}`}
+    className={`home-schedule relative mx-auto w-full max-w-md ${className}`}
   >
     <div
       className={`${collectionHighlightClass(schedule?.nextCollection.type)} absolute -inset-2 rounded-4xl sm:-inset-5`}
@@ -297,17 +299,22 @@ export const HomePage = () => {
       <PwaStatus isOnline={isOnline} />
 
       <section className="home-lookup mx-auto grid w-full max-w-6xl gap-9 pt-8 pb-10 sm:gap-12 sm:pt-12 sm:pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-12">
+        {schedule && (
+          <CollectionCard
+            className="order-1 md:order-2"
+            relativeCollectionDate={relativeCollectionDate}
+            schedule={schedule}
+          />
+        )}
         <div
-          className={`home-lookup-copy ${schedule ? "order-2 md:order-none" : ""}`}
+          className={`home-lookup-copy ${schedule ? "order-2 md:order-1" : ""}`}
         >
-          <p
-            className={`border-sage-border tracking-eyebrow text-sage-copy bg-surface mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase sm:mb-5 ${schedule ? "hidden md:inline-flex" : ""}`}
-          >
+          <p className="border-sage-border tracking-eyebrow text-sage-copy bg-surface mb-4 hidden items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase sm:mb-5 md:inline-flex">
             <span className="bg-leaf size-2 rounded-full" /> Hamilton, New
             Zealand
           </p>
           <h1
-            className={`leading-heading tracking-heading max-w-xl text-4xl font-semibold sm:text-6xl ${schedule ? "hidden md:block" : ""}`}
+            className={`leading-heading tracking-heading max-w-xl text-4xl font-semibold sm:text-6xl ${schedule ? "sr-only md:not-sr-only md:block" : ""}`}
           >
             Never miss your <span className="text-moss">bin day</span> again.
           </h1>
@@ -355,10 +362,12 @@ export const HomePage = () => {
           </p>
         </div>
 
-        <CollectionCard
-          relativeCollectionDate={relativeCollectionDate}
-          schedule={schedule}
-        />
+        {!schedule && (
+          <CollectionCard
+            relativeCollectionDate={relativeCollectionDate}
+            schedule={schedule}
+          />
+        )}
       </section>
       <section className="home-steps border-footer-border text-footer-copy mx-auto grid w-full max-w-6xl gap-5 border-t py-6 text-sm md:grid-cols-3 md:gap-4 md:pt-6">
         <div>
