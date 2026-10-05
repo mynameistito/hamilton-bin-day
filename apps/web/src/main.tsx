@@ -55,3 +55,50 @@ createRoot(rootElement).render(
     <RouterProvider router={router} />
   </StrictMode>
 );
+
+const registerServiceWorker = async (): Promise<void> => {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  let updatePending = false;
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (updatePending) {
+      window.location.reload();
+    }
+  });
+
+  try {
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    const notifyUpdateAvailable = () => {
+      if (navigator.serviceWorker.controller) {
+        updatePending = true;
+        window.dispatchEvent(new Event("app-update-available"));
+      }
+    };
+    const observedInstalling = new WeakSet<ServiceWorker>();
+    const observeInstalling = (installing: ServiceWorker | null) => {
+      if (!installing || observedInstalling.has(installing)) {
+        return;
+      }
+      observedInstalling.add(installing);
+      installing.addEventListener("statechange", () => {
+        if (installing.state === "installed") {
+          notifyUpdateAvailable();
+        }
+      });
+    };
+    registration.addEventListener("updatefound", () => {
+      observeInstalling(registration.installing);
+    });
+    observeInstalling(registration.installing);
+    if (registration.waiting) {
+      notifyUpdateAvailable();
+    }
+  } catch {
+    console.error("Failed to register the offline app shell.");
+  }
+};
+
+window.addEventListener("load", registerServiceWorker);
