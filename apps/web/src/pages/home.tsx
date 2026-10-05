@@ -291,11 +291,13 @@ export const HomePage = () => {
     <main className="home-page bg-canvas text-ink flex min-h-dvh flex-col px-4 pb-6 sm:px-5">
       <HomeHeader onToggleTheme={toggleTheme} theme={theme} />
 
+      <div className="mx-auto flex w-full max-w-6xl justify-end pb-3">
+        <NotificationSettings
+          cancelMissingSchedule={state.kind === "not-found"}
+          schedule={schedule}
+        />
+      </div>
       <PwaStatus isOnline={isOnline} />
-      <NotificationSettings
-        cancelMissingSchedule={state.kind === "not-found"}
-        schedule={schedule}
-      />
 
       <section className="home-lookup mx-auto grid w-full max-w-6xl gap-9 pt-8 pb-10 sm:gap-12 sm:pt-12 sm:pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-12">
         <div className="home-lookup-copy">
