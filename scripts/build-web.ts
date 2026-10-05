@@ -10,8 +10,7 @@ const webOutput = path.resolve(webDirectory, "dist");
 
 await $`bun x vite build`.cwd(webDirectory);
 const assetFiles = await readdir(path.resolve(webOutput, "assets"));
-// oxlint-disable-next-line unicorn/no-array-sort -- SAFETY: This fresh list is sorted only to stabilize the emitted service-worker cache key.
-const builtAssets = assetFiles.sort().map((asset) => `/assets/${asset}`);
+const builtAssets = assetFiles.toSorted().map((asset) => `/assets/${asset}`);
 const fixedShellFiles = [
   "/index.html",
   "/sw.js",
