@@ -86,7 +86,14 @@ export const decodeApplicationServerKey = (
   return bytes;
 };
 
-const snapshotFor = (schedule: ScheduleResponse) => ({
+type ReminderSchedule = Pick<ScheduleResponse, "redBin" | "yellowBin"> & {
+  readonly nextCollection: Pick<
+    ScheduleResponse["nextCollection"],
+    "date" | "type"
+  >;
+};
+
+const snapshotFor = (schedule: ReminderSchedule) => ({
   collectionDate: schedule.nextCollection.date,
   followingDate:
     schedule.nextCollection.type === "red"
@@ -100,7 +107,7 @@ const snapshotFor = (schedule: ScheduleResponse) => ({
 /** Persist a push subscription and the minimum schedule/preference snapshot needed by the sender. */
 export const savePushReminder = async (
   subscription: WebPushSubscription,
-  schedule: ScheduleResponse,
+  schedule: ReminderSchedule,
   preferences: NotificationPreferences,
   timeZone: string,
   fetcher: typeof fetch = fetch

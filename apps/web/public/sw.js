@@ -6,7 +6,6 @@ const NOTIFICATION_CONSENT_KEY = new URL(
   "/__notification-consent__",
   self.location.origin
 ).href;
-const activeNotificationDeliveries = new Map();
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const APP_SHELL = [
   "/",
@@ -100,43 +99,16 @@ const parsePushPayload = (event) => {
   }
 };
 
-const showPushNotificationOnce = async (cache, payload) => {
-  const deliveredKey = new URL(
-    `/__notification-delivered__/${encodeURIComponent(payload.notificationId)}`,
-    self.location.origin
-  );
-  const activeDelivery = activeNotificationDeliveries.get(
-    payload.notificationId
-  );
-  if (activeDelivery) {
-    await activeDelivery;
-    return;
-  }
-
-  const delivery = (async () => {
-    if (
-      !(await cache.match(NOTIFICATION_CONSENT_KEY)) ||
-      (await cache.match(deliveredKey))
-    ) {
-      return;
-    }
-    try {
-      await self.registration.showNotification(payload.title, {
-        body: payload.body,
-        data: { url: "/" },
-        renotify: false,
-        tag: payload.notificationId,
-      });
-      await cache.put(deliveredKey, new Response(String(Date.now())));
-    } catch {
-      console.warn("Unable to display or record a bin-day notification.");
-    }
-  })();
-  activeNotificationDeliveries.set(payload.notificationId, delivery);
+const showPushNotification = async (payload) => {
   try {
-    await delivery;
-  } finally {
-    activeNotificationDeliveries.delete(payload.notificationId);
+    await self.registration.showNotification(payload.title, {
+      body: payload.body,
+      data: { url: "/" },
+      renotify: false,
+      tag: payload.notificationId,
+    });
+  } catch {
+    console.warn("Unable to display a bin-day notification.");
   }
 };
 
@@ -153,24 +125,7 @@ self.addEventListener("push", (event) => {
         return;
       }
 
-      const cutoff = Date.now() - 400 * 24 * 60 * 60 * 1000;
-      const entries = await cache.keys();
-      const cleanup = [];
-      for (const entry of entries) {
-        if (entry.url !== NOTIFICATION_CONSENT_KEY) {
-          cleanup.push(
-            (async () => {
-              const response = await cache.match(entry);
-              const deliveredAt = Number(await response?.text());
-              if (!Number.isFinite(deliveredAt) || deliveredAt < cutoff) {
-                await cache.delete(entry);
-              }
-            })()
-          );
-        }
-      }
-      await Promise.all(cleanup);
-      await showPushNotificationOnce(cache, payload);
+      await showPushNotification(payload);
     })()
   );
 });

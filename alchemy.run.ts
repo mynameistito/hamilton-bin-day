@@ -6,6 +6,14 @@ import type { Redacted as RedactedValue } from "effect/Redacted";
 
 const resolveStackValue = Stack.useSync.bind(Stack);
 
+const reminderRateLimitNamespaceId = (stage: string): number => {
+  let hash = 7;
+  for (const character of `hcc-bin-day:${stage}`) {
+    hash = (hash * 31 + (character.codePointAt(0) ?? 0)) % 2_147_483_647;
+  }
+  return hash || 1;
+};
+
 const websiteProps = (stage: string) => {
   const props = {
     assets: {
@@ -72,7 +80,7 @@ const Site = Website.StaticSite(
     env: {
       REMINDERS: Reminders,
       REMINDER_LIMIT: Workers.RateLimit("ReminderApiLimit", {
-        namespaceId: `hcc-bin-day-reminders-${stack.stage}`,
+        namespaceId: reminderRateLimitNamespaceId(stack.stage),
         simple: { limit: 30, period: 60 },
       }),
       ...productionVapidEnvironment(stack.stage),

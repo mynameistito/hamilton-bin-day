@@ -3,7 +3,7 @@ import {
   String as SchemaString,
   Struct,
 } from "effect/Schema";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { resolveNotificationPermissionState } from "@/lib/notifications";
 import type {
@@ -303,12 +303,25 @@ const getOrCreatePushSubscription = async (
   if (!isCurrent()) {
     return null;
   }
+  const expectedKey = decodeApplicationServerKey(publicKey);
   if (existing) {
-    return existing;
+    const currentKey = existing.options.applicationServerKey;
+    const currentKeyBytes = currentKey ? new Uint8Array(currentKey) : null;
+    const matches =
+      currentKeyBytes !== null &&
+      currentKeyBytes.length === expectedKey.length &&
+      currentKeyBytes.every((byte, index) => byte === expectedKey[index]);
+    if (matches) {
+      return existing;
+    }
+    await existing.unsubscribe();
+    if (!isCurrent()) {
+      return null;
+    }
   }
   // oxlint-disable-next-line react-doctor/effect-needs-cleanup -- SAFETY: The subscription is unsubscribed if consent changes before enrollment completes.
   const created = await registration.pushManager.subscribe({
-    applicationServerKey: decodeApplicationServerKey(publicKey),
+    applicationServerKey: expectedKey,
     userVisibleOnly: true,
   });
   if (!isCurrent()) {
@@ -331,6 +344,39 @@ export const useReminderDelivery = (
   const [deliveryMessage, setDeliveryMessage] = useState("");
   const [deliveryActive, setDeliveryActive] = useState(false);
   const mutationVersion = useRef(0);
+  const nextCollectionDate = schedule?.nextCollection.date;
+  const nextCollectionType = schedule?.nextCollection.type;
+  const redBinDate = schedule?.redBin;
+  const yellowBinDate = schedule?.yellowBin;
+  const hasSchedule = schedule !== null;
+  const synchronizedSchedule = useMemo(
+    () =>
+      hasSchedule
+        ? {
+            redBin: redBinDate ?? "",
+            yellowBin: yellowBinDate ?? "",
+            nextCollection: {
+              date: nextCollectionDate ?? "",
+              type: nextCollectionType ?? "red",
+            },
+          }
+        : null,
+    [
+      hasSchedule,
+      nextCollectionDate,
+      nextCollectionType,
+      redBinDate,
+      yellowBinDate,
+    ]
+  );
+  const synchronizedPreferences = useMemo(
+    () => ({
+      enabled: preferences.enabled,
+      leadDays: preferences.leadDays,
+      localTime: preferences.localTime,
+    }),
+    [preferences.enabled, preferences.leadDays, preferences.localTime]
+  );
 
   useEffect(() => {
     const refreshPermission = () => setPermission(readPermissionState());
@@ -491,16 +537,16 @@ export const useReminderDelivery = (
   };
 
   useEffect(() => {
-    if (!preferences.enabled) {
+    if (!synchronizedPreferences.enabled) {
       return;
     }
     let active = true;
-    mutationVersion.current += 1;
-    const operationVersion = mutationVersion.current;
-    if (!schedule) {
+    if (!synchronizedSchedule) {
       if (!cancelMissingSchedule) {
         return;
       }
+      mutationVersion.current += 1;
+      const operationVersion = mutationVersion.current;
       const removeMissingSchedule = async () => {
         await enqueuePushMutation(async () => {
           if (!active || operationVersion !== mutationVersion.current) {
@@ -532,7 +578,7 @@ export const useReminderDelivery = (
               );
               return;
             }
-            savePreferences({ ...preferences, enabled: false });
+            savePreferences({ ...synchronizedPreferences, enabled: false });
             setDeliveryActive(false);
             setDeliveryMessage(
               "The reminder was cancelled because the new lookup has no collection schedule."
@@ -551,6 +597,8 @@ export const useReminderDelivery = (
         active = false;
       };
     }
+    mutationVersion.current += 1;
+    const operationVersion = mutationVersion.current;
     const syncSchedule = async () => {
       await enqueuePushMutation(async () => {
         if (!active || operationVersion !== mutationVersion.current) {
@@ -567,7 +615,7 @@ export const useReminderDelivery = (
           if (!serialized || !subscription) {
             const cleanup = await cleanupAndDisable(
               null,
-              preferences,
+              synchronizedPreferences,
               savePreferences,
               () => active && operationVersion === mutationVersion.current
             );
@@ -580,12 +628,12 @@ export const useReminderDelivery = (
             return;
           }
           if (
-            !savePreferences(preferences) ||
+            !savePreferences(synchronizedPreferences) ||
             !rememberPushEndpoint(subscription.endpoint)
           ) {
             const cleanup = await cleanupAndDisable(
               subscription,
-              preferences,
+              synchronizedPreferences,
               savePreferences,
               () => active && operationVersion === mutationVersion.current
             );
@@ -605,8 +653,8 @@ export const useReminderDelivery = (
           }
           const saved = await savePushReminder(
             serialized,
-            schedule,
-            preferences,
+            synchronizedSchedule,
+            synchronizedPreferences,
             readDeviceTimeZone()
           );
           if (!active || operationVersion !== mutationVersion.current) {
@@ -634,7 +682,12 @@ export const useReminderDelivery = (
     return () => {
       active = false;
     };
-  }, [cancelMissingSchedule, preferences, savePreferences, schedule]);
+  }, [
+    cancelMissingSchedule,
+    savePreferences,
+    synchronizedPreferences,
+    synchronizedSchedule,
+  ]);
 
   return {
     deliveryActive,

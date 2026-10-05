@@ -123,7 +123,7 @@ describe("service worker push notifications", () => {
     expect(worker.showNotification).not.toHaveBeenCalled();
   });
 
-  test("validates payloads and deduplicates a collection reminder across worker events", async () => {
+  test("validates payloads and displays every consented collection reminder", async () => {
     const worker = makeServiceWorker(await readServiceWorker());
     const consent = worker.listeners.get("message");
     const consentPromises: Promise<void>[] = [];
@@ -165,7 +165,7 @@ describe("service worker push notifications", () => {
       json: () => validPayload,
     });
 
-    expect(worker.showNotification).toHaveBeenCalledTimes(2);
+    expect(worker.showNotification).toHaveBeenCalledTimes(4);
     expect(worker.showNotification).toHaveBeenNthCalledWith(
       1,
       validPayload.title,
@@ -251,11 +251,14 @@ describe("service worker push notifications", () => {
     await dispatch(worker.listeners.get("push"), providerDeliveredData);
     await dispatch(worker.listeners.get("push"), providerDeliveredData);
 
-    expect(worker.showNotification).toHaveBeenCalledExactlyOnceWith(
+    expect(worker.showNotification).toHaveBeenCalledTimes(2);
+    expect(worker.showNotification).toHaveBeenNthCalledWith(
+      1,
       validPayload.title,
       expect.objectContaining({
         body: validPayload.body,
         tag: validPayload.notificationId,
+        renotify: false,
       })
     );
   });
@@ -277,7 +280,7 @@ describe("service worker push notifications", () => {
       dispatch(worker.listeners.get("push"), { json: () => validPayload })
     ).resolves.toBeUndefined();
     expect(worker.logger.warn).toHaveBeenCalledExactlyOnceWith(
-      "Unable to display or record a bin-day notification."
+      "Unable to display a bin-day notification."
     );
   });
 });

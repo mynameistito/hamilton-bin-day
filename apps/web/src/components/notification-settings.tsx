@@ -11,7 +11,7 @@ import type {
   NotificationPreferences,
   ReminderLeadDays,
 } from "@/lib/notifications";
-import { formatCollectionDate } from "@/lib/schedule";
+import { daysUntilCollection, formatCollectionDate } from "@/lib/schedule";
 import type { ScheduleResponse } from "@/lib/schedule";
 
 const readDeviceTimeZone = (): string =>
@@ -98,9 +98,20 @@ export const NotificationSettings = ({
     save
   );
   const timeZone = readDeviceTimeZone();
+  let collectionDate = schedule?.nextCollection.date;
+  if (
+    schedule &&
+    preferences.leadDays === 7 &&
+    daysUntilCollection(schedule.nextCollection.date, new Date()) < 7
+  ) {
+    collectionDate =
+      schedule.nextCollection.type === "red"
+        ? schedule.yellowBin
+        : schedule.redBin;
+  }
   const reminder = schedule
     ? calculateReminderSchedule(
-        schedule.nextCollection.date,
+        collectionDate ?? schedule.nextCollection.date,
         preferences,
         timeZone
       )
@@ -225,7 +236,7 @@ export const NotificationSettings = ({
 
         {reminder && (
           <p className="bg-panel mt-4 rounded-xl p-4 text-sm">
-            Next reminder: {formatCollectionDate(reminder.scheduledLocalDate)}
+            Next reminder: {formatCollectionDate(reminder.scheduledLocalDate)}{" "}
             at {reminder.scheduledLocalTime}.
           </p>
         )}

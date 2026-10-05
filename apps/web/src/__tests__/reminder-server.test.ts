@@ -466,6 +466,51 @@ describe("reminder delivery database behavior", () => {
       });
     });
 
+    test("describes the actual collection date when a lead-time reminder is already due", async () => {
+      const now = new Date("2026-10-05T08:00:00.000Z");
+      await handleReminderSubscribe(subscriptionRequest(), environment, now);
+      let sentPayload = "";
+
+      await sendDueReminders(environment, now, (_subscription, payload) => {
+        sentPayload = payload;
+        return Promise.resolve(new Response(null, { status: 201 }));
+      });
+
+      expect(JSON.parse(sentPayload)).toMatchObject({
+        body: "Bins are collected today.",
+      });
+    });
+
+    test("advances expired collections without sending an overdue push", async () => {
+      await handleReminderSubscribe(
+        subscriptionRequest(),
+        environment,
+        new Date("2026-10-01T00:00:00.000Z")
+      );
+      let sends = 0;
+
+      await sendDueReminders(
+        environment,
+        new Date("2026-10-05T12:00:00.000Z"),
+        () => {
+          sends += 1;
+          return Promise.resolve(new Response(null, { status: 201 }));
+        }
+      );
+
+      expect(sends).toBe(0);
+      expect(
+        database.sqlite
+          .prepare(
+            "SELECT collection_date, scheduled_at FROM reminder_subscriptions"
+          )
+          .get()
+      ).toMatchObject({
+        collection_date: "2026-10-12",
+        scheduled_at: "2026-10-11T06:00:00.000Z",
+      });
+    });
+
     test("claims a due subscription before an overlapping cron can send it", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
@@ -576,6 +621,55 @@ describe("reminder delivery database behavior", () => {
           .get()
       ).toMatchObject({ collection_date: "2026-10-12" });
     });
+
+    test("advances after a permanent client failure", async () => {
+      await handleReminderSubscribe(
+        subscriptionRequest(),
+        environment,
+        new Date("2026-10-01T00:00:00.000Z")
+      );
+
+      await sendDueReminders(
+        environment,
+        new Date("2026-10-04T08:00:00.000Z"),
+        () => Promise.resolve(new Response(null, { status: 403 }))
+      );
+
+      expect(
+        database.sqlite
+          .prepare("SELECT collection_date FROM reminder_subscriptions")
+          .get()
+      ).toMatchObject({ collection_date: "2026-10-12" });
+    });
+
+    test.each([408, 429])(
+      "retries transient client status %s and advances after success",
+      async (status) => {
+        await handleReminderSubscribe(
+          subscriptionRequest(),
+          environment,
+          new Date("2026-10-01T00:00:00.000Z")
+        );
+        let attempts = 0;
+        const send = () => {
+          attempts += 1;
+          return Promise.resolve(
+            new Response(null, { status: attempts === 1 ? status : 201 })
+          );
+        };
+        const now = new Date("2026-10-04T08:00:00.000Z");
+
+        await sendDueReminders(environment, now, send);
+        await sendDueReminders(environment, now, send);
+
+        expect(attempts).toBe(2);
+        expect(
+          database.sqlite
+            .prepare("SELECT collection_date FROM reminder_subscriptions")
+            .get()
+        ).toMatchObject({ collection_date: "2026-10-12" });
+      }
+    );
 
     test("prunes inactive records after 90 days even when VAPID delivery is disabled", async () => {
       await handleReminderSubscribe(

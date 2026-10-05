@@ -145,6 +145,20 @@ const daysBetween = (left: string, right: string): number =>
   (Date.parse(`${right}T00:00:00.000Z`) - Date.parse(`${left}T00:00:00.000Z`)) /
   86_400_000;
 
+const calendarDateInTimeZone = (date: Date, timeZone: string): string => {
+  const parts = new Map(
+    new Intl.DateTimeFormat("en-NZ", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value])
+  );
+  return `${parts.get("year")}-${parts.get("month")}-${parts.get("day")}`;
+};
+
 const bearerEndpoint = (request: Request): string | null => {
   const authorization = request.headers.get("authorization");
   if (!authorization?.startsWith("Bearer ")) {
@@ -430,11 +444,20 @@ const releaseClaim = async (
 const advanceSubscription = async (
   database: ReminderDatabase,
   record: ReminderRecord,
-  now: Date
+  now: Date,
+  notBeforeDate?: string
 ): Promise<void> => {
-  const nextDate = record.following_date;
-  const nextFollowingDate = advanceDate(nextDate, 7);
-  const nextType = collectionTypeAfter(record.collection_type);
+  let nextDate = record.following_date;
+  let nextFollowingDate = advanceDate(nextDate, 7);
+  let nextType = collectionTypeAfter(record.collection_type);
+  if (notBeforeDate && nextDate < notBeforeDate) {
+    const weeksToSkip = Math.ceil(daysBetween(nextDate, notBeforeDate) / 7);
+    nextDate = advanceDate(nextDate, weeksToSkip * 7);
+    nextFollowingDate = advanceDate(nextDate, 7);
+    if (weeksToSkip % 2 === 1) {
+      nextType = collectionTypeAfter(nextType);
+    }
+  }
   const nextReminder = scheduleFor(
     nextDate,
     record.lead_days,
@@ -496,6 +519,12 @@ const sendDueRecord = async (
     return;
   }
 
+  const localToday = calendarDateInTimeZone(now, record.time_zone);
+  if (record.collection_date < localToday) {
+    await advanceSubscription(database, record, now, localToday);
+    return;
+  }
+
   let storedSubscription: unknown;
   try {
     storedSubscription = JSON.parse(record.subscription_json);
@@ -509,11 +538,15 @@ const sendDueRecord = async (
     return;
   }
 
-  const daysText = record.lead_days === 1 ? "day" : "days";
+  const daysUntilCollection = Math.max(
+    0,
+    daysBetween(localToday, record.collection_date)
+  );
+  const daysText = daysUntilCollection === 1 ? "day" : "days";
   const reminderText =
-    record.lead_days === 0
+    daysUntilCollection === 0
       ? "Bins are collected today."
-      : `Bins are collected in ${record.lead_days} ${daysText}.`;
+      : `Bins are collected in ${daysUntilCollection} ${daysText}.`;
   const body = JSON.stringify({
     version: 1,
     notificationId: record.notification_id,
@@ -527,6 +560,13 @@ const sendDueRecord = async (
     if (response.status === 404 || response.status === 410) {
       await removeSubscription(database, record.endpoint, record.revision);
     } else if (response.ok) {
+      await advanceSubscription(database, record, now);
+    } else if (
+      response.status >= 400 &&
+      response.status < 500 &&
+      response.status !== 408 &&
+      response.status !== 429
+    ) {
       await advanceSubscription(database, record, now);
     } else {
       await releaseClaim(database, record);
