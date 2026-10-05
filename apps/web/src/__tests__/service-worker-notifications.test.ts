@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, vi, it } from "vitest";
 
 import { readVapidConfiguration, sendWebPush } from "@/lib/web-push";
 import type { WebPushSubscription } from "@/lib/web-push-subscription";
@@ -77,7 +77,6 @@ const makeServiceWorker = (source: string) => {
   };
   const logger = { warn: vi.fn<(message: string) => void>() };
 
-  // oxlint-disable-next-line sonarjs/code-eval -- SAFETY: Executes this checked-in worker in a VM with local deterministic browser fakes.
   runInNewContext(source, {
     Date,
     Request,
@@ -113,7 +112,7 @@ const encode = (value: ArrayBuffer): string =>
   Buffer.from(value).toString("base64url");
 
 describe("service worker push notifications", () => {
-  test("does not display push notifications until local opt-in is recorded", async () => {
+  it("does not display push notifications until local opt-in is recorded", async () => {
     const worker = makeServiceWorker(await readServiceWorker());
 
     await dispatch(worker.listeners.get("push"), {
@@ -123,7 +122,7 @@ describe("service worker push notifications", () => {
     expect(worker.showNotification).not.toHaveBeenCalled();
   });
 
-  test("validates payloads and displays every consented collection reminder", async () => {
+  it("validates payloads and displays every consented collection reminder", async () => {
     const worker = makeServiceWorker(await readServiceWorker());
     const consent = worker.listeners.get("message");
     const consentPromises: Promise<void>[] = [];
@@ -177,7 +176,7 @@ describe("service worker push notifications", () => {
     );
   });
 
-  test("carries the sender JSON contract through encryption to service-worker display", async () => {
+  it("carries the sender JSON contract through encryption to service-worker display", async () => {
     const vapidPair = await crypto.subtle.generateKey(
       { name: "ECDSA", namedCurve: "P-256" },
       true,
@@ -244,9 +243,9 @@ describe("service worker push notifications", () => {
       waitUntil: (promise) => consentPromises.push(promise),
     });
     await Promise.all(consentPromises);
-    // SAFETY: `payload` was serialized from the typed `validPayload` test fixture above.
+
     const providerDeliveredData = {
-      json: () => JSON.parse(payload) as PushPayload,
+      json: () => JSON.parse(payload),
     };
     await dispatch(worker.listeners.get("push"), providerDeliveredData);
     await dispatch(worker.listeners.get("push"), providerDeliveredData);
@@ -263,7 +262,7 @@ describe("service worker push notifications", () => {
     );
   });
 
-  test("handles notification display failure without rejecting the push event", async () => {
+  it("handles notification display failure without rejecting the push event", async () => {
     const worker = makeServiceWorker(await readServiceWorker());
     const consent = worker.listeners.get("message");
     const pending: Promise<void>[] = [];

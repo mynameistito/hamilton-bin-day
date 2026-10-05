@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, vi, it } from "vitest";
 
 import {
   calculateReminderSchedule,
@@ -22,7 +22,7 @@ const enabledPreferences = (
 describe("notification preference persistence", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  test("defaults to disabled and rejects malformed stored values", () => {
+  it("defaults to disabled and rejects malformed stored values", () => {
     expect(parseNotificationPreferences(null)).toStrictEqual({
       enabled: false,
       leadDays: 1,
@@ -37,7 +37,7 @@ describe("notification preference persistence", () => {
     ).toStrictEqual({ enabled: false, leadDays: 1, localTime: "19:00" });
   });
 
-  test("persists only the reminder choice, lead time, and local time", () => {
+  it("persists only the reminder choice, lead time, and local time", () => {
     const values = new Map<string, string>();
     vi.stubGlobal("window", {
       localStorage: {
@@ -54,7 +54,7 @@ describe("notification preference persistence", () => {
     expect(readNotificationPreferences()).toStrictEqual(preferences);
   });
 
-  test("fails safely when browser storage is unavailable", () => {
+  it("fails safely when browser storage is unavailable", () => {
     vi.stubGlobal("window", {
       localStorage: {
         getItem: () => {
@@ -80,7 +80,7 @@ describe(resolveNotificationPermissionState, () => {
     secureContext: true,
   };
 
-  test("distinguishes unsupported, insecure, undecided, granted, and denied states", () => {
+  it("distinguishes unsupported, insecure, undecided, granted, and denied states", () => {
     expect(
       resolveNotificationPermissionState({
         ...supportedBrowser,
@@ -112,7 +112,7 @@ describe(resolveNotificationPermissionState, () => {
 });
 
 describe(calculateReminderSchedule, () => {
-  test("calculates a day-before reminder by local calendar date", () => {
+  it("calculates a day-before reminder by local calendar date", () => {
     const schedule = calculateReminderSchedule(
       "2026-10-05",
       enabledPreferences({ localTime: "19:00" }),
@@ -130,7 +130,7 @@ describe(calculateReminderSchedule, () => {
     );
   });
 
-  test("supports same-day, multiple-day, and one-week lead times", () => {
+  it("supports same-day, multiple-day, and one-week lead times", () => {
     expect(
       calculateReminderSchedule(
         "2026-07-10",
@@ -154,7 +154,7 @@ describe(calculateReminderSchedule, () => {
     ).toBe("2026-07-03");
   });
 
-  test("uses the device timezone even when the local time is on the prior UTC date", () => {
+  it("uses the device timezone even when the local time is on the prior UTC date", () => {
     const schedule = calculateReminderSchedule(
       "2026-06-15",
       enabledPreferences({ leadDays: 0, localTime: "08:30" }),
@@ -166,7 +166,7 @@ describe(calculateReminderSchedule, () => {
     );
   });
 
-  test("handles the spring-forward gap by choosing the next valid local minute", () => {
+  it("handles the spring-forward gap by choosing the next valid local minute", () => {
     const schedule = calculateReminderSchedule(
       "2026-09-28",
       enabledPreferences({ leadDays: 1, localTime: "02:30" }),
@@ -179,7 +179,7 @@ describe(calculateReminderSchedule, () => {
     expect(schedule?.scheduledLocalTime).toBe("03:00");
   });
 
-  test("chooses the first occurrence of a repeated fall-back local time", () => {
+  it("chooses the first occurrence of a repeated fall-back local time", () => {
     const schedule = calculateReminderSchedule(
       "2026-04-06",
       enabledPreferences({ leadDays: 1, localTime: "02:30" }),
@@ -191,7 +191,7 @@ describe(calculateReminderSchedule, () => {
     );
   });
 
-  test("changes the de-duplication identity with the collection or preference", () => {
+  it("changes the de-duplication identity with the collection or preference", () => {
     const first = calculateReminderSchedule(
       "2026-10-05",
       enabledPreferences(),
@@ -212,7 +212,7 @@ describe(calculateReminderSchedule, () => {
     expect(first?.notificationId).not.toBe(changedCollection?.notificationId);
   });
 
-  test("does not calculate reminders when disabled or given invalid dates/zones", () => {
+  it("does not calculate reminders when disabled or given invalid dates/zones", () => {
     expect(
       calculateReminderSchedule(
         "2026-10-05",

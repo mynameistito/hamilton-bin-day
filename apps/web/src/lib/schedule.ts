@@ -1,3 +1,4 @@
+/** Collection dates and bin details returned by the address lookup service. */
 export interface ScheduleResponse {
   readonly address: string;
   readonly collectionDayName: string;
@@ -75,6 +76,10 @@ export const resolveNextCollection = (
   return { ...schedule, nextCollection, redBin, yellowBin };
 };
 
+/** Format an ISO collection date using Hamilton's local calendar conventions.
+ * @param date - Collection date in `YYYY-MM-DD` form.
+ * @returns A localized weekday and date string.
+ */
 export const formatCollectionDate = (date: string): string =>
   new Date(`${date}T00:00:00Z`).toLocaleDateString("en-NZ", {
     day: "numeric",
@@ -83,6 +88,11 @@ export const formatCollectionDate = (date: string): string =>
     weekday: "long",
   });
 
+/** Count calendar days from Hamilton today until a collection date.
+ * @param date - Collection date in `YYYY-MM-DD` form.
+ * @param today - Instant used to resolve Hamilton's current calendar date.
+ * @returns Signed number of days until collection.
+ */
 export const daysUntilCollection = (date: string, today: Date): number => {
   const collectionDay = new Date(`${date}T00:00:00Z`).getTime();
   const currentDay = new Date(

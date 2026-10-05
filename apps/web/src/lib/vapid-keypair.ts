@@ -4,19 +4,23 @@ export interface GeneratedVapidKeyPair {
   readonly privateKey: string;
 }
 
-/** Encode bytes as unpadded base64url for Web Push configuration. */
+/** Encode bytes as unpadded base64url for Web Push configuration.
+ * @param bytes - Binary value to encode.
+ * @returns The base64url representation without padding.
+ */
 export const encodeBase64Url = (bytes: Uint8Array): string => {
   let binary = "";
   for (const byte of bytes) {
     binary += String.fromCodePoint(byte);
   }
-  return btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
+  const encoded = btoa(binary).replaceAll("+", "-").replaceAll("/", "_");
+  return encoded.split("=")[0] ?? "";
 };
 
-/** Generate an ECDSA P-256 VAPID keypair using the Web Crypto API. */
+/** Generate an ECDSA P-256 VAPID keypair using the Web Crypto API.
+ * @param cryptoApi - Web Crypto implementation to use.
+ * @returns The public and private keys in VAPID wire formats.
+ */
 export const generateVapidKeyPair = async (
   cryptoApi: Crypto = crypto
 ): Promise<GeneratedVapidKeyPair> => {

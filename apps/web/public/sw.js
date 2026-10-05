@@ -51,38 +51,41 @@ self.addEventListener("message", (event) => {
   }
 });
 
-const isBoundedString = (value, minimum, maximum) =>
-  // SAFETY: Push payload JSON is untrusted and must be narrowed before use.
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof
-  typeof value === "string" &&
-  value.length >= minimum &&
-  value.length <= maximum;
+const parseBoundedString = (value, minimum, maximum) => {
+  if (Object.prototype.toString.call(value) !== "[object String]") {
+    return null;
+  }
+  const text = String(value);
+  return text.length >= minimum && text.length <= maximum ? text : null;
+};
 
 const isCollectionDate = (value) => {
-  if (!isBoundedString(value, 10, 10) || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
+  const date = parseBoundedString(value, 10, 10);
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/u.test(date)) {
     return false;
   }
-  const parsed = new Date(`${value}T00:00:00.000Z`);
+  const parsed = new Date(`${date}T00:00:00.000Z`);
   return (
     !Number.isNaN(parsed.getTime()) &&
-    parsed.toISOString().slice(0, 10) === value
+    parsed.toISOString().slice(0, 10) === date
   );
 };
 
 const isValidPushPayload = (payload) => {
-  // SAFETY: JSON.parse yields untrusted data, so runtime type checks are required here.
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof
-  if (!payload || typeof payload !== "object") {
+  if (
+    !payload ||
+    Object.prototype.toString.call(payload) !== "[object Object]"
+  ) {
     return false;
   }
 
   const checks = [
     payload.version === 1,
-    isBoundedString(payload.notificationId, 1, 256),
+    parseBoundedString(payload.notificationId, 1, 256) !== null,
     isCollectionDate(payload.collectionDate),
     [0, 1, 2, 7].includes(payload.leadDays),
-    isBoundedString(payload.title, 1, 80),
-    isBoundedString(payload.body, 1, 240),
+    parseBoundedString(payload.title, 1, 80) !== null,
+    parseBoundedString(payload.body, 1, 240) !== null,
   ];
   return checks.every(Boolean);
 };

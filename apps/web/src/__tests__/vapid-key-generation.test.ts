@@ -1,17 +1,17 @@
 import { Buffer } from "node:buffer";
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { encodeBase64Url, generateVapidKeyPair } from "@/lib/vapid-keypair";
 
 describe("VAPID key generation utility", () => {
-  test("encodes bytes as unpadded base64url", () => {
+  it("encodes bytes as unpadded base64url", () => {
     expect(encodeBase64Url(Uint8Array.from([1, 2, 3, 251, 255]))).toBe(
       "AQID-_8"
     );
   });
 
-  test("generates mutually matching P-256 public and private VAPID values", async () => {
+  it("generates mutually matching P-256 public and private VAPID values", async () => {
     const pair = await generateVapidKeyPair();
     expect(pair.publicKey).toMatch(/^[A-Za-z0-9_-]{87}$/u);
     expect(pair.privateKey).toMatch(/^[A-Za-z0-9_-]{43}$/u);

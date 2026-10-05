@@ -1,13 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const readAppFile = (relativePath: string): Promise<string> =>
   readFile(new URL(relativePath, import.meta.url), "utf-8");
 
 describe("PWA app shell", () => {
-  test("declares install metadata and registers the root service worker", async () => {
+  it("declares install metadata and registers the root service worker", async () => {
     const [manifestSource, html, main, buildScript, networkStatus] =
       await Promise.all([
         readAppFile("../../public/manifest.webmanifest"),
@@ -55,7 +55,7 @@ describe("PWA app shell", () => {
       detectsWaitingUpdates:
         main.includes("if (registration.waiting)") &&
         main.includes("let updatePending = false"),
-      sortsBuildAssets: buildScript.includes("assetFiles.sort()"),
+      sortsBuildAssets: buildScript.includes("assetFiles.toSorted()"),
       validatesPlaceholders: buildScript.includes(
         "Expected exactly one service-worker placeholder"
       ),
@@ -73,7 +73,7 @@ describe("PWA app shell", () => {
     });
   });
 
-  test("precaches the app shell and falls back to it for offline navigation", async () => {
+  it("precaches the app shell and falls back to it for offline navigation", async () => {
     const serviceWorker = await readAppFile("../../public/sw.js");
 
     expect({
@@ -103,7 +103,7 @@ describe("PWA app shell", () => {
     });
   });
 
-  test("requests permission only from explicit reminder opt-in and syncs consent to the worker", async () => {
+  it("requests permission only from explicit reminder opt-in and syncs consent to the worker", async () => {
     const [settings, deliveryHook, serviceWorker] = await Promise.all([
       readAppFile("../components/notification-settings.tsx"),
       readAppFile("../hooks/use-reminder-delivery.ts"),
@@ -153,7 +153,7 @@ describe("PWA app shell", () => {
     });
   });
 
-  test("returns a network response when caching it fails", async () => {
+  it("returns a network response when caching it fails", async () => {
     const serviceWorker = await readAppFile("../../public/sw.js");
     interface FetchEvent {
       readonly request: {
@@ -185,7 +185,6 @@ describe("PWA app shell", () => {
       }),
     };
 
-    // oxlint-disable-next-line sonarjs/code-eval -- SAFETY: This executes the checked-in service-worker source in a controlled test scope to verify its fetch behavior.
     runInNewContext(serviceWorker, {
       Response,
       URL,
@@ -218,7 +217,7 @@ describe("PWA app shell", () => {
     await expect(response).resolves.toBe(networkResponse);
   });
 
-  test("returns the app shell for an offline navigation", async () => {
+  it("returns the app shell for an offline navigation", async () => {
     const serviceWorker = await readAppFile("../../public/sw.js");
     interface FetchEvent {
       readonly request: {
@@ -247,7 +246,6 @@ describe("PWA app shell", () => {
         request === "/" ? appShell : undefined,
     };
 
-    // oxlint-disable-next-line sonarjs/code-eval -- SAFETY: This executes the checked-in service-worker source in a controlled test scope to verify its fetch behavior.
     runInNewContext(serviceWorker, {
       Response,
       URL,

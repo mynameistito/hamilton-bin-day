@@ -27,6 +27,9 @@ const buttonVariantClass: Record<
     "border-sage-border bg-surface text-step-copy hover:bg-panel rounded-xl border px-6 py-3.5",
 };
 
+/** Render a native button with a consistent variant and safe default type.
+ * @returns The styled button element.
+ */
 export const Button = ({
   className = "",
   ref,

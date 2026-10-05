@@ -63,6 +63,10 @@ const createMcpServer = (): McpServer => {
   return server;
 };
 
+/** Handle an MCP request after enforcing the site's cross-origin policy.
+ * @param request - Incoming streamable HTTP request.
+ * @returns The protocol response.
+ */
 export const handleMcp = async (request: Request): Promise<Response> => {
   const originRejection = rejectCrossOrigin(request);
   if (originRejection) {
@@ -81,6 +85,10 @@ export const handleMcp = async (request: Request): Promise<Response> => {
   return transport.handleRequest(request);
 };
 
+/** Handle the CORS preflight for MCP requests.
+ * @param request - Incoming OPTIONS request.
+ * @returns The preflight response or an origin rejection.
+ */
 export const handleMcpOptions = (request: Request): Response => {
   const origin = request.headers.get("Origin");
   const originRejection = rejectCrossOrigin(request);

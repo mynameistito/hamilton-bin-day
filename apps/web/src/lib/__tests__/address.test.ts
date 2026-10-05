@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, vi, it } from "vitest";
 
 import {
   ADDRESS_LENGTH_LIMIT,
@@ -9,11 +9,11 @@ import {
 } from "@/lib/address";
 
 describe(isLookupAddressValid, () => {
-  test("accepts a non-blank address at the length limit", () => {
+  it("accepts a non-blank address at the length limit", () => {
     expect(isLookupAddressValid("1".repeat(ADDRESS_LENGTH_LIMIT))).toBeTruthy();
   });
 
-  test("rejects blank and overlong address input", () => {
+  it("rejects blank and overlong address input", () => {
     expect(isLookupAddressValid("   ")).toBeFalsy();
     expect(
       isLookupAddressValid("1".repeat(ADDRESS_LENGTH_LIMIT + 1))
@@ -24,13 +24,13 @@ describe(isLookupAddressValid, () => {
 describe("remembered addresses", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  test("trims a valid stored address", () => {
+  it("trims a valid stored address", () => {
     expect(normalizeRememberedAddress("  12 Grey Street, Hamilton  ")).toBe(
       "12 Grey Street, Hamilton"
     );
   });
 
-  test("ignores missing, blank, and overlong stored addresses", () => {
+  it("ignores missing, blank, and overlong stored addresses", () => {
     expect(normalizeRememberedAddress(null)).toBeNull();
     expect(normalizeRememberedAddress("   ")).toBeNull();
     expect(
@@ -39,7 +39,7 @@ describe("remembered addresses", () => {
     expect(isLookupAddressValid("")).toBeFalsy();
   });
 
-  test("prefers a valid cookie and falls back to local storage for invalid cookies", async () => {
+  it("prefers a valid cookie and falls back to local storage for invalid cookies", async () => {
     const getItem = vi
       .fn<() => string | null>()
       .mockReturnValue("  Local address  ");
@@ -66,7 +66,7 @@ describe("remembered addresses", () => {
     await expect(readRememberedAddress()).resolves.toBe("Local address");
   });
 
-  test("falls back to local storage when cookies or storage are unavailable", async () => {
+  it("falls back to local storage when cookies or storage are unavailable", async () => {
     vi.stubGlobal("window", {
       cookieStore: {
         get: vi
@@ -96,7 +96,7 @@ describe("remembered addresses", () => {
     await expect(readRememberedAddress()).resolves.toBeNull();
   });
 
-  test("stores addresses in cookies and falls back to local storage", async () => {
+  it("stores addresses in cookies and falls back to local storage", async () => {
     const set = vi
       .fn<
         (options: {
@@ -155,7 +155,7 @@ describe("remembered addresses", () => {
     await expect(saveAddressCookie("12 Grey Street")).resolves.toBeUndefined();
   });
 
-  test("serializes overlapping address writes in invocation order", async () => {
+  it("serializes overlapping address writes in invocation order", async () => {
     const pendingWrites: (() => void)[] = [];
     let storedAddress: string | null = null;
     const set = vi.fn<(options: { value: string }) => Promise<void>>(

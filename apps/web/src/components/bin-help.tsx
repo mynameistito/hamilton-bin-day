@@ -231,7 +231,9 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
   );
 };
 
-/** Render a per-bin help trigger and its dismissible item guide. */
+/** Render a per-bin help trigger and its dismissible item guide.
+ * @returns The help trigger and guide.
+ */
 const BinHelpControl = ({ bin, binName }: BinHelpControlProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);

@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer";
 
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, vi, it } from "vitest";
 
 import { readVapidConfiguration, sendWebPush } from "@/lib/web-push";
 import type { WebPushSubscription } from "@/lib/web-push-subscription";
@@ -44,7 +44,7 @@ const makeSubscription = async (): Promise<WebPushSubscription> => {
 };
 
 describe("server-only Web Push adapter", () => {
-  test("constructs encrypted aes128gcm VAPID request without following redirects", async () => {
+  it("constructs encrypted aes128gcm VAPID request without following redirects", async () => {
     const bindings = await makeVapidConfiguration();
     const vapid = await readVapidConfiguration(bindings);
     const subscription = await makeSubscription();
@@ -120,7 +120,7 @@ describe("server-only Web Push adapter", () => {
     expect(body.byteLength).toBeGreaterThan(0);
   });
 
-  test("rejects malformed, mismatched, and non-HTTPS VAPID configuration", async () => {
+  it("rejects malformed, mismatched, and non-HTTPS VAPID configuration", async () => {
     const bindings = await makeVapidConfiguration();
     const other = await makeVapidConfiguration();
 

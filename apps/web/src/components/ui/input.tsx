@@ -11,7 +11,9 @@ const inputVariantClass: Record<NonNullable<InputProps["variant"]>, string> = {
     "border-sage-border bg-panel text-ink focus-visible:ring-focus-leaf shadow-lookup placeholder:text-placeholder focus-visible:border-focus-leaf focus-visible:ring-offset-canvas h-14 w-full rounded-xl border-2 px-4 text-base transition focus-visible:ring-2 focus-visible:ring-offset-2 sm:text-lg",
 };
 
-/** Render a standard form input or a prominent catalogue search field. */
+/** Render a standard form input or a prominent catalogue search field.
+ * @returns The styled input element.
+ */
 export const Input = ({
   className = "",
   variant = "default",

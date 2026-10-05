@@ -7,36 +7,36 @@ export const PUSH_ENDPOINT_STORAGE_KEY = "hcc-bin-day-push-endpoint-v1";
 /** A queue that executes browser push mutations in the order they were submitted. */
 export type PushMutationQueue = <T>(operation: () => Promise<T>) => Promise<T>;
 
-const noop = (): undefined => undefined;
-
-/** Create a per-component queue that applies browser push mutations in call order. */
+/** Create a per-component queue that applies browser push mutations in call order.
+ * @returns A queue that serializes operations and preserves their results.
+ */
 export const createPushMutationQueue = (): PushMutationQueue => {
-  let tail = Promise.resolve();
-  return async <T>(operation: () => Promise<T>) => {
-    let resolveCurrent: () => void = noop;
-    // SAFETY: This deferred promise serializes operations; its resolver is called in the finally block.
-    // oxlint-disable-next-line promise/avoid-new
-    const current = new Promise<void>((resolve) => {
-      resolveCurrent = resolve;
-    });
+  let tail = Promise.resolve(null);
+  return async <T>(operation: () => Promise<T>): Promise<T> => {
     const previous = tail;
-    tail = current;
+    const current = Promise.withResolvers<null>();
+    tail = current.promise;
     await previous;
     try {
       return await operation();
     } finally {
-      resolveCurrent();
+      current.resolve(null);
     }
   };
 };
 
 const pushMutationQueue = createPushMutationQueue();
 
-/** Serialize subscription mutations across reminder components in this tab. */
+/** Serialize subscription mutations across reminder components in this tab.
+ * @param operation - Mutation to run after prior mutations finish.
+ * @returns The operation result.
+ */
 export const enqueuePushMutation: PushMutationQueue = (operation) =>
   pushMutationQueue(operation);
 
-/** Read the last endpoint locally so server cleanup still works if PushManager loses it. */
+/** Read the last endpoint locally so server cleanup still works if PushManager loses it.
+ * @returns The stored endpoint, or `null` if unavailable.
+ */
 export const readStoredPushEndpoint = (): string | null => {
   try {
     return window.localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
@@ -45,7 +45,10 @@ export const readStoredPushEndpoint = (): string | null => {
   }
 };
 
-/** Keep the opaque push endpoint in this browser only for later unsubscribe requests. */
+/** Keep the opaque push endpoint in this browser only for later unsubscribe requests.
+ * @param endpoint - Endpoint to retain locally.
+ * @returns Whether local storage accepted the value.
+ */
 export const rememberPushEndpoint = (endpoint: string): boolean => {
   try {
     window.localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, endpoint);
@@ -55,7 +58,9 @@ export const rememberPushEndpoint = (endpoint: string): boolean => {
   }
 };
 
-/** Forget the locally retained endpoint after server-side deletion succeeds. */
+/** Forget the locally retained endpoint after server-side deletion succeeds.
+ * @returns Whether local storage accepted the removal.
+ */
 export const forgetPushEndpoint = (): boolean => {
   try {
     window.localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
@@ -65,7 +70,10 @@ export const forgetPushEndpoint = (): boolean => {
   }
 };
 
-/** Convert a VAPID base64url public key to the bytes expected by PushManager. */
+/** Convert a VAPID base64url public key to the bytes expected by PushManager.
+ * @param value - Unpadded base64url public key.
+ * @returns Decoded uncompressed P-256 public key bytes.
+ */
 export const decodeApplicationServerKey = (
   value: string
 ): Uint8Array<ArrayBuffer> => {
@@ -104,7 +112,14 @@ const snapshotFor = (schedule: ReminderSchedule) => ({
   yellowDate: schedule.yellowBin,
 });
 
-/** Persist a push subscription and the minimum schedule/preference snapshot needed by the sender. */
+/** Persist a push subscription and the minimum schedule/preference snapshot needed by the sender.
+ * @param subscription - Validated browser push subscription.
+ * @param schedule - Collection schedule snapshot.
+ * @param preferences - Reminder settings to persist.
+ * @param timeZone - IANA timezone for delivery scheduling.
+ * @param fetcher - Request implementation used to contact the API.
+ * @returns Whether the server accepted the subscription.
+ */
 export const savePushReminder = async (
   subscription: WebPushSubscription,
   schedule: ReminderSchedule,
@@ -129,7 +144,11 @@ export const savePushReminder = async (
   }
 };
 
-/** Delete server-side subscription data before the browser subscription is removed. */
+/** Delete server-side subscription data before the browser subscription is removed.
+ * @param endpoint - Push endpoint credential identifying the record.
+ * @param fetcher - Request implementation used to contact the API.
+ * @returns Whether the server confirmed deletion.
+ */
 export const deletePushReminder = async (
   endpoint: string,
   fetcher: typeof fetch = fetch

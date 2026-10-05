@@ -259,6 +259,9 @@ const CollectionCard = ({
   </div>
 );
 
+/** Render the address lookup and collection schedule home page.
+ * @returns The home page element.
+ */
 export const HomePage = () => {
   const { address, lookupRevision, setAddress, state, submitLookup } =
     useAddressLookup();

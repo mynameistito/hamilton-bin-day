@@ -32,6 +32,7 @@ const getJson = async <A>(
   return decodeUnknownSync(schema)(await response.json());
 };
 
+/** Address lookup result with its HTTP status and response payload. */
 export interface LookupResult {
   readonly status: number;
   readonly body:
@@ -44,6 +45,10 @@ export interface LookupResult {
       };
 }
 
+/** Resolve a user-entered address against the Council lookup service.
+ * @param rawAddress - Untrimmed address query from the request.
+ * @returns A status and JSON-safe lookup result.
+ */
 export const lookupAddress = async (
   rawAddress: string | null
 ): Promise<LookupResult> => {

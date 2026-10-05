@@ -7,7 +7,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, vi, it } from "vitest";
 
 import { HomePage } from "@/pages/home";
 
@@ -65,7 +65,7 @@ describe("home page navigation", () => {
     );
   });
 
-  test("names the primary and site information navigation landmarks", () => {
+  it("names the primary and site information navigation landmarks", () => {
     render(<HomePage />);
 
     expect(
@@ -76,7 +76,7 @@ describe("home page navigation", () => {
     ).toBeTruthy();
   });
 
-  test("places two reminder triggers in the header and footer for one dialog", () => {
+  it("places two reminder triggers in the header and footer for one dialog", () => {
     window.localStorage.removeItem("hcc-bin-day-notifications-v1");
     vi.stubGlobal("Notification", {
       permission: "default",
@@ -131,7 +131,7 @@ describe("home page navigation", () => {
     expect(dialog.hasAttribute("open")).toBeTruthy();
   });
 
-  test("reserves space for the loaded collection card", () => {
+  it("reserves space for the loaded collection card", () => {
     render(<HomePage />);
 
     expect(screen.getByRole("article").className).toContain("min-h-[30rem]");
@@ -140,7 +140,7 @@ describe("home page navigation", () => {
     ).toContain("my-auto");
   });
 
-  test("adds a mobile address changer after a selected schedule", async () => {
+  it("adds a mobile address changer after a selected schedule", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(

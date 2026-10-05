@@ -67,7 +67,9 @@ const subscribe = (listener: () => void): (() => void) => {
   };
 };
 
-/** Confirm network access to the live service, not only a connected interface. */
+/** Confirm network access to the live service, not only a connected interface.
+ * @returns Whether the live health endpoint can currently be reached.
+ */
 export const useNetworkStatus = (): boolean =>
   useSyncExternalStore(
     subscribe,

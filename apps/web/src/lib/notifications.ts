@@ -37,6 +37,20 @@ export interface NotificationPreferences {
   readonly localTime: string;
 }
 
+/** JSON-compatible data accepted at the persisted-preferences parsing boundary. */
+export type NotificationPreferencesInput =
+  | undefined
+  | string
+  | number
+  | boolean
+  | null
+  | readonly unknown[]
+  | {
+      readonly enabled?: unknown;
+      readonly leadDays?: unknown;
+      readonly localTime?: unknown;
+    };
+
 /** Reminder date and instant resolved in the device's local timezone. */
 export interface ReminderSchedule {
   readonly collectionDate: string;
@@ -49,7 +63,10 @@ export interface ReminderSchedule {
   readonly notificationId: string;
 }
 
-/** Resolve the browser support state without prompting for permission. */
+/** Resolve the browser support state without prompting for permission.
+ * @param capabilities - Browser capabilities and current permission value.
+ * @returns The user-facing permission state.
+ */
 export const resolveNotificationPermissionState = (
   capabilities: NotificationCapabilities
 ): NotificationPermissionState => {
@@ -87,19 +104,23 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   localTime: "19:00",
 };
 
-/** Parse persisted preferences without trusting local storage contents. */
+/** Parse persisted preferences without trusting local storage contents.
+ * @param untrustedInput - JSON-compatible value to validate.
+ * @returns Valid settings, or safe defaults when validation fails.
+ */
 export const parseNotificationPreferences = (
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- SAFETY: localStorage JSON is untrusted and is decoded by the Effect Schema parser below.
-  value: unknown
+  untrustedInput: NotificationPreferencesInput
 ): NotificationPreferences => {
   try {
-    return parsePreferences(value);
+    return parsePreferences(untrustedInput);
   } catch {
     return DEFAULT_PREFERENCES;
   }
 };
 
-/** Read notification preferences from local storage, returning safe defaults on failure. */
+/** Read notification preferences from local storage, returning safe defaults on failure.
+ * @returns Saved settings, or defaults when storage is empty or unavailable.
+ */
 export const readNotificationPreferences = (): NotificationPreferences => {
   try {
     const stored = window.localStorage.getItem(NOTIFICATION_PREFERENCES_KEY);
@@ -111,7 +132,10 @@ export const readNotificationPreferences = (): NotificationPreferences => {
   }
 };
 
-/** Persist notification preferences on this device. */
+/** Persist notification preferences on this device.
+ * @param preferences - Settings to validate and save.
+ * @returns Whether the settings were saved successfully.
+ */
 export const saveNotificationPreferences = (
   preferences: NotificationPreferences
 ): boolean => {
@@ -250,7 +274,12 @@ const resolveLocalInstant = (
   }
 };
 
-/** Calculate a deterministic, timezone-aware reminder time for a collection. */
+/** Calculate a deterministic, timezone-aware reminder time for a collection.
+ * @param collectionDate - Collection date in `YYYY-MM-DD` form.
+ * @param preferences - Enabled reminder settings.
+ * @param timeZone - IANA timezone used to resolve local time.
+ * @returns The resolved schedule, or `null` when it cannot be scheduled.
+ */
 export const calculateReminderSchedule = (
   collectionDate: string,
   preferences: NotificationPreferences,

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, vi, it } from "vitest";
 
 import {
   createPushMutationQueue,
@@ -28,7 +28,7 @@ const preferences = { enabled: true, leadDays: 1 as const, localTime: "19:00" };
 describe("push reminder client requests", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  test("retains only the opaque endpoint locally until server deletion", () => {
+  it("retains only the opaque endpoint locally until server deletion", () => {
     const values = new Map<string, string>();
     vi.stubGlobal("window", {
       localStorage: {
@@ -48,7 +48,7 @@ describe("push reminder client requests", () => {
     expect(readStoredPushEndpoint()).toBeNull();
   });
 
-  test("handles blocked browser storage without throwing", () => {
+  it("handles blocked browser storage without throwing", () => {
     vi.stubGlobal("window", {
       localStorage: {
         getItem: () => {
@@ -68,7 +68,7 @@ describe("push reminder client requests", () => {
     expect(forgetPushEndpoint()).toBeFalsy();
   });
 
-  test("serializes server mutations in submission order", async () => {
+  it("serializes server mutations in submission order", async () => {
     const enqueue = createPushMutationQueue();
     const calls: string[] = [];
     const firstGate = Promise.withResolvers<undefined>();
@@ -90,14 +90,14 @@ describe("push reminder client requests", () => {
     expect(calls).toStrictEqual(["first-start", "first-finish", "second"]);
   });
 
-  test("decodes the uncompressed P-256 VAPID application server key", () => {
+  it("decodes the uncompressed P-256 VAPID application server key", () => {
     const keyBytes = Uint8Array.from({ length: 65 }, (_, index) =>
       index === 0 ? 4 : index
     );
-    const publicKey = btoa(String.fromCodePoint(...keyBytes))
+    const encodedKey = btoa(String.fromCodePoint(...keyBytes))
       .replaceAll("+", "-")
-      .replaceAll("/", "_")
-      .replace(/=+$/u, "");
+      .replaceAll("/", "_");
+    const publicKey = encodedKey.split("=")[0] ?? "";
 
     expect([...decodeApplicationServerKey(publicKey)]).toStrictEqual([
       ...keyBytes,
@@ -107,7 +107,7 @@ describe("push reminder client requests", () => {
     );
   });
 
-  test("sends only the subscription and minimum schedule/preferences to storage", async () => {
+  it("sends only the subscription and minimum schedule/preferences to storage", async () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(Response.json({ saved: true }));
@@ -144,7 +144,7 @@ describe("push reminder client requests", () => {
     expect(JSON.stringify(body)).not.toContain("Grey Street");
   });
 
-  test("sends unsubscribe authorization with the endpoint capability", async () => {
+  it("sends unsubscribe authorization with the endpoint capability", async () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(Response.json({ removed: true }));
@@ -162,7 +162,7 @@ describe("push reminder client requests", () => {
     });
   });
 
-  test("returns failure rather than claiming a failed persistence operation succeeded", async () => {
+  it("returns failure rather than claiming a failed persistence operation succeeded", async () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(null, { status: 503 }));

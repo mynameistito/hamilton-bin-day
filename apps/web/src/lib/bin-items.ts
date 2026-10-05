@@ -37,6 +37,7 @@ const parseBinType = (value: string): BinType => {
   return bin;
 };
 
+/** Catalogue entries shipped locally for lookup and browse views. */
 export const BIN_ITEMS: readonly BinItem[] = catalogue.items.map((entry) => ({
   ...entry,
   bin: parseBinType(entry.bin),
@@ -44,7 +45,10 @@ export const BIN_ITEMS: readonly BinItem[] = catalogue.items.map((entry) => ({
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 
-/** Find verified Council items whose names contain the user's search text. */
+/** Find verified Council items whose names contain the user's search text.
+ * @param query - Case-insensitive item-name search text.
+ * @returns Matching catalogue entries, or an empty list for a blank query.
+ */
 export const searchBinItems = (query: string): readonly BinItem[] => {
   const normalizedQuery = normalize(query);
   if (!normalizedQuery) {
@@ -91,10 +95,16 @@ const binTypesByName = {
   "yellow recycling wheelie bin": "yellow",
 } satisfies Record<string, BinType>;
 
-/** Human-readable Council bin name used in guidance and lookup results. */
+/** Human-readable Council bin name used in guidance and lookup results.
+ * @param bin - Known Council destination.
+ * @returns The display name for the destination.
+ */
 export const binTypeName = (bin: BinType): string => binTypeNames[bin];
 
-/** Map a Council collection bin label to a known bin type without guessing. */
+/** Map a Council collection bin label to a known bin type without guessing.
+ * @param name - Council-facing label to resolve.
+ * @returns The matching supported bin type, or `null` for unknown labels.
+ */
 export const binTypeFromName = (name: string): BinType | null => {
   const normalized = normalize(name);
   return (

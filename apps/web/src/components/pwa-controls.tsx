@@ -11,18 +11,13 @@ const applyWaitingUpdate = async (): Promise<void> => {
   }
 };
 
-const isStandalonePwa = (): boolean => {
-  // SAFETY: `standalone` is the iOS Safari marker for an installed web app.
-  const navigatorWithStandalone = navigator as Navigator & {
-    readonly standalone?: boolean;
-  };
-  return (
-    window.matchMedia?.("(display-mode: standalone)").matches === true ||
-    navigatorWithStandalone.standalone === true
-  );
-};
+const isStandalonePwa = (): boolean =>
+  window.matchMedia?.("(display-mode: standalone)").matches === true ||
+  ("standalone" in navigator && navigator.standalone === true);
 
-/** Show browser-specific instructions for adding the site to a home screen. */
+/** Show browser-specific instructions for adding the site to a home screen.
+ * @returns The install instructions disclosure.
+ */
 export const PwaInstallHelp = () => {
   const detailsRef = useRef<HTMLDetailsElement>(null);
 
@@ -87,7 +82,10 @@ export const PwaInstallHelp = () => {
   );
 };
 
-/** Explain offline data freshness and let installed PWAs apply ready updates. */
+/** Explain offline data freshness and let installed PWAs apply ready updates.
+ * @param props - Current online state.
+ * @returns The PWA status and update controls.
+ */
 export const PwaStatus = ({ isOnline }: { readonly isOnline: boolean }) => {
   const isPwa = isStandalonePwa();
   const [updateAvailable, setUpdateAvailable] = useState(false);

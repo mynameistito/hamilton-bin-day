@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, vi, it } from "vitest";
 
 import worker from "@/worker";
 
@@ -34,7 +34,7 @@ const postMcp = (body: McpRequest, origin?: string) => {
 describe("MCP Streamable HTTP endpoint", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  test("initializes and lists the read-only bin schedule tool", async () => {
+  it("initializes and lists the read-only bin schedule tool", async () => {
     const response = await postMcp({
       id: 1,
       jsonrpc: "2.0",
@@ -77,7 +77,7 @@ describe("MCP Streamable HTTP endpoint", () => {
     });
   });
 
-  test("calls the lookup tool and returns the existing schedule result", async () => {
+  it("calls the lookup tool and returns the existing schedule result", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -124,7 +124,7 @@ describe("MCP Streamable HTTP endpoint", () => {
     });
   });
 
-  test("returns lookup validation and upstream failures as tool errors", async () => {
+  it("returns lookup validation and upstream failures as tool errors", async () => {
     const invalidAddress = await postMcp({
       id: 4,
       jsonrpc: "2.0",
@@ -166,7 +166,7 @@ describe("MCP Streamable HTTP endpoint", () => {
     });
   });
 
-  test("returns a Council request timeout as an MCP tool error", async () => {
+  it("returns a Council request timeout as an MCP tool error", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -194,7 +194,7 @@ describe("MCP Streamable HTTP endpoint", () => {
     });
   });
 
-  test("rejects cross-origin requests and does not allow GET streaming", async () => {
+  it("rejects cross-origin requests and does not allow GET streaming", async () => {
     const crossOrigin = await postMcp(
       { id: 1, jsonrpc: "2.0", method: "tools/list", params: {} },
       "https://attacker.test"

@@ -1,5 +1,8 @@
 import type { HTMLAttributes } from "react";
 
+/** Render a semantic article container with the shared card surface styling.
+ * @returns The styled card element.
+ */
 export const Card = ({
   className = "",
   ...props

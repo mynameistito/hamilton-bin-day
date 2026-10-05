@@ -16,6 +16,9 @@ const verificationDateFormatter = new Intl.DateTimeFormat("en-NZ", {
   timeZone: "UTC",
 });
 
+/** Render the searchable catalogue of accepted and rejected bin items.
+ * @returns The catalogue page element.
+ */
 export const BinCataloguePage = () => {
   const [query, setQuery] = useState("");
   const [selectedBin, setSelectedBin] = useState<BinType | null>(null);

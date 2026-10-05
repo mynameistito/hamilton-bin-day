@@ -7,7 +7,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, vi, it } from "vitest";
 
 import { PwaInstallHelp, PwaStatus } from "@/components/pwa-controls";
 
@@ -21,7 +21,7 @@ describe("PWA install controls", () => {
     vi.unstubAllGlobals();
   });
 
-  test("returns focus to the install trigger when closed", () => {
+  it("returns focus to the install trigger when closed", () => {
     render(<PwaInstallHelp />);
     const details = document.querySelector("details");
     const summary = details?.querySelector("summary");
@@ -38,7 +38,7 @@ describe("PWA install controls", () => {
     expect(summary).toBe(document.activeElement);
   });
 
-  test("keeps the install panel inside the viewport on narrow screens", () => {
+  it("keeps the install panel inside the viewport on narrow screens", () => {
     render(<PwaInstallHelp />);
     const closeButton = screen.getByRole("button", {
       name: "Close install instructions",
@@ -50,7 +50,7 @@ describe("PWA install controls", () => {
     expect(panel?.className).toContain("sm:absolute");
   });
 
-  test("does not show app updates in a browser tab", () => {
+  it("does not show app updates in a browser tab", () => {
     render(<PwaStatus isOnline />);
 
     fireEvent(window, new Event("app-update-available"));
@@ -58,7 +58,7 @@ describe("PWA install controls", () => {
     expect(screen.queryByRole("button", { name: "Update app" })).toBeNull();
   });
 
-  test("shows app updates in an installed PWA", async () => {
+  it("shows app updates in an installed PWA", async () => {
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
     render(<PwaStatus isOnline />);
 

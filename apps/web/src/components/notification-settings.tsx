@@ -65,7 +65,9 @@ const describeReminderStatus = (
   return deliveryActive ? "Reminders are on." : "Setting up your reminders…";
 };
 
-/** Render consent, schedule, and delivery status for bin-day reminders. */
+/** Render consent, schedule, and delivery status for bin-day reminders.
+ * @returns The reminder settings dialog content, or `null` when unavailable.
+ */
 export const NotificationSettings = ({
   schedule,
   cancelMissingSchedule,
@@ -97,12 +99,13 @@ export const NotificationSettings = ({
     storageAvailable,
     save
   );
-  const timeZone = readDeviceTimeZone();
+  const [timeZone, setTimeZone] = useState(readDeviceTimeZone);
+  const [today, setToday] = useState(() => new Date());
   let collectionDate = schedule?.nextCollection.date;
   if (
     schedule &&
     preferences.leadDays === 7 &&
-    daysUntilCollection(schedule.nextCollection.date, new Date()) < 7
+    daysUntilCollection(schedule.nextCollection.date, today) < 7
   ) {
     collectionDate =
       schedule.nextCollection.type === "red"
@@ -166,6 +169,8 @@ export const NotificationSettings = ({
             checked={preferences.enabled}
             className="accent-forest size-5"
             onChange={(event) => {
+              setToday(new Date());
+              setTimeZone(readDeviceTimeZone());
               if (event.target.checked) {
                 void enableReminders();
               } else {
@@ -184,6 +189,8 @@ export const NotificationSettings = ({
               className="border-sage-border bg-panel text-ink mt-2 min-h-11 w-full rounded-xl border px-3 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!preferences.enabled}
               onChange={(event) => {
+                setToday(new Date());
+                setTimeZone(readDeviceTimeZone());
                 const saved = save({
                   ...preferences,
                   leadDays: leadDaysFromValue(event.target.value),
@@ -206,6 +213,8 @@ export const NotificationSettings = ({
               className="border-sage-border bg-panel text-ink mt-2 min-h-11 w-full rounded-xl border px-3 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!preferences.enabled}
               onChange={(event) => {
+                setToday(new Date());
+                setTimeZone(readDeviceTimeZone());
                 if (event.target.value) {
                   setTimeInputMessage("");
                   const saved = save({
