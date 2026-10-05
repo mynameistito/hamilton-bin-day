@@ -78,6 +78,13 @@
         "@types/node": "catalog:",
       },
     },
+    "packages/hcc-bin-day-exporter": {
+      "name": "@mynameistito/hcc-bin-day-exporter",
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
   },
   "catalog": {
     "@effect/platform-bun": "4.0.0",
