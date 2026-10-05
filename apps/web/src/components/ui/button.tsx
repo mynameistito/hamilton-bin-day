@@ -42,6 +42,6 @@ export const Button = ({
     ref={ref}
     type="button"
     {...buttonTypeProps(type)}
-    className={`focus-visible:outline-focus-leaf inline-flex items-center justify-center font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60 ${buttonVariantClass[variant]} ${className}`}
+    className={`inline-flex items-center justify-center font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-leaf disabled:pointer-events-none disabled:opacity-60 ${buttonVariantClass[variant]} ${className}`}
   />
 );

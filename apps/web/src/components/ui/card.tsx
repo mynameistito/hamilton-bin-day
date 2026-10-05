@@ -8,7 +8,7 @@ export const Card = ({
   ...props
 }: HTMLAttributes<HTMLElement>) => (
   <article
-    className={`border-card-border bg-surface shadow-lookup overflow-hidden rounded-[1.75rem] border ${className}`}
+    className={`overflow-hidden rounded-[1.75rem] border border-card-border bg-surface shadow-lookup ${className}`}
     {...props}
   />
 );

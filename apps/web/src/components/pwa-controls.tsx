@@ -44,7 +44,7 @@ export const PwaInstallHelp = () => {
       className="group relative flex shrink-0 items-center"
       ref={detailsRef}
     >
-      <summary className="text-sage-dark inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0 [&::-webkit-details-marker]:hidden">
+      <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 py-2 text-sm font-semibold text-sage-dark underline-offset-4 hover:underline sm:px-0 [&::-webkit-details-marker]:hidden">
         <span className="sm:hidden">Install</span>
         <span className="hidden sm:inline">Install app</span>
         <span
@@ -54,7 +54,7 @@ export const PwaInstallHelp = () => {
           ▾
         </span>
       </summary>
-      <div className="bg-surface border-paper-border fixed inset-x-4 top-16 z-10 w-auto rounded-xl border p-4 text-sm shadow-lg sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:w-72">
+      <div className="fixed inset-x-4 top-16 z-10 w-auto rounded-xl border border-paper-border bg-surface p-4 text-sm shadow-lg sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:w-72">
         <div className="flex items-start justify-between gap-3">
           <p className="pt-2 font-semibold">Add Hamilton Bin Day</p>
           <Button
@@ -70,11 +70,11 @@ export const PwaInstallHelp = () => {
             <span aria-hidden="true">×</span>
           </Button>
         </div>
-        <p className="text-copy-muted mt-2">
+        <p className="mt-2 text-copy-muted">
           Android: use your browser menu and choose “Install app” or “Add to
           Home screen”.
         </p>
-        <p className="text-copy-muted mt-2">
+        <p className="mt-2 text-copy-muted">
           iPhone or iPad: in Safari, tap Share, then “Add to Home Screen”.
         </p>
       </div>
@@ -119,7 +119,7 @@ export const PwaStatus = ({ isOnline }: { readonly isOnline: boolean }) => {
   return (
     <div
       aria-live="polite"
-      className="bg-panel mx-auto mb-4 w-full max-w-6xl rounded-xl px-4 py-3 text-sm"
+      className="mx-auto mb-4 w-full max-w-6xl rounded-xl bg-panel px-4 py-3 text-sm"
     >
       {!isOnline && (
         <p>

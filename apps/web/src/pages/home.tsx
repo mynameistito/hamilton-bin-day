@@ -95,13 +95,13 @@ const HomeHeader = ({
     >
       <span
         aria-hidden="true"
-        className="bg-forest grid size-9 shrink-0 place-items-center rounded-xl text-lg text-white sm:size-10"
+        className="grid size-9 shrink-0 place-items-center rounded-xl bg-forest text-lg text-white sm:size-10"
       >
         ♻
       </span>
       <span className="min-w-0">
         <span className="hidden min-[360px]:block sm:inline">Hamilton</span>
-        <span className="text-copy-muted block font-normal sm:ml-1 sm:inline">
+        <span className="block font-normal text-copy-muted sm:ml-1 sm:inline">
           Bin Day
         </span>
       </span>
@@ -114,7 +114,7 @@ const HomeHeader = ({
         <button
           aria-controls="notification-settings-dialog"
           aria-haspopup="dialog"
-          className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+          className="inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-sage-dark underline-offset-4 hover:underline sm:px-0"
           onClick={onOpenReminders}
           type="button"
         >
@@ -124,14 +124,14 @@ const HomeHeader = ({
       )}
       <PwaInstallHelp />
       <a
-        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-1 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        className="inline-flex min-h-11 items-center rounded-lg px-1 py-2 text-sm font-semibold text-sage-dark underline-offset-4 hover:underline sm:px-0"
         href="/what-goes-where"
       >
         <span className="sm:hidden">Items</span>
         <span className="hidden sm:inline">What goes where?</span>
       </a>
       <a
-        className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-1 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+        className="inline-flex min-h-11 items-center rounded-lg px-1 py-2 text-sm font-semibold text-sage-dark underline-offset-4 hover:underline sm:px-0"
         href="/docs/"
       >
         <span className="sm:hidden">Guide</span>
@@ -140,7 +140,7 @@ const HomeHeader = ({
       <button
         aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         aria-pressed={theme === "light"}
-        className="border-sage-border bg-panel text-ink focus-visible:outline-focus-leaf inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border px-1.5 py-2 text-sm font-semibold transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-3"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-sage-border bg-panel px-1.5 py-2 text-sm font-semibold text-ink transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-leaf sm:px-3"
         onClick={onToggleTheme}
         type="button"
       >
@@ -174,9 +174,9 @@ const CollectionCard = ({
     <Card
       className={`relative flex flex-col ${schedule ? "min-h-0 md:min-h-[30rem]" : "min-h-[30rem]"}`}
     >
-      <div className="border-card-border flex items-start justify-between gap-3 border-b p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-3 border-b border-card-border p-5 sm:p-6">
         <div className="min-w-0">
-          <p className="tracking-caption text-caption text-xs font-bold uppercase">
+          <p className="text-xs font-bold tracking-caption text-caption uppercase">
             Next collection
           </p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
@@ -184,7 +184,7 @@ const CollectionCard = ({
               ? formatCollectionDate(schedule.nextCollection.date)
               : "Your collection day"}
           </h2>
-          <p className="text-address-muted mt-1 text-sm">
+          <p className="mt-1 text-sm text-address-muted">
             {schedule?.address ?? "Your address, at a glance"}
           </p>
         </div>
@@ -197,19 +197,19 @@ const CollectionCard = ({
       <div className="flex flex-1 flex-col p-5 sm:p-6">
         {schedule ? (
           <>
-            <p className="text-detail-muted text-sm">
+            <p className="text-sm text-detail-muted">
               {relativeCollectionDate}
             </p>
             <ul className="mt-4 space-y-3">
               {schedule.nextCollection.bins.map((bin) => (
                 <li
-                  className="bg-panel flex items-center justify-between gap-3 rounded-xl px-4 py-3"
+                  className="flex items-center justify-between gap-3 rounded-xl bg-panel px-4 py-3"
                   key={bin}
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <span
                       aria-hidden="true"
-                      className="text-check bg-surface grid size-8 shrink-0 place-items-center rounded-lg"
+                      className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface text-check"
                     >
                       ✓
                     </span>
@@ -219,20 +219,20 @@ const CollectionCard = ({
                 </li>
               ))}
             </ul>
-            <p className="text-detail-muted mt-5 text-sm">
+            <p className="mt-5 text-sm text-detail-muted">
               Regular collection: {schedule.collectionDayName}
             </p>
           </>
         ) : (
-          <div className="bg-panel my-auto rounded-2xl p-5 text-center sm:p-6">
+          <div className="my-auto rounded-2xl bg-panel p-5 text-center sm:p-6">
             <span
               aria-hidden="true"
-              className="text-moss-dark bg-surface mx-auto grid size-14 place-items-center rounded-2xl text-2xl"
+              className="mx-auto grid size-14 place-items-center rounded-2xl bg-surface text-2xl text-moss-dark"
             >
               ⌂
             </span>
             <p className="mt-4 font-semibold">Your schedule, made simple</p>
-            <p className="text-detail-muted mt-2 text-sm leading-6">
+            <p className="mt-2 text-sm leading-6 text-detail-muted">
               Enter a Hamilton address to see your next bin collection and which
               bins to put out.
             </p>
@@ -240,15 +240,15 @@ const CollectionCard = ({
         )}
       </div>
       {schedule && (
-        <div className="border-card-border grid grid-cols-2 border-t text-center text-sm">
+        <div className="grid grid-cols-2 border-t border-card-border text-center text-sm">
           <div className="p-4">
-            <span className="text-caption block text-xs">Next red week</span>
+            <span className="block text-xs text-caption">Next red week</span>
             <span className="mt-1 block font-semibold">
               {formatCollectionDate(schedule.redBin)}
             </span>
           </div>
-          <div className="border-card-border border-l p-4">
-            <span className="text-caption block text-xs">Next yellow week</span>
+          <div className="border-l border-card-border p-4">
+            <span className="block text-xs text-caption">Next yellow week</span>
             <span className="mt-1 block font-semibold">
               {formatCollectionDate(schedule.yellowBin)}
             </span>
@@ -327,7 +327,7 @@ export const HomePage = () => {
   };
 
   return (
-    <main className="home-page bg-canvas text-ink flex min-h-dvh flex-col px-4 pb-6 sm:px-5">
+    <main className="home-page flex min-h-dvh flex-col bg-canvas px-4 pb-6 text-ink sm:px-5">
       <HomeHeader
         onOpenReminders={openReminderSettings}
         onToggleTheme={toggleTheme}
@@ -353,28 +353,28 @@ export const HomePage = () => {
         <div
           className={`home-lookup-copy ${schedule ? "order-2 md:order-1" : ""}`}
         >
-          <p className="border-sage-border tracking-eyebrow text-sage-copy bg-surface mb-4 hidden items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase sm:mb-5 md:inline-flex">
-            <span className="bg-leaf size-2 rounded-full" /> Hamilton, New
+          <p className="mb-4 hidden items-center gap-2 rounded-full border border-sage-border bg-surface px-3 py-1.5 text-xs font-bold tracking-eyebrow text-sage-copy uppercase sm:mb-5 md:inline-flex">
+            <span className="size-2 rounded-full bg-leaf" /> Hamilton, New
             Zealand
           </p>
           <h1
-            className={`leading-heading tracking-heading max-w-xl text-4xl font-semibold sm:text-6xl ${schedule ? "sr-only md:not-sr-only md:block" : ""}`}
+            className={`max-w-xl text-4xl leading-heading font-semibold tracking-heading sm:text-6xl ${schedule ? "sr-only md:not-sr-only md:block" : ""}`}
           >
             Never miss your <span className="text-moss">bin day</span> again.
           </h1>
           <p
-            className={`text-body-muted mt-4 max-w-lg text-base leading-7 sm:mt-6 sm:text-lg sm:leading-8 ${schedule ? "hidden md:block" : ""}`}
+            className={`mt-4 max-w-lg text-base leading-7 text-body-muted sm:mt-6 sm:text-lg sm:leading-8 ${schedule ? "hidden md:block" : ""}`}
           >
             Look up your address to see exactly what to put out and when your
             next collection is.
           </p>
           {schedule && (
-            <p className="text-copy-muted mb-2 text-sm font-semibold md:hidden">
+            <p className="mb-2 text-sm font-semibold text-copy-muted md:hidden">
               Change address
             </p>
           )}
           <form
-            className={`border-paper-border shadow-lookup bg-surface flex max-w-xl flex-col gap-2 rounded-2xl border p-2 sm:flex-row sm:gap-3 ${schedule ? "mt-0 md:mt-9" : "mt-6 sm:mt-9"}`}
+            className={`flex max-w-xl flex-col gap-2 rounded-2xl border border-paper-border bg-surface p-2 shadow-lookup sm:flex-row sm:gap-3 ${schedule ? "mt-0 md:mt-9" : "mt-6 sm:mt-9"}`}
             onSubmit={submitLookup}
           >
             <label className="sr-only" htmlFor="address">
@@ -397,7 +397,7 @@ export const HomePage = () => {
               {state.kind === "loading" ? "Checking…" : "Find my bin day"}
             </Button>
           </form>
-          <p aria-live="polite" className="text-copy-muted mt-4 text-sm">
+          <p aria-live="polite" className="mt-4 text-sm text-copy-muted">
             {state.kind === "error" && state.message}
             {state.kind === "not-found" &&
               (state.matches.length
@@ -413,31 +413,31 @@ export const HomePage = () => {
           />
         )}
       </section>
-      <section className="home-steps border-footer-border text-footer-copy mx-auto grid w-full max-w-6xl gap-5 border-t py-6 text-sm md:grid-cols-3 md:gap-4 md:pt-6">
+      <section className="home-steps mx-auto grid w-full max-w-6xl gap-5 border-t border-footer-border py-6 text-sm text-footer-copy md:grid-cols-3 md:gap-4 md:pt-6">
         <div>
-          <span className="text-step-copy font-semibold">
+          <span className="font-semibold text-step-copy">
             01 / Find your address
           </span>
           <p className="mt-1">Search an address in Hamilton.</p>
         </div>
         <div>
-          <span className="text-step-copy font-semibold">
+          <span className="font-semibold text-step-copy">
             02 / Check the next date
           </span>
           <p className="mt-1">See your next red or yellow week.</p>
         </div>
         <div>
-          <span className="text-step-copy font-semibold">
+          <span className="font-semibold text-step-copy">
             03 / Put the right bins out
           </span>
           <p className="mt-1">Get the collection details at a glance.</p>
         </div>
       </section>
-      <footer className="home-footer border-footer-border text-footer-muted mx-auto mt-auto flex w-full max-w-6xl flex-col gap-3 border-t pt-5 text-xs leading-5 sm:flex-row sm:justify-between sm:gap-2 sm:pt-4">
+      <footer className="home-footer mx-auto mt-auto flex w-full max-w-6xl flex-col gap-3 border-t border-footer-border pt-5 text-xs leading-5 text-footer-muted sm:flex-row sm:justify-between sm:gap-2 sm:pt-4">
         <span>
           Independent community tool · Data from{" "}
           <a
-            className="hover:text-ink underline underline-offset-2"
+            className="underline underline-offset-2 hover:text-ink"
             href="https://hamilton.govt.nz/"
           >
             Hamilton City Council
