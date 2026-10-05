@@ -77,14 +77,22 @@ const registerServiceWorker = async (): Promise<void> => {
         window.dispatchEvent(new Event("app-update-available"));
       }
     };
-    registration.addEventListener("updatefound", () => {
-      const { installing } = registration;
-      installing?.addEventListener("statechange", () => {
+    const observedInstalling = new WeakSet<ServiceWorker>();
+    const observeInstalling = (installing: ServiceWorker | null) => {
+      if (!installing || observedInstalling.has(installing)) {
+        return;
+      }
+      observedInstalling.add(installing);
+      installing.addEventListener("statechange", () => {
         if (installing.state === "installed") {
           notifyUpdateAvailable();
         }
       });
+    };
+    registration.addEventListener("updatefound", () => {
+      observeInstalling(registration.installing);
     });
+    observeInstalling(registration.installing);
     if (registration.waiting) {
       notifyUpdateAvailable();
     }
