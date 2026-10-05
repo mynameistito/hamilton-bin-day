@@ -4,7 +4,7 @@ import { buildSchedule, formatScheduleText, toScheduleJson } from "@/schedule";
 import type { CollectionDatesResult } from "@/types";
 
 const councilResult = {
-  Address: "14B Mountbatten Place",
+  Address: "12 Grey Street",
   CollectionDay: 1,
   CollectionWeek: 1,
   RedBin: "2026-09-21T00:00:00",
@@ -14,7 +14,7 @@ const councilResult = {
 describe("collection schedules", () => {
   test("builds the next collection from council data", () => {
     expect(buildSchedule(councilResult)).toMatchObject({
-      address: "14B Mountbatten Place",
+      address: "12 Grey Street",
       collectionDayName: "Monday",
       nextCollection: {
         bins: ["red bin", "food scraps bin"],
@@ -64,7 +64,7 @@ describe("collection schedules", () => {
   test("formats red-week schedules as readable text", () => {
     const text = formatScheduleText(buildSchedule(councilResult));
 
-    expect(text).toContain("14B Mountbatten Place — Monday collection");
+    expect(text).toContain("12 Grey Street — Monday collection");
     expect(text).toContain("Red week");
     expect(text).toContain("Yellow week");
   });
