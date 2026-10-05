@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
 import { BinHelpControl } from "@/components/bin-help";
+import { NotificationSettings } from "@/components/notification-settings";
 import { PwaInstallHelp, PwaStatus } from "@/components/pwa-controls";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAddressLookup } from "@/hooks/use-address-lookup";
 import { useNetworkStatus } from "@/hooks/use-network-status";
+import { isReminderBrowserSupported } from "@/hooks/use-reminder-delivery";
 import { ADDRESS_LENGTH_LIMIT } from "@/lib/address";
 import { binTypeFromName } from "@/lib/bin-items";
+import { readNotificationPreferences } from "@/lib/notifications";
 import {
   daysUntilCollection,
   formatCollectionDate,
@@ -72,11 +75,18 @@ const selectVisibleSchedule = (
 type Theme = "dark" | "light";
 
 interface HomeHeaderProps {
+  readonly onOpenReminders: () => void;
+  readonly showReminderSettings: boolean;
   readonly onToggleTheme: () => void;
   readonly theme: Theme;
 }
 
-const HomeHeader = ({ onToggleTheme, theme }: HomeHeaderProps) => (
+const HomeHeader = ({
+  onOpenReminders,
+  showReminderSettings,
+  onToggleTheme,
+  theme,
+}: HomeHeaderProps) => (
   <header className="home-header mx-auto flex w-full max-w-6xl items-center justify-between gap-1 py-4 sm:gap-3 sm:py-5">
     <a
       aria-label="Hamilton Bin Day home"
@@ -100,6 +110,18 @@ const HomeHeader = ({ onToggleTheme, theme }: HomeHeaderProps) => (
       aria-label="Main navigation"
       className="flex shrink-0 items-center gap-0.5 sm:gap-3"
     >
+      {showReminderSettings && (
+        <button
+          aria-controls="notification-settings-dialog"
+          aria-haspopup="dialog"
+          className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
+          onClick={onOpenReminders}
+          type="button"
+        >
+          <span className="sm:hidden">Remind</span>
+          <span className="hidden sm:inline">Reminders</span>
+        </button>
+      )}
       <PwaInstallHelp />
       <a
         className="text-sage-dark inline-flex min-h-11 items-center rounded-lg px-1 py-2 text-sm font-semibold underline-offset-4 hover:underline sm:px-0"
@@ -240,6 +262,7 @@ const CollectionCard = ({
 export const HomePage = () => {
   const { address, lookupRevision, setAddress, state, submitLookup } =
     useAddressLookup();
+  const reminderDialogRef = useRef<HTMLDialogElement>(null);
   const isOnline = useNetworkStatus();
   const previousOnline = useRef(isOnline);
   const [minimumVisibleLookupRevision, setMinimumVisibleLookupRevision] =
@@ -291,12 +314,30 @@ export const HomePage = () => {
     : null;
   const relativeCollectionDate =
     until === null ? "" : describeRelativeDate(until);
+  const showReminderSettings =
+    isReminderBrowserSupported() || readNotificationPreferences().enabled;
+  const openReminderSettings = () => {
+    const dialog = reminderDialogRef.current;
+    if (dialog && !dialog.open) {
+      dialog.showModal();
+    }
+  };
 
   return (
     <main className="home-page bg-canvas text-ink flex min-h-dvh flex-col px-4 pb-6 sm:px-5">
-      <HomeHeader onToggleTheme={toggleTheme} theme={theme} />
+      <HomeHeader
+        onOpenReminders={openReminderSettings}
+        onToggleTheme={toggleTheme}
+        showReminderSettings={showReminderSettings}
+        theme={theme}
+      />
 
       <PwaStatus isOnline={isOnline} />
+      <NotificationSettings
+        cancelMissingSchedule={state.kind === "not-found"}
+        dialogRef={reminderDialogRef}
+        schedule={schedule}
+      />
 
       <section className="home-lookup mx-auto grid w-full max-w-6xl gap-9 pt-8 pb-10 sm:gap-12 sm:pt-12 sm:pb-12 md:grid-cols-[1fr_0.85fr] md:items-center md:py-12">
         {schedule && (
@@ -403,6 +444,17 @@ export const HomePage = () => {
           aria-label="Site information"
           className="flex flex-wrap gap-x-4 gap-y-1"
         >
+          {showReminderSettings && (
+            <button
+              aria-controls="notification-settings-dialog"
+              aria-haspopup="dialog"
+              className="underline underline-offset-2"
+              onClick={openReminderSettings}
+              type="button"
+            >
+              Reminders
+            </button>
+          )}
           <a className="underline underline-offset-2" href="/docs/">
             Collection guide
           </a>

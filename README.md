@@ -42,6 +42,47 @@ For an MCP client that supports Streamable HTTP, configure the server URL as `ht
 
 The web Worker lookup endpoint is also available as `GET /api/lookup?address=...`.
 
+### Bin-day reminder status
+
+The web app lets a user explicitly enable reminders, choose a lead time and local delivery time, and save a schedule using a browser push subscription. The sender resolves the instant in the selected IANA timezone, including DST boundaries. There are no accounts or cross-device sync. Notification permission is requested only by the enable control; unsupported browsers, denied permission, insecure contexts, and iOS browsers that are not installed Home Screen apps are reported. The browser retains the opaque push endpoint locally so it can delete the server record even if PushManager no longer returns the subscription.
+
+Closed-app delivery is implemented with a scheduled Worker, a stage-specific D1 database, and Web Push (RFC 8291/8292 via `@block65/webcrypto-web-push`). It checks due notifications every five minutes, uses a claim and stable collection/preference notification ID to make retries idempotent, suppresses duplicate displays in the service worker, retries transient push failures, and removes subscriptions rejected with HTTP 404/410. A schedule lookup updates the snapshot for an existing browser subscription. The server stores only the push subscription, next and following collection dates/bin-week, timezone, reminder preferences, and operational timestamps/claim state. It does **not** store the street address or an address-derived lookup key. With no account, the push endpoint itself is the unguessable per-device authorization capability used for updates and deletion.
+
+The closed-app sender cannot re-query the Council without retaining an address or equivalent lookup key. It uses the latest two-date schedule snapshot and projects the alternating weekly dates until the user looks up a schedule again. Exceptional Council date changes therefore require a fresh lookup to update the snapshot. Records are deleted on unsubscribe, provider 404/410, or after 90 days without a successful reminder or schedule refresh. No production VAPID credentials are committed. Until the complete VAPID configuration and D1 binding are deployed, the API safely returns “not configured” and does not claim a subscription was saved.
+
+#### Enabling delivery in a deployment
+
+The trusted production deploy provisions the D1 database and five-minute Cron Trigger through Alchemy. Configure GitHub repository settings once:
+
+1. Generate a long-lived keypair once with `bun run vapid:generate`. The script prints the values; it does not save them. Keep the private key secret.
+2. Add `VAPID_PRIVATE_KEY` as a GitHub Actions **secret**.
+3. Add `VAPID_PUBLIC_KEY` as a GitHub Actions **variable**.
+4. Optionally set `VAPID_SUBJECT` as a GitHub Actions **variable**. If omitted, the deploy workflow uses the project's contact address, `mailto:contact+hcc-bin-day@mynameistito.com`.
+5. Deploy through the normal trusted workflow (merge/push to `main`). GitHub Actions passes the private key to Alchemy as a redacted value, which Alchemy provisions as a Cloudflare Worker `secret_text` binding. The public key and subject are non-secret Worker configuration. Do not use `wrangler secret put` or commit key material.
+
+The keypair is stable deployment configuration; it is never generated during CI, builds, deploys, Cron runs, or subscription creation. Rotating it is an explicit operation and may invalidate or disrupt existing browser subscriptions. PR artifact previews intentionally receive no VAPID values and cannot send real push notifications; `/api/reminders/public-key` returns the safe `503` not-configured response and the UI reports that background delivery is unavailable.
+
+#### Production reminder smoke test
+
+After the production deploy, verify the endpoint returns the configured public key:
+
+```sh
+curl -i https://bin-day.mynameistito.com/api/reminders/public-key
+```
+
+Then, on a real installed PWA device:
+
+1. Verify denied notification permission is clearly reported with browser-settings guidance.
+2. Enable reminders and select a lead time and local delivery time.
+3. Close the app before send time and verify a notification arrives.
+4. Click the notification and verify it opens the app.
+5. Verify duplicate delivery is not displayed twice.
+6. Look up a changed schedule and confirm it replaces the old server snapshot.
+7. Unsubscribe and verify the D1 subscription is removed.
+8. Verify a provider 404 or 410 removes a stale subscription.
+
+Prefer Android Chrome and, when available, an installed iOS Safari PWA. Automated tests cover local request construction, encryption, retries, cleanup, and service-worker display behavior; they do not replace this real-device smoke test. No physical-device test is claimed for this change.
+
 The web Worker and CLI use the public Hamilton City Council backend used by the Fight the Landfill page:
 
 - `GET /FightTheLandFill/get_Addresses?search_string=...`
@@ -105,7 +146,7 @@ STAGE=prod bun run deploy
 STAGE=prod bun run destroy
 ```
 
-Production deploys to `https://bin-day.mynameistito.com`; preview stages use their stage-specific `workers.dev` URLs. Alchemy also keeps the production Worker available on `workers.dev`. Before deploying, the `mynameistito.com` zone must exist in the target Cloudflare account so Alchemy can attach the custom domain and manage its DNS/certificate. Configure repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. The token should be scoped to the target account with **Workers Scripts: Edit** and **Secrets Store: Edit** permissions. GitHub Actions uses [`mynameistito/alchemy-deploy`](https://github.com/mynameistito/alchemy-deploy), pinned immutably to v3.1.3. Credential-free CI uploads the built Worker and site assets; PR previews deploy only that exact-run artifact. No non-Cloudflare hosting is used.
+Production deploys to `https://bin-day.mynameistito.com`; preview stages use their stage-specific `workers.dev` URLs. Alchemy also keeps the production Worker available on `workers.dev`. Before deploying, the `mynameistito.com` zone must exist in the target Cloudflare account so Alchemy can attach the custom domain and manage its DNS/certificate. Configure repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. The token should be scoped to the target account with **Workers Scripts: Edit**, **D1: Edit**, and **Secrets Store: Edit** permissions. GitHub Actions uses [`mynameistito/alchemy-deploy`](https://github.com/mynameistito/alchemy-deploy), pinned immutably to v3.1.4. Credential-free CI uploads the built Worker and site assets; PR previews deploy only that exact-run artifact. No non-Cloudflare hosting is used.
 
 ### PWA install smoke test
 

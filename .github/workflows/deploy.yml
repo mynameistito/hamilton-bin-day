@@ -60,6 +60,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          VAPID_PRIVATE_KEY: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && secrets.VAPID_PRIVATE_KEY || '' }}
+          VAPID_PUBLIC_KEY: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && vars.VAPID_PUBLIC_KEY || '' }}
+          VAPID_SUBJECT: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && (vars.VAPID_SUBJECT || 'mailto:contact+hcc-bin-day@mynameistito.com') || '' }}
 
   reconcile:
     if: github.event_name == 'schedule'

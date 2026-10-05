@@ -33,6 +33,7 @@
     "knip": "bunx knip@latest",
     "prepare": "lefthook install",
     "test": "bun run --filter '*' test --coverage",
+    "vapid:generate": "bun run --filter @mynameistito/hcc-bin-day-web vapid:generate",
     "typecheck": "bun run --filter '*' typecheck && bunx tsc --project tsconfig.json"
   },
   "dependencies": {
