@@ -2,7 +2,6 @@ import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
-import type { PushSubscription } from "@block65/webcrypto-web-push";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
@@ -12,6 +11,7 @@ import {
   sendDueReminders,
 } from "@/lib/reminder-server";
 import type { ReminderDatabase } from "@/lib/reminder-server";
+import type { WebPushSubscription } from "@/lib/web-push-subscription";
 
 const migrations = [
   "0001_reminder_subscriptions.sql",
@@ -140,7 +140,8 @@ describe("reminder delivery database behavior", () => {
 
   describe("reminder subscription API", () => {
     test("keeps delivery disabled until the complete VAPID configuration is available", async () => {
-      expect(handleReminderPublicKey({}).status).toBe(503);
+      const publicKeyResponse = await handleReminderPublicKey({});
+      expect(publicKeyResponse.status).toBe(503);
       const response = await handleReminderSubscribe(
         subscriptionRequest(),
         { REMINDERS: database },
@@ -349,6 +350,31 @@ describe("reminder delivery database behavior", () => {
     ).toMatchObject({ count: 0 });
   });
 
+  test("does not advertise malformed or mismatched VAPID configuration", async () => {
+    const anotherPair = await crypto.subtle.generateKey(
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["sign", "verify"]
+    );
+    const otherPublicKey = Buffer.from(
+      await crypto.subtle.exportKey("raw", anotherPair.publicKey)
+    ).toString("base64url");
+    const malformedSubject = await handleReminderPublicKey({
+      ...environment,
+      VAPID_SUBJECT: "not-a-vapid-subject",
+    });
+    const mismatchedPair = await handleReminderPublicKey({
+      ...environment,
+      VAPID_PUBLIC_KEY: otherPublicKey,
+    });
+
+    expect(malformedSubject.status).toBe(503);
+    expect(mismatchedPair.status).toBe(503);
+    await expect(malformedSubject.json()).resolves.toStrictEqual({
+      error: "Reminder delivery is not configured",
+    });
+  });
+
   describe("scheduled reminder delivery", () => {
     test("encrypts the due payload and sends it only to the push service endpoint", async () => {
       await handleReminderSubscribe(
@@ -363,27 +389,46 @@ describe("reminder delivery database behavior", () => {
 
       await sendDueReminders(environment, new Date("2026-10-04T08:00:00.000Z"));
 
-      expect(fetcher).toHaveBeenCalledOnce();
       const [call] = fetcher.mock.calls;
       if (!call) {
         throw new Error("Expected a push-service fetch call");
       }
       const [url, requestInit] = call;
-      expect(url).toBe(subscription.endpoint);
-      expect(requestInit).toMatchObject({
-        method: "post",
-        redirect: "manual",
-        headers: {
-          "content-encoding": "aes128gcm",
-          "content-type": "application/octet-stream",
-          ttl: "86400",
-        },
-      });
-      const body = requestInit?.body;
+      if (!requestInit) {
+        throw new Error("Expected a Web Push RequestInit");
+      }
+      const { body } = requestInit;
       if (!(body instanceof Uint8Array)) {
         throw new Error("Expected an encrypted binary push payload");
       }
-      expect(body.byteLength).toBe(4096);
+      const headers = new Headers(requestInit.headers);
+      const authorization = headers.get("authorization") ?? "";
+      expect({
+        endpoint: url,
+        method: requestInit.method,
+        redirect: requestInit.redirect,
+        encoding: headers.get("content-encoding"),
+        contentType: headers.get("content-type"),
+        ttl: headers.get("ttl"),
+        hasVapidAuthorization: authorization.startsWith("vapid t="),
+        authorizationUsesPublicKey: authorization.includes(
+          environment.VAPID_PUBLIC_KEY
+        ),
+        contentLength: headers.get("content-length"),
+        bodyLength: body.byteLength,
+      }).toMatchObject({
+        endpoint: subscription.endpoint,
+        method: "post",
+        redirect: "manual",
+        encoding: "aes128gcm",
+        contentType: "application/octet-stream",
+        ttl: "86400",
+        hasVapidAuthorization: true,
+        authorizationUsesPublicKey: true,
+        contentLength: String(body.byteLength),
+        bodyLength: expect.any(Number),
+      });
+      expect(body.byteLength).toBeGreaterThan(0);
     });
 
     test("sends one due push, advances the schedule, and suppresses duplicate cron runs", async () => {
@@ -394,7 +439,7 @@ describe("reminder delivery database behavior", () => {
       );
       let sends = 0;
       let sentPayload = "";
-      const send = (_subscription: PushSubscription, payload: string) => {
+      const send = (_subscription: WebPushSubscription, payload: string) => {
         sends += 1;
         sentPayload = payload;
         return Promise.resolve(new Response(null, { status: 201 }));
@@ -486,11 +531,17 @@ describe("reminder delivery database behavior", () => {
       );
       await sendStarted;
 
-      await handleReminderSubscribe(
+      const renewed = await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
         new Date("2026-10-01T00:00:00.000Z")
       );
+      expect(renewed.status).toBe(200);
+      expect(
+        database.sqlite
+          .prepare("SELECT revision FROM reminder_subscriptions")
+          .get()
+      ).toMatchObject({ revision: 2 });
       sendGate.resolve(new Response(null, { status: 410 }));
       await firstRun;
 

@@ -90,10 +90,21 @@ describe("push reminder client requests", () => {
     expect(calls).toStrictEqual(["first-start", "first-finish", "second"]);
   });
 
-  test("decodes a base64url VAPID application server key", () => {
-    expect([...decodeApplicationServerKey("AQID-_8")]).toStrictEqual([
-      1, 2, 3, 251, 255,
+  test("decodes the uncompressed P-256 VAPID application server key", () => {
+    const keyBytes = Uint8Array.from({ length: 65 }, (_, index) =>
+      index === 0 ? 4 : index
+    );
+    const publicKey = btoa(String.fromCodePoint(...keyBytes))
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replace(/=+$/u, "");
+
+    expect([...decodeApplicationServerKey(publicKey)]).toStrictEqual([
+      ...keyBytes,
     ]);
+    expect(() => decodeApplicationServerKey("AQID-_8")).toThrow(
+      "Invalid VAPID public key"
+    );
   });
 
   test("sends only the subscription and minimum schedule/preferences to storage", async () => {

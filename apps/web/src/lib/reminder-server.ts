@@ -1,5 +1,3 @@
-import { buildPushPayload, vapidHeaders } from "@block65/webcrypto-web-push";
-import type { PushSubscription, VapidKeys } from "@block65/webcrypto-web-push";
 import { z } from "zod";
 
 import { calculateReminderSchedule } from "@/lib/notifications";
@@ -7,6 +5,10 @@ import type {
   NotificationPreferences,
   ReminderLeadDays,
 } from "@/lib/notifications";
+import { readVapidConfiguration, sendWebPush } from "@/lib/web-push";
+import type { VapidConfiguration } from "@/lib/web-push";
+import { parseWebPushSubscription } from "@/lib/web-push-subscription";
+import type { WebPushSubscription } from "@/lib/web-push-subscription";
 
 const isCalendarDate = (value: string): boolean => {
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -15,16 +17,8 @@ const isCalendarDate = (value: string): boolean => {
   );
 };
 const CollectionDate = z.iso.date().refine(isCalendarDate);
-const PushSubscriptionSchema = z.strictObject({
-  endpoint: z.url().max(2048),
-  expirationTime: z.number().nullable().optional(),
-  keys: z.strictObject({
-    auth: z.string().check(z.regex(/^[A-Za-z0-9_-]{22}$/u)),
-    p256dh: z.string().check(z.regex(/^[A-Za-z0-9_-]{87}$/u)),
-  }),
-});
 const SubscriptionRequest = z.strictObject({
-  subscription: PushSubscriptionSchema,
+  subscription: z.unknown(),
   schedule: z.strictObject({
     collectionDate: CollectionDate,
     followingDate: CollectionDate,
@@ -106,27 +100,15 @@ const validPushOrigin = (endpoint: string): boolean => {
   );
 };
 
-const vapidKeys = (environment: ReminderEnvironment): VapidKeys | null => {
-  const { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } = environment;
-  if (!(VAPID_PRIVATE_KEY && VAPID_PUBLIC_KEY && VAPID_SUBJECT)) {
-    return null;
-  }
-  return {
-    privateKey: VAPID_PRIVATE_KEY,
-    publicKey: VAPID_PUBLIC_KEY,
-    subject: VAPID_SUBJECT,
-  };
-};
-
 const jsonError = (status: number, error: string): Response =>
   Response.json({ error }, { status });
 const DELIVERY_UNAVAILABLE = "Reminder delivery is not configured";
 
 /** Respond with a public key only when the complete VAPID configuration exists. */
-export const handleReminderPublicKey = (
+export const handleReminderPublicKey = async (
   environment: ReminderEnvironment
-): Response => {
-  const keys = vapidKeys(environment);
+): Promise<Response> => {
+  const keys = await readVapidConfiguration(environment);
   return keys && environment.REMINDERS
     ? Response.json({ publicKey: keys.publicKey })
     : jsonError(503, DELIVERY_UNAVAILABLE);
@@ -186,7 +168,7 @@ const MAX_SUBSCRIPTION_BODY_BYTES = 16 * 1024;
 
 const readBoundedJson = async (
   request: Request
-): Promise<z.infer<typeof SubscriptionRequest> | null> => {
+): Promise<ParsedSubscriptionRequest | null> => {
   if (
     request.headers.get("content-type")?.split(";")[0]?.trim() !==
     "application/json"
@@ -222,8 +204,17 @@ const readBoundedJson = async (
   const parsed = SubscriptionRequest.safeParse(
     JSON.parse(new TextDecoder().decode(bytes))
   );
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) {
+    return null;
+  }
+  const subscription = parseWebPushSubscription(parsed.data.subscription);
+  return subscription ? { ...parsed.data, subscription } : null;
 };
+
+type ParsedSubscriptionRequest = Omit<
+  z.infer<typeof SubscriptionRequest>,
+  "subscription"
+> & { readonly subscription: WebPushSubscription };
 
 const parseRequest = async (request: Request, now: Date) => {
   try {
@@ -290,26 +281,21 @@ export const handleReminderSubscribe = async (
     return jsonError(403, "Cross-origin reminder requests are not allowed");
   }
   const database = environment.REMINDERS;
-  if (!(database && vapidKeys(environment))) {
+  if (!database) {
+    return jsonError(503, DELIVERY_UNAVAILABLE);
+  }
+  const keys = await readVapidConfiguration(environment);
+  if (!keys) {
     return jsonError(503, DELIVERY_UNAVAILABLE);
   }
   const input = await parseRequest(request, now);
   if (!input) {
     return jsonError(400, "Invalid reminder subscription or schedule");
   }
-  const keys = vapidKeys(environment);
-  if (!keys) {
-    return jsonError(503, DELIVERY_UNAVAILABLE);
-  }
   const pushSubscription = {
     ...input.subscription,
     expirationTime: input.subscription.expirationTime ?? null,
-  } satisfies PushSubscription;
-  try {
-    await vapidHeaders(pushSubscription, keys);
-  } catch {
-    return jsonError(503, "Web Push configuration is invalid");
-  }
+  } satisfies WebPushSubscription;
   const date = currentHamiltonDate(now);
   const deferWeeklyReminder =
     input.preferences.leadDays === 7 &&
@@ -482,13 +468,13 @@ const advanceSubscription = async (
 const sendDueRecord = async (
   database: ReminderDatabase,
   record: ReminderRecord,
-  keys: VapidKeys,
+  keys: VapidConfiguration,
   now: Date,
   claimedThrough: string,
   send: (
-    subscription: PushSubscription,
+    subscription: WebPushSubscription,
     payload: string,
-    keys: VapidKeys
+    keys: VapidConfiguration
   ) => Promise<Response>
 ): Promise<void> => {
   const nowIso = now.toISOString();
@@ -517,8 +503,8 @@ const sendDueRecord = async (
     await removeSubscription(database, record.endpoint);
     return;
   }
-  const subscription = PushSubscriptionSchema.safeParse(storedSubscription);
-  if (!subscription.success) {
+  const subscription = parseWebPushSubscription(storedSubscription);
+  if (!subscription) {
     await removeSubscription(database, record.endpoint);
     return;
   }
@@ -537,12 +523,7 @@ const sendDueRecord = async (
     body: reminderText,
   });
   try {
-    // SAFETY: PushSubscriptionSchema verified the endpoint, key strings, and optional expiration field before passing the value to the Web Push library.
-    const response = await send(
-      subscription.data as PushSubscription,
-      body,
-      keys
-    );
+    const response = await send(subscription, body, keys);
     if (response.status === 404 || response.status === 410) {
       await removeSubscription(database, record.endpoint, record.revision);
     } else if (response.ok) {
@@ -560,20 +541,13 @@ export const sendDueReminders = async (
   environment: ReminderEnvironment,
   now = new Date(),
   send: (
-    subscription: PushSubscription,
+    subscription: WebPushSubscription,
     payload: string,
-    keys: VapidKeys
-  ) => Promise<Response> = async (subscription, data, keys) => {
-    const payload = await buildPushPayload(
-      { data, options: { ttl: 60 * 60 * 24 } },
-      subscription,
-      keys
-    );
-    return fetch(subscription.endpoint, { ...payload, redirect: "manual" });
-  }
+    keys: VapidConfiguration
+  ) => Promise<Response> = (subscription, payload, vapid) =>
+    sendWebPush({ subscription, payload, vapid, ttl: 60 * 60 * 24 })
 ): Promise<void> => {
   const database = environment.REMINDERS;
-  const keys = vapidKeys(environment);
   if (!database) {
     return;
   }
@@ -582,6 +556,7 @@ export const sendDueReminders = async (
     .prepare("DELETE FROM reminder_subscriptions WHERE updated_at < ?")
     .bind(new Date(now.getTime() - 90 * 24 * 60 * 60_000).toISOString())
     .run();
+  const keys = await readVapidConfiguration(environment);
   if (!keys) {
     return;
   }

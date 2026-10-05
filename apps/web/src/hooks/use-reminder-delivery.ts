@@ -20,6 +20,7 @@ import {
   savePushReminder,
 } from "@/lib/push-reminders";
 import type { ScheduleResponse } from "@/lib/schedule";
+import { parseWebPushSubscription } from "@/lib/web-push-subscription";
 
 const readDeviceTimeZone = (): string =>
   Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -97,16 +98,11 @@ const requestBrowserNotificationPermission = async (
 
 const serializeSubscription = (subscription: PushSubscription) => {
   const json = subscription.toJSON();
-  const auth = json.keys?.auth;
-  const p256dh = json.keys?.p256dh;
-  if (!(auth && p256dh)) {
-    return null;
-  }
-  return {
+  return parseWebPushSubscription({
     endpoint: subscription.endpoint,
     expirationTime: subscription.expirationTime,
-    keys: { auth, p256dh },
-  };
+    keys: json.keys,
+  });
 };
 
 const PUSH_CLEANUP = {
@@ -280,11 +276,11 @@ const enrollReminder = async (
 };
 
 const readPublicKey = async (): Promise<string | null> => {
-  const response = await fetch("/api/reminders/public-key");
-  if (!response.ok) {
-    return null;
-  }
   try {
+    const response = await fetch("/api/reminders/public-key");
+    if (!response.ok) {
+      return null;
+    }
     const value: unknown = await response.json();
     return parsePublicKey(value).publicKey;
   } catch {
@@ -294,8 +290,8 @@ const readPublicKey = async (): Promise<string | null> => {
 
 const getOrCreatePushSubscription = async (
   registration: ServiceWorkerRegistration,
-  isCurrent: () => boolean,
-  setDeliveryMessage: (message: string) => void
+  publicKey: string,
+  isCurrent: () => boolean
 ): Promise<PushSubscription | null> => {
   const existing = await registration.pushManager.getSubscription();
   if (!isCurrent()) {
@@ -303,15 +299,6 @@ const getOrCreatePushSubscription = async (
   }
   if (existing) {
     return existing;
-  }
-  const publicKey = await readPublicKey();
-  if (!publicKey) {
-    if (isCurrent()) {
-      setDeliveryMessage(
-        "Background delivery is not configured on the server yet. No reminder was saved."
-      );
-    }
-    return null;
   }
   // oxlint-disable-next-line react-doctor/effect-needs-cleanup -- SAFETY: The subscription is unsubscribed if consent changes before enrollment completes.
   const created = await registration.pushManager.subscribe({
@@ -370,6 +357,16 @@ export const useReminderDelivery = (
       return;
     }
 
+    const publicKey = await readPublicKey();
+    if (!publicKey) {
+      if (operationVersion === mutationVersion.current) {
+        setDeliveryMessage(
+          "Background delivery is unavailable on the server. No reminder was saved."
+        );
+      }
+      return;
+    }
+
     let subscription: PushSubscription | null = null;
     try {
       const hasPermission = await requestBrowserNotificationPermission(
@@ -384,8 +381,8 @@ export const useReminderDelivery = (
       const registration = await navigator.serviceWorker.ready;
       subscription = await getOrCreatePushSubscription(
         registration,
-        () => operationVersion === mutationVersion.current,
-        setDeliveryMessage
+        publicKey,
+        () => operationVersion === mutationVersion.current
       );
       if (!subscription) {
         return;

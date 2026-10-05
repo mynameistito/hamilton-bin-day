@@ -1,7 +1,11 @@
+import { Buffer } from "node:buffer";
 import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 
 import { describe, expect, test, vi } from "vitest";
+
+import { readVapidConfiguration, sendWebPush } from "@/lib/web-push";
+import type { WebPushSubscription } from "@/lib/web-push-subscription";
 
 interface PushPayload {
   readonly body: string;
@@ -105,6 +109,9 @@ const validPayload = {
   version: 1,
 };
 
+const encode = (value: ArrayBuffer): string =>
+  Buffer.from(value).toString("base64url");
+
 describe("service worker push notifications", () => {
   test("does not display push notifications until local opt-in is recorded", async () => {
     const worker = makeServiceWorker(await readServiceWorker());
@@ -165,6 +172,89 @@ describe("service worker push notifications", () => {
       expect.objectContaining({
         body: validPayload.body,
         renotify: false,
+        tag: validPayload.notificationId,
+      })
+    );
+  });
+
+  test("carries the sender JSON contract through encryption to service-worker display", async () => {
+    const vapidPair = await crypto.subtle.generateKey(
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["sign", "verify"]
+    );
+    const vapidPrivate = await crypto.subtle.exportKey(
+      "jwk",
+      vapidPair.privateKey
+    );
+    if (!vapidPrivate.d) {
+      throw new Error("The test VAPID keypair is incomplete");
+    }
+    const vapid = await readVapidConfiguration({
+      VAPID_PRIVATE_KEY: vapidPrivate.d,
+      VAPID_PUBLIC_KEY: encode(
+        await crypto.subtle.exportKey("raw", vapidPair.publicKey)
+      ),
+      VAPID_SUBJECT: "mailto:push-test@example.test",
+    });
+    const clientPair = await crypto.subtle.generateKey(
+      { name: "ECDH", namedCurve: "P-256" },
+      true,
+      ["deriveBits"]
+    );
+    const subscription: WebPushSubscription = {
+      endpoint: "https://fcm.googleapis.com/fcm/send/local-test-endpoint",
+      expirationTime: null,
+      keys: {
+        auth: encode(crypto.getRandomValues(new Uint8Array(16)).buffer),
+        p256dh: encode(
+          await crypto.subtle.exportKey("raw", clientPair.publicKey)
+        ),
+      },
+    };
+    const payload = JSON.stringify(validPayload);
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 201 }));
+    const worker = makeServiceWorker(await readServiceWorker());
+
+    expect(vapid).not.toBeNull();
+    if (!vapid) {
+      throw new Error("Expected valid test VAPID keys");
+    }
+    await sendWebPush({ subscription, payload, vapid, ttl: 86_400 }, fetcher);
+    const [call] = fetcher.mock.calls;
+    if (!call) {
+      throw new Error("Expected a push-service fetch call");
+    }
+    const [, request] = call;
+    if (!request) {
+      throw new Error("Expected a Web Push RequestInit");
+    }
+    expect(request).toMatchObject({
+      redirect: "manual",
+      headers: expect.objectContaining({ "content-encoding": "aes128gcm" }),
+    });
+    expect(request.body).toBeInstanceOf(Uint8Array);
+
+    const consent = worker.listeners.get("message");
+    const consentPromises: Promise<void>[] = [];
+    consent?.({
+      data: { type: "NOTIFICATION_CONSENT", enabled: true },
+      waitUntil: (promise) => consentPromises.push(promise),
+    });
+    await Promise.all(consentPromises);
+    // SAFETY: `payload` was serialized from the typed `validPayload` test fixture above.
+    const providerDeliveredData = {
+      json: () => JSON.parse(payload) as PushPayload,
+    };
+    await dispatch(worker.listeners.get("push"), providerDeliveredData);
+    await dispatch(worker.listeners.get("push"), providerDeliveredData);
+
+    expect(worker.showNotification).toHaveBeenCalledExactlyOnceWith(
+      validPayload.title,
+      expect.objectContaining({
+        body: validPayload.body,
         tag: validPayload.notificationId,
       })
     );

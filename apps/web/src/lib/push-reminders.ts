@@ -1,7 +1,6 @@
-import type { PushSubscription } from "@block65/webcrypto-web-push";
-
 import type { NotificationPreferences } from "@/lib/notifications";
 import type { ScheduleResponse } from "@/lib/schedule";
+import type { WebPushSubscription } from "@/lib/web-push-subscription";
 
 export const PUSH_ENDPOINT_STORAGE_KEY = "hcc-bin-day-push-endpoint-v1";
 
@@ -70,6 +69,9 @@ export const forgetPushEndpoint = (): boolean => {
 export const decodeApplicationServerKey = (
   value: string
 ): Uint8Array<ArrayBuffer> => {
+  if (!/^[A-Za-z0-9_-]{87}$/u.test(value)) {
+    throw new Error("Invalid VAPID public key");
+  }
   const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
   const binary = atob(
     normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
@@ -77,6 +79,9 @@ export const decodeApplicationServerKey = (
   const bytes = new Uint8Array(new ArrayBuffer(binary.length));
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.codePointAt(index) ?? 0;
+  }
+  if (bytes.byteLength !== 65 || bytes[0] !== 4) {
+    throw new Error("Invalid VAPID public key");
   }
   return bytes;
 };
@@ -94,7 +99,7 @@ const snapshotFor = (schedule: ScheduleResponse) => ({
 
 /** Persist a push subscription and the minimum schedule/preference snapshot needed by the sender. */
 export const savePushReminder = async (
-  subscription: PushSubscription,
+  subscription: WebPushSubscription,
   schedule: ScheduleResponse,
   preferences: NotificationPreferences,
   timeZone: string,
