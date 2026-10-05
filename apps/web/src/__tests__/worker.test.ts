@@ -98,7 +98,7 @@ describe("lookup endpoint input validation", () => {
         .mockResolvedValue(
           Response.json([
             { Collection_Address: "No address found" },
-            { Collection_Address: "14B Mountbatten Place" },
+            { Collection_Address: "12 Grey Street" },
           ])
         )
     );
@@ -109,7 +109,7 @@ describe("lookup endpoint input validation", () => {
 
     await expect(response.json()).resolves.toStrictEqual({
       found: false,
-      matches: ["14B Mountbatten Place"],
+      matches: ["12 Grey Street"],
     });
   });
 

@@ -8,29 +8,24 @@ import {
 
 describe("address normalization", () => {
   test("expands street types and normalizes unit suffixes", () => {
-    expect(expandAddressQuery(" 14b mountbatten pl ")).toBe(
-      "14B mountbatten place"
-    );
+    expect(expandAddressQuery(" 12b grey st ")).toBe("12B grey street");
   });
 
   test("returns the unique normalized exact match", () => {
-    expect(
-      pickMatchingAddress("14b mountbatten pl", ["14B Mountbatten Place"])
-    ).toBe("14B Mountbatten Place");
+    expect(pickMatchingAddress("12 grey st", ["12 Grey Street"])).toBe(
+      "12 Grey Street"
+    );
   });
 
   test("rejects ambiguous normalized matches", () => {
     expect(
-      pickMatchingAddress("14b mountbatten pl", [
-        "14B Mountbatten Place",
-        "14B Mountbatten Pl",
-      ])
+      pickMatchingAddress("12 grey st", ["12 Grey Street", "12 Grey St"])
     ).toBeNull();
   });
 
   test("filters the Council no-address placeholder", () => {
     expect(
-      filterAddressMatches(["No address found", "14B Mountbatten Place"])
-    ).toStrictEqual(["14B Mountbatten Place"]);
+      filterAddressMatches(["No address found", "12 Grey Street"])
+    ).toStrictEqual(["12 Grey Street"]);
   });
 });
