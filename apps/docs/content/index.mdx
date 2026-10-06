@@ -1,35 +1,18 @@
 ---
-title: Collection guide
-description: Find and understand your Hamilton City Council bin collection schedule.
+title: Hamilton Bin Day documentation
+description: Guides for the Hamilton Bin Day website, CLI, API, and AI integrations.
 ---
 
-This guide explains how to use Hamilton Bin Day and what each collection week means. The schedule is looked up from the public Hamilton City Council Fight the Landfill service.
+Hamilton Bin Day helps you look up Hamilton City Council bin collections from the web, command line, or an AI client. These guides explain how to use each option and what to expect from the results.
 
-## Find your collection
+## Choose how to use it
 
-1. Open the [address lookup](/) and enter your Hamilton street address.
-2. Choose a suggested address if your search needs refining.
-3. Check the next collection date, week colour, and bins to put out.
+- [Website guide](/docs/website/): look up a home collection and understand the schedule.
+- [CLI guide](/docs/cli/): install the command-line client and use JSON output in scripts.
+- [MCP and AI integrations](/docs/mcp/): connect an MCP-compatible AI client to the schedule lookup tool.
 
-## MCP endpoint
+## Where the data comes from
 
-MCP-compatible clients can connect to `https://bin-day.mynameistito.com/api/mcp` using Streamable HTTP. The stateless, read-only `lookup_bin_schedule` tool accepts an `address` string (for example, `12 Grey Street`) and returns the matched address and schedule, or address suggestions when no match is found. Invalid addresses and Council API failures are returned as tool errors. Requests with a cross-origin `Origin` header are rejected. There is no local MCP server process or API key to configure; the endpoint uses the public Hamilton City Council lookup service.
+The website and CLI use Hamilton City Council's public Fight the Landfill lookup service. Schedules are provided as a convenience, are not controlled by this project, and may change. Check the [Council's official waste and recycling information](https://hamilton.govt.nz/) when you need to confirm a collection.
 
-Collection dates can change around public holidays or due to council service updates. Check the council's [official waste and recycling information](https://www.hamilton.govt.nz/) if you need to confirm a change.
-
-## Red and yellow weeks
-
-| Week        | Containers                                             |
-| ----------- | ------------------------------------------------------ |
-| Red week    | Red rubbish bin and food scraps bin                    |
-| Yellow week | Yellow recycling bin, glass crate, and food scraps bin |
-
-Food scraps are collected every week. Set out the listed containers on your regular collection day, with lids closed and placed at the kerb according to council guidance.
-
-## Data and privacy
-
-Address searches are sent to Hamilton City Council's public lookup API. A submitted address appears in the page's `?query=` URL; after a successful lookup, it is remembered in your browser in a cookie (up to one year) or local storage (no site-set expiry). Cloudflare delivers the site and provides Web Analytics; Cloudflare Zaraz is configured for Google Analytics 4 page views and a Twitter/X Pixel for events. The site does not keep an address-search database, but its service providers may process request or analytics information. Read the full [privacy policy](/docs/privacy/) and [terms of service](/docs/terms/).
-
-## About this project
-
-Hamilton Bin Day is an unofficial community tool and is not affiliated with or endorsed by Hamilton City Council. Schedules are provided as a convenience; council information is authoritative. Browse the [project source on GitHub](https://github.com/mynameistito/hcc-bin-day).
+Hamilton Bin Day is an unofficial community project and is not affiliated with or endorsed by Hamilton City Council. Visit the [main website](/), read the [Privacy Policy](/privacy) or [Terms of Service](/terms), or browse the [project source on GitHub](https://github.com/mynameistito/hcc-bin-day).
