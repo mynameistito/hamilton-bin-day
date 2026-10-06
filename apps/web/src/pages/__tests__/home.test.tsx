@@ -74,6 +74,12 @@ describe("home page navigation", () => {
     expect(
       screen.getByRole("navigation", { name: "Site information" })
     ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Privacy" }).getAttribute("href")
+    ).toBe("/privacy");
+    expect(
+      screen.getByRole("link", { name: "Terms" }).getAttribute("href")
+    ).toBe("/terms");
   });
 
   it("places two reminder triggers in the header and footer for one dialog", () => {

@@ -9,6 +9,8 @@ import { createRoot } from "react-dom/client";
 
 import { BinCataloguePage } from "./pages/bin-catalogue";
 import { HomePage } from "./pages/home";
+import { PrivacyPage } from "./pages/privacy";
+import { TermsPage } from "./pages/terms";
 
 import "./styles.css";
 
@@ -35,7 +37,22 @@ const binCatalogueRoute = createRoute({
   path: "/what-goes-where",
   component: BinCataloguePage,
 });
-const routeTree = rootRoute.addChildren([indexRoute, binCatalogueRoute]);
+const privacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/privacy",
+  component: PrivacyPage,
+});
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/terms",
+  component: TermsPage,
+});
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  binCatalogueRoute,
+  privacyRoute,
+  termsRoute,
+]);
 const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {

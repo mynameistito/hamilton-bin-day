@@ -271,7 +271,7 @@ export const NotificationSettings = ({
           require a fresh lookup. Works on Android and desktop. On iPhone or
           iPad, add this app to your Home Screen. Your address is not saved for
           reminders.{" "}
-          <a className="underline underline-offset-2" href="/docs/privacy/">
+          <a className="underline underline-offset-2" href="/privacy">
             Privacy details
           </a>
         </p>

@@ -461,13 +461,13 @@ export const HomePage = () => {
           <a className="underline underline-offset-2" href="/docs/">
             Collection guide
           </a>
-          <a className="underline underline-offset-2" href="/docs/privacy/">
+          <a className="underline underline-offset-2" href="/privacy">
             Privacy
           </a>
           <a className="underline underline-offset-2" href="/what-goes-where">
             What goes where?
           </a>
-          <a className="underline underline-offset-2" href="/docs/terms/">
+          <a className="underline underline-offset-2" href="/terms">
             Terms
           </a>
         </nav>
