@@ -80,6 +80,11 @@ describe("home page navigation", () => {
     expect(
       screen.getByRole("link", { name: "Terms" }).getAttribute("href")
     ).toBe("/terms");
+    expect(
+      screen
+        .getAllByRole("link", { name: "Docs" })
+        .every((link) => link.getAttribute("href") === "/docs/")
+    ).toBeTruthy();
   });
 
   it("places two reminder triggers in the header and footer for one dialog", () => {

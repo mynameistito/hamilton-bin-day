@@ -134,8 +134,7 @@ const HomeHeader = ({
         className="inline-flex min-h-11 items-center rounded-lg px-1 py-2 text-sm font-semibold text-sage-dark underline-offset-4 hover:underline sm:px-0"
         href="/docs/"
       >
-        <span className="sm:hidden">Guide</span>
-        <span className="hidden sm:inline">How collections work</span>
+        Docs
       </a>
       <button
         aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
@@ -459,7 +458,7 @@ export const HomePage = () => {
             </button>
           )}
           <a className="underline underline-offset-2" href="/docs/">
-            Collection guide
+            Docs
           </a>
           <a className="underline underline-offset-2" href="/privacy">
             Privacy
