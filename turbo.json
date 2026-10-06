@@ -10,6 +10,11 @@
       "dependsOn": ["@mynameistito/hcc-bin-day-docs#build"],
       "outputs": ["dist/**"]
     },
+    "@mynameistito/hcc-bin-day-web#dev:site": {
+      "with": ["@mynameistito/hcc-bin-day-docs#dev"],
+      "cache": false,
+      "persistent": true
+    },
     "test": {
       "outputs": ["coverage/**"]
     },

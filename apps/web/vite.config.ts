@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import type { Plugin } from "vite";
+import type { Plugin, UserConfig } from "vite";
 import { defineConfig } from "vite";
 
 type LookupHandler = (request: Request) => Promise<Response>;
@@ -52,40 +52,102 @@ const lookupDevPlugin: Plugin = {
  * @param mode - Vite configuration mode.
  * @returns Vite's configuration for the selected mode.
  */
-export default defineConfig(({ mode }) => ({
-  plugins: [
-    ...(mode === "tunnel" ? [cloudflare({ tunnel: { autoStart: true } })] : []),
-    react(),
-    tailwindcss(),
-    lookupDevPlugin,
-  ],
-  resolve: {
-    alias: [
-      {
-        find: /^@cli\/council-schema$/u,
-        replacement: fileURLToPath(
-          new URL("../../packages/cli/src/council-schema.ts", import.meta.url)
-        ),
-      },
-      {
-        find: /^@cli\/normalize-address$/u,
-        replacement: fileURLToPath(
-          new URL(
-            "../../packages/cli/src/normalize-address.ts",
-            import.meta.url
-          )
-        ),
-      },
-      {
-        find: /^@cli\/schedule$/u,
-        replacement: fileURLToPath(
-          new URL("../../packages/cli/src/schedule.ts", import.meta.url)
-        ),
-      },
-      {
-        find: "@",
-        replacement: fileURLToPath(new URL("src", import.meta.url)),
-      },
+export default defineConfig(({ mode }) => {
+  const config: UserConfig = {
+    plugins: [
+      ...(mode === "tunnel"
+        ? [cloudflare({ tunnel: { autoStart: true } })]
+        : []),
+      react(),
+      tailwindcss(),
+      lookupDevPlugin,
     ],
-  },
-}));
+    resolve: {
+      alias: [
+        {
+          find: /^@cli\/council-schema$/u,
+          replacement: fileURLToPath(
+            new URL("../../packages/cli/src/council-schema.ts", import.meta.url)
+          ),
+        },
+        {
+          find: /^@cli\/normalize-address$/u,
+          replacement: fileURLToPath(
+            new URL(
+              "../../packages/cli/src/normalize-address.ts",
+              import.meta.url
+            )
+          ),
+        },
+        {
+          find: /^@cli\/schedule$/u,
+          replacement: fileURLToPath(
+            new URL("../../packages/cli/src/schedule.ts", import.meta.url)
+          ),
+        },
+        {
+          find: "@",
+          replacement: fileURLToPath(new URL("src", import.meta.url)),
+        },
+      ],
+    },
+  };
+
+  if (mode === "site") {
+    const docsOrigin = "http://localhost:4321";
+    const docsAssetProxy = {
+      target: docsOrigin,
+      changeOrigin: true,
+      bypass: (request: IncomingMessage) => {
+        const { referer } = request.headers;
+        const { url } = request;
+        if (!referer) {
+          return url;
+        }
+        const { pathname: refererPath } = new URL(referer);
+        const requestPath = new URL(url ?? "/", "http://localhost").pathname;
+        const isDocsPage =
+          refererPath === "/docs" || refererPath.startsWith("/docs/");
+        const isDocsRuntimeModule =
+          refererPath.includes("/node_modules/.bun/") ||
+          refererPath.includes("/apps/docs/.blume/");
+        const isDocsVirtualModule =
+          refererPath.startsWith("/@id/") && refererPath.includes("astro:");
+        const isDocsOptimizedDependency = refererPath.startsWith(
+          "/.cache/vite/deps/astro_"
+        );
+        const isDocsViteClientDependency =
+          refererPath === "/@vite/client" && requestPath.includes("vite@8.");
+        const docsReferers = [
+          isDocsPage,
+          isDocsRuntimeModule,
+          isDocsVirtualModule,
+          isDocsOptimizedDependency,
+          isDocsViteClientDependency,
+        ];
+        return docsReferers.includes(true) ? undefined : url;
+      },
+    };
+    config.server = {
+      proxy: {
+        "/docs": {
+          target: docsOrigin,
+          changeOrigin: true,
+          ws: true,
+          rewrite: (path) => path.replace(/\/(?=\?|$)/u, ""),
+        },
+        "/@fs": docsAssetProxy,
+        "/@id": docsAssetProxy,
+        "/@vite": docsAssetProxy,
+        "/@react-refresh": docsAssetProxy,
+        "/_astro": docsAssetProxy,
+        "/.cache": docsAssetProxy,
+        "/node_modules": docsAssetProxy,
+        "/src": docsAssetProxy,
+        "/favicon.svg": docsAssetProxy,
+      },
+    };
+  }
+
+  return config;
+});

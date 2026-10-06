@@ -6,6 +6,7 @@
   "scripts": {
     "build": "bun run ../../scripts/build-web.ts",
     "dev": "vite",
+    "dev:site": "vite --mode site",
     "dev:tunnel": "vite --mode tunnel",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
