@@ -1,1 +1,1 @@
-import "/src/service-worker-entry.js";
+import "./src/service-worker-entry.js";
