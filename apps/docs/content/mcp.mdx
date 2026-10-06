@@ -1,0 +1,36 @@
+---
+title: MCP and AI integrations
+description: Connect an MCP-compatible AI client to Hamilton Bin Day's read-only schedule lookup.
+---
+
+Hamilton Bin Day exposes a read-only [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) tool. An MCP-compatible AI client can use it to find a Hamilton address and retrieve the public collection schedule.
+
+## Connect a client
+
+Configure your MCP client to use this Streamable HTTP server URL:
+
+```text
+https://bin-day.mynameistito.com/api/mcp
+```
+
+No local server process, API key, or account is required. The endpoint is stateless: clients do not need to retain a session ID. It accepts MCP requests over `POST`; it does not provide server-initiated GET streams or an A2A endpoint.
+
+Cross-origin browser requests are not supported. A request with an `Origin` header is accepted only when that origin matches the endpoint's origin. This does not prevent native MCP clients from connecting directly.
+
+## Available tool
+
+### `lookup_bin_schedule`
+
+Input:
+
+```json
+{ "address": "12 Grey Street" }
+```
+
+The `address` field is a Hamilton street address. A successful result includes `found: true`, the Council-matched address, and a `schedule` with collection day, next and following dates, week types, and bins to put out. If no address matches, the result includes `found: false` and address suggestions in `matches`.
+
+The tool is read-only; it does not create reminders or change Council data. Invalid input and Council service failures are returned as tool errors. The MCP tool uses the same address lookup as the [website](/) and [CLI](/docs/cli/).
+
+## Data and limitations
+
+The tool sends the address to Hamilton City Council's public lookup service to resolve its schedule. Results depend on that service and may change, including around public holidays. Confirm important collection changes with [Hamilton City Council](https://hamilton.govt.nz/). Hamilton Bin Day is an unofficial community project and is not affiliated with the Council.
