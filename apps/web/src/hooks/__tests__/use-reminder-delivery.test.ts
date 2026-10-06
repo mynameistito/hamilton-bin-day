@@ -3,7 +3,7 @@
 import { Buffer } from "node:buffer";
 
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, vi, it } from "vitest";
 
 import { useReminderDelivery } from "@/hooks/use-reminder-delivery";
 import type { NotificationPreferences } from "@/lib/notifications";
@@ -52,7 +52,7 @@ describe("reminder delivery configuration", () => {
     }
   });
 
-  test("reports unavailable server delivery before requesting permission or subscribing", async () => {
+  it("reports unavailable server delivery before requesting permission or subscribing", async () => {
     const requestPermission = vi.fn<() => Promise<NotificationPermission>>();
     vi.stubGlobal("Notification", {
       permission: "default",
@@ -89,7 +89,7 @@ describe("reminder delivery configuration", () => {
     expect(requestPermission).not.toHaveBeenCalled();
   });
 
-  test("replaces a browser subscription when the VAPID public key changes", async () => {
+  it("replaces a browser subscription when the VAPID public key changes", async () => {
     const publicKey = encodeKey(2);
     const endpoint = "https://fcm.googleapis.com/fcm/send/test-subscription";
     const keyMaterial = {
@@ -175,7 +175,7 @@ describe("reminder delivery configuration", () => {
     );
   });
 
-  test("does not re-enroll when a newly-created schedule object has unchanged values", async () => {
+  it("does not re-enroll when a newly-created schedule object has unchanged values", async () => {
     const endpoint = "https://fcm.googleapis.com/fcm/send/test-subscription";
     const browserSubscription: PushSubscription = {
       endpoint,

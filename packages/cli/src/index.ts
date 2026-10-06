@@ -1,11 +1,10 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as Effect from "effect/Effect";
+import packageJson from "@root/package.json";
+import { gen, provide, runPromise } from "effect/Effect";
 
 import { resolveAddressQuery } from "@/address";
 import { hccApiLayer, HccApi } from "@/hcc-api";
+import { HccApiError } from "@/hcc-api-error";
 import { formatScheduleText, toScheduleJson } from "@/schedule";
 
 const TEXT_FLAGS = new Set(["--text", "--pretty", "-p"]);
@@ -31,12 +30,12 @@ const printHelp = () => {
   npx @mynameistito/hcc-bin-day schedule <address> --text
 
 Examples:
-  npx @mynameistito/hcc-bin-day schedule "14b mountbatten pl"
-  npx @mynameistito/hcc-bin-day schedule "14b mountbatten pl" --text
+  npx @mynameistito/hcc-bin-day schedule "12b Grey Street"
+  npx @mynameistito/hcc-bin-day schedule "12b Grey Street" --text
   npx @mynameistito/hcc-bin-day lookup "12 grey st"
 
 Output is JSON by default. Use --text (or --pretty) for human-readable output.
-Address input is flexible: unit suffixes (14b -> 14B) and street types (pl, st, rd, etc.).
+Address input is flexible: unit suffixes (12b -> 12B) and street types (pl, st, rd, etc.).
 `);
 };
 
@@ -65,14 +64,10 @@ const printJson = (value: JsonValue) => {
   console.log(JSON.stringify(value, null, 2));
 };
 
-const main = Effect.gen(function* main() {
+const main = gen(function* main() {
   const rawArgs = process.argv.slice(2);
 
   if (rawArgs.some((arg) => VERSION_FLAGS.has(arg))) {
-    // SAFETY: This file is the package's own package.json and defines a string version.
-    const packageJson = JSON.parse(
-      readFileSync(new URL("../package.json", import.meta.url), "utf-8")
-    ) as { version: string };
     console.log(packageJson.version);
     return;
   }
@@ -138,14 +133,15 @@ const main = Effect.gen(function* main() {
   }
 
   printHelp();
-}).pipe(
-  Effect.provide(hccApiLayer),
-  // oxlint-disable-next-line github/no-then, promise/prefer-await-to-callbacks, promise/prefer-await-to-then
-  Effect.catch((error) => {
-    console.error(`Request failed (${error.reason}) during ${error.operation}`);
-    process.exitCode = 1;
-    return Effect.void;
-  })
-);
+}).pipe(provide(hccApiLayer));
 
-await Effect.runPromise(main);
+try {
+  await runPromise(main);
+} catch (error) {
+  if (!(error instanceof HccApiError)) {
+    throw error;
+  }
+
+  console.error(`Request failed (${error.reason}) during ${error.operation}`);
+  process.exitCode = 1;
+}

@@ -1,11 +1,10 @@
 import { Buffer } from "node:buffer";
-import { readFile } from "node:fs/promises";
-import { runInNewContext } from "node:vm";
 
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, vi, it } from "vitest";
 
 import { readVapidConfiguration, sendWebPush } from "@/lib/web-push";
 import type { WebPushSubscription } from "@/lib/web-push-subscription";
+import { registerServiceWorker } from "@/service-worker-runtime.js";
 
 interface PushPayload {
   readonly body: string;
@@ -29,10 +28,7 @@ interface ServiceWorkerEvent {
 type ServiceWorkerListener = (event: ServiceWorkerEvent) => void;
 type CacheKey = string | Request | URL;
 
-const readServiceWorker = (): Promise<string> =>
-  readFile(new URL("../../public/sw.js", import.meta.url), "utf-8");
-
-const makeServiceWorker = (source: string) => {
+const makeServiceWorker = () => {
   const listeners = new Map<string, ServiceWorkerListener>();
   const entries = new Map<string, Response>();
   const cache = {
@@ -77,16 +73,18 @@ const makeServiceWorker = (source: string) => {
   };
   const logger = { warn: vi.fn<(message: string) => void>() };
 
-  // oxlint-disable-next-line sonarjs/code-eval -- SAFETY: Executes this checked-in worker in a VM with local deterministic browser fakes.
-  runInNewContext(source, {
-    Date,
+  registerServiceWorker({
     Request,
     Response,
     URL,
     caches: cachesApi,
-    encodeURIComponent,
     console: logger,
-    self,
+    fetch: globalThis.fetch,
+    location: self.location,
+    addEventListener: self.addEventListener,
+    clients: self.clients,
+    registration: self.registration,
+    skipWaiting: self.skipWaiting,
   });
   return { cache, listeners, logger, showNotification };
 };
@@ -113,8 +111,8 @@ const encode = (value: ArrayBuffer): string =>
   Buffer.from(value).toString("base64url");
 
 describe("service worker push notifications", () => {
-  test("does not display push notifications until local opt-in is recorded", async () => {
-    const worker = makeServiceWorker(await readServiceWorker());
+  it("does not display push notifications until local opt-in is recorded", async () => {
+    const worker = makeServiceWorker();
 
     await dispatch(worker.listeners.get("push"), {
       json: () => validPayload,
@@ -123,8 +121,8 @@ describe("service worker push notifications", () => {
     expect(worker.showNotification).not.toHaveBeenCalled();
   });
 
-  test("validates payloads and displays every consented collection reminder", async () => {
-    const worker = makeServiceWorker(await readServiceWorker());
+  it("validates payloads and displays every consented collection reminder", async () => {
+    const worker = makeServiceWorker();
     const consent = worker.listeners.get("message");
     const consentPromises: Promise<void>[] = [];
     consent?.({
@@ -136,9 +134,7 @@ describe("service worker push notifications", () => {
     await dispatch(worker.listeners.get("push"), {
       json: () => ({ ...validPayload, notificationId: "" }),
     });
-    const validPush = {
-      json: () => validPayload,
-    };
+    const validPush = { json: () => validPayload };
     await Promise.all([
       dispatch(worker.listeners.get("push"), validPush),
       dispatch(worker.listeners.get("push"), validPush),
@@ -151,7 +147,7 @@ describe("service worker push notifications", () => {
       data: { type: "NOTIFICATION_CONSENT", enabled: false },
       waitUntil: (promise) => consentPromises.push(promise),
     });
-    await Promise.all(consentPromises);
+    await Promise.all(consentPromises.slice(-1));
     await dispatch(worker.listeners.get("push"), {
       json: () => validPayload,
     });
@@ -177,7 +173,7 @@ describe("service worker push notifications", () => {
     );
   });
 
-  test("carries the sender JSON contract through encryption to service-worker display", async () => {
+  it("carries the sender JSON contract through encryption to service-worker display", async () => {
     const vapidPair = await crypto.subtle.generateKey(
       { name: "ECDSA", namedCurve: "P-256" },
       true,
@@ -216,7 +212,7 @@ describe("service worker push notifications", () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(null, { status: 201 }));
-    const worker = makeServiceWorker(await readServiceWorker());
+    const worker = makeServiceWorker();
 
     expect(vapid).not.toBeNull();
     if (!vapid) {
@@ -244,10 +240,8 @@ describe("service worker push notifications", () => {
       waitUntil: (promise) => consentPromises.push(promise),
     });
     await Promise.all(consentPromises);
-    // SAFETY: `payload` was serialized from the typed `validPayload` test fixture above.
-    const providerDeliveredData = {
-      json: () => JSON.parse(payload) as PushPayload,
-    };
+
+    const providerDeliveredData = { json: () => JSON.parse(payload) };
     await dispatch(worker.listeners.get("push"), providerDeliveredData);
     await dispatch(worker.listeners.get("push"), providerDeliveredData);
 
@@ -263,8 +257,8 @@ describe("service worker push notifications", () => {
     );
   });
 
-  test("handles notification display failure without rejecting the push event", async () => {
-    const worker = makeServiceWorker(await readServiceWorker());
+  it("handles notification display failures without rejecting push processing", async () => {
+    const worker = makeServiceWorker();
     const consent = worker.listeners.get("message");
     const pending: Promise<void>[] = [];
     consent?.({

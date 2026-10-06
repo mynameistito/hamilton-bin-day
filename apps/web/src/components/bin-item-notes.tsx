@@ -77,7 +77,10 @@ const getNoteLink = (match: RegExpMatchArray) => {
   } satisfies NoteLink;
 };
 
-/** Render catalogue facility names, participating stores, and scheme links. */
+/** Render catalogue facility names, participating stores, and scheme links.
+ * @param notes - Council-provided notes to render.
+ * @returns The formatted notes content.
+ */
 export const renderBinItemNotes = (notes: string): ReactNode => {
   const noteParts: ReactNode[] = [];
   let previousEnd = 0;

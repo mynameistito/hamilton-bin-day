@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, vi, it } from "vitest";
 
 import worker, { handleLookup } from "@/worker";
 
@@ -19,7 +19,7 @@ describe("lookup endpoint input validation", () => {
     vi.unstubAllGlobals();
   });
 
-  test("provides an uncached health endpoint for connectivity checks", async () => {
+  it("provides an uncached health endpoint for connectivity checks", async () => {
     const assets = {
       fetch: vi.fn<(request: Request) => Promise<Response>>(),
     };
@@ -33,7 +33,7 @@ describe("lookup endpoint input validation", () => {
     expect(assets.fetch).not.toHaveBeenCalled();
   });
 
-  test("rejects addresses over the length limit before calling the Council API", async () => {
+  it("rejects addresses over the length limit before calling the Council API", async () => {
     const request = new Request(
       `https://example.test/api/lookup?address=${"x".repeat(161)}`
     );
@@ -46,7 +46,7 @@ describe("lookup endpoint input validation", () => {
     });
   });
 
-  test("rejects blank addresses", async () => {
+  it("rejects blank addresses", async () => {
     const response = await handleLookup(
       new Request("https://example.test/api/lookup?address=%20%20")
     );
@@ -54,7 +54,7 @@ describe("lookup endpoint input validation", () => {
     expect(response.status).toBe(400);
   });
 
-  test("returns not found without fetching a schedule", async () => {
+  it("returns not found without fetching a schedule", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(Response.json([]));
@@ -71,7 +71,7 @@ describe("lookup endpoint input validation", () => {
     expect(fetch).toHaveBeenCalledOnce();
   });
 
-  test("bounds Council fetches with a 10-second abort signal", async () => {
+  it("bounds Council fetches with a 10-second abort signal", async () => {
     const controller = new AbortController();
     const timeout = vi
       .spyOn(AbortSignal, "timeout")
@@ -90,7 +90,7 @@ describe("lookup endpoint input validation", () => {
     expect(fetch.mock.calls[0]?.[1]?.signal).toBe(controller.signal);
   });
 
-  test("filters the Council no-address placeholder from suggestions", async () => {
+  it("filters the Council no-address placeholder from suggestions", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -113,7 +113,7 @@ describe("lookup endpoint input validation", () => {
     });
   });
 
-  test("maps a Council request timeout to 502", async () => {
+  it("maps a Council request timeout to 502", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -130,7 +130,7 @@ describe("lookup endpoint input validation", () => {
     expect(response.status).toBe(502);
   });
 
-  test("retries an expanded address query and returns a schedule", async () => {
+  it("retries an expanded address query and returns a schedule", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json([]))
@@ -155,7 +155,7 @@ describe("lookup endpoint input validation", () => {
     expect(String(fetch.mock.calls[1]?.[0])).toContain("12+grey+street");
   });
 
-  test("returns not found when the matched address has no schedule", async () => {
+  it("returns not found when the matched address has no schedule", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -174,7 +174,7 @@ describe("lookup endpoint input validation", () => {
     });
   });
 
-  test("treats council 404 responses as empty result sets", async () => {
+  it("treats council 404 responses as empty result sets", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(new Response(null, { status: 404 }))
@@ -190,7 +190,7 @@ describe("lookup endpoint input validation", () => {
     });
   });
 
-  test("maps API, decoding, and domain errors to 502 in the worker entry point", async () => {
+  it("maps API, decoding, and domain errors to 502 in the worker entry point", async () => {
     const assets = {
       fetch: vi
         .fn<(request: Request) => Promise<Response>>()
@@ -229,7 +229,7 @@ describe("lookup endpoint input validation", () => {
     expect(invalidScheduleResponse.status).toBe(502);
   });
 
-  test("rate limits reminder mutations by request IP and fails closed on limiter errors", async () => {
+  it("rate limits reminder mutations by request IP and fails closed on limiter errors", async () => {
     const assets = {
       fetch: vi.fn<(request: Request) => Promise<Response>>(),
     };
@@ -278,7 +278,7 @@ describe("lookup endpoint input validation", () => {
     });
   });
 
-  test("delegates non-lookup requests to the asset binding", async () => {
+  it("delegates non-lookup requests to the asset binding", async () => {
     const response = new Response("asset");
     const assets = {
       fetch: vi

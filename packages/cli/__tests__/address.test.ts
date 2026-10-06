@@ -1,15 +1,13 @@
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as Effect from "effect/Effect";
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as Layer from "effect/Layer";
-import { describe, expect, test } from "vitest";
+import { succeed, runPromise, provide } from "effect/Effect";
+import { succeed as layerSucceed } from "effect/Layer";
+import { describe, expect, it } from "vitest";
 
 import { resolveAddressQuery } from "@/address";
 import { HccApi } from "@/hcc-api";
 
-const apiLayer = Layer.succeed(HccApi, {
+const apiLayer = layerSucceed(HccApi, {
   getCollectionSchedule: () =>
-    Effect.succeed({
+    succeed({
       address: "12 Grey Street",
       collectionDay: 1,
       collectionDayName: "Monday",
@@ -23,13 +21,13 @@ const apiLayer = Layer.succeed(HccApi, {
       upcomingWeek: "red" as const,
       yellowBin: "2026-09-28",
     }),
-  searchAddresses: () => Effect.succeed(["12 Grey Street"]),
+  searchAddresses: () => succeed(["12 Grey Street"]),
 });
 
 describe("address resolution", () => {
-  test("resolves an exact normalized address through the HccApi seam", async () => {
-    const result = await Effect.runPromise(
-      resolveAddressQuery("12 grey st").pipe(Effect.provide(apiLayer))
+  it("resolves an exact normalized address through the HccApi seam", async () => {
+    const result = await runPromise(
+      resolveAddressQuery("12 grey st").pipe(provide(apiLayer))
     );
 
     expect(result).toMatchObject({
@@ -38,28 +36,28 @@ describe("address resolution", () => {
     });
   });
 
-  test("returns suggestions when no exact match exists", async () => {
-    const result = await Effect.runPromise(
-      resolveAddressQuery("unknown road").pipe(Effect.provide(apiLayer))
+  it("returns suggestions when no exact match exists", async () => {
+    const result = await runPromise(
+      resolveAddressQuery("unknown road").pipe(provide(apiLayer))
     );
 
     expect(result).toStrictEqual({ matches: ["12 Grey Street"], ok: false });
   });
 
-  test("retries expanded queries, filters council placeholders, and handles missing schedules", async () => {
+  it("retries expanded queries, filters council placeholders, and handles missing schedules", async () => {
     const queries: string[] = [];
-    const noScheduleLayer = Layer.succeed(HccApi, {
-      getCollectionSchedule: () => Effect.succeed(null),
+    const noScheduleLayer = layerSucceed(HccApi, {
+      getCollectionSchedule: () => succeed(null),
       searchAddresses: (query) => {
         queries.push(query);
-        return Effect.succeed(
+        return succeed(
           query === "12 grey st" ? [] : ["No address found", "12 Grey Street"]
         );
       },
     });
 
-    const result = await Effect.runPromise(
-      resolveAddressQuery("12 grey st").pipe(Effect.provide(noScheduleLayer))
+    const result = await runPromise(
+      resolveAddressQuery("12 grey st").pipe(provide(noScheduleLayer))
     );
 
     expect(queries).toStrictEqual(["12 grey st", "12 grey street"]);
@@ -69,14 +67,14 @@ describe("address resolution", () => {
     });
   });
 
-  test("returns no suggestions after filtering the council no-address placeholder", async () => {
-    const placeholderLayer = Layer.succeed(HccApi, {
-      getCollectionSchedule: () => Effect.succeed(null),
-      searchAddresses: () => Effect.succeed(["No address found"]),
+  it("returns no suggestions after filtering the council no-address placeholder", async () => {
+    const placeholderLayer = layerSucceed(HccApi, {
+      getCollectionSchedule: () => succeed(null),
+      searchAddresses: () => succeed(["No address found"]),
     });
 
-    const result = await Effect.runPromise(
-      resolveAddressQuery("unknown road").pipe(Effect.provide(placeholderLayer))
+    const result = await runPromise(
+      resolveAddressQuery("unknown road").pipe(provide(placeholderLayer))
     );
 
     expect(result).toStrictEqual({ matches: [], ok: false });

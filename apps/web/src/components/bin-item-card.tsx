@@ -30,17 +30,17 @@ const BinItemCard = ({
 
   return (
     <li
-      className={`bg-panel border-sage-border flex justify-between rounded-2xl border ${cardClassName}`}
+      className={`flex justify-between rounded-2xl border border-sage-border bg-panel ${cardClassName}`}
     >
       <div className="min-w-0 self-center">
         <p className="leading-6 font-semibold">{item.item}</p>
         {!isCompact && (
           <>
-            <p className="text-moss mt-1 text-sm font-semibold">
+            <p className="mt-1 text-sm font-semibold text-moss">
               Goes in: {destination}
             </p>
             {item.notes && (
-              <p className="text-detail-muted mt-2 text-sm leading-6">
+              <p className="mt-2 text-sm leading-6 text-detail-muted">
                 {renderBinItemNotes(item.notes)}
               </p>
             )}
@@ -61,7 +61,7 @@ const BinItemCard = ({
             height={image.height}
           />
         ) : (
-          <span className="border-sage-border text-copy-muted mb-1 rounded-lg border px-2 py-1 text-center text-xs leading-4">
+          <span className="mb-1 rounded-lg border border-sage-border px-2 py-1 text-center text-xs leading-4 text-copy-muted">
             No kerbside bin
           </span>
         )}

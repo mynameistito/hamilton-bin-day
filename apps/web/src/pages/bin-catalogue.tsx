@@ -16,6 +16,9 @@ const verificationDateFormatter = new Intl.DateTimeFormat("en-NZ", {
   timeZone: "UTC",
 });
 
+/** Render the searchable catalogue of accepted and rejected bin items.
+ * @returns The catalogue page element.
+ */
 export const BinCataloguePage = () => {
   const [query, setQuery] = useState("");
   const [selectedBin, setSelectedBin] = useState<BinType | null>(null);
@@ -33,7 +36,7 @@ export const BinCataloguePage = () => {
     : emptyResultSummary;
 
   return (
-    <main className="bg-canvas text-ink min-h-dvh px-4 pb-10 sm:px-5">
+    <main className="min-h-dvh bg-canvas px-4 pb-10 text-ink sm:px-5">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 py-4 sm:py-5">
         <a
           className="flex items-center gap-2.5 font-bold tracking-tight sm:gap-3"
@@ -41,17 +44,17 @@ export const BinCataloguePage = () => {
         >
           <span
             aria-hidden="true"
-            className="bg-forest grid size-9 place-items-center rounded-xl text-lg text-white sm:size-10"
+            className="grid size-9 place-items-center rounded-xl bg-forest text-lg text-white sm:size-10"
           >
             ♻
           </span>
           <span>
             Hamilton{" "}
-            <span className="text-copy-muted font-normal">Bin Day</span>
+            <span className="font-normal text-copy-muted">Bin Day</span>
           </span>
         </a>
         <a
-          className="text-sage-dark rounded-lg px-3 py-2 text-sm font-semibold underline-offset-4 hover:underline"
+          className="rounded-lg px-3 py-2 text-sm font-semibold text-sage-dark underline-offset-4 hover:underline"
           href="/"
         >
           Back to home
@@ -62,7 +65,7 @@ export const BinCataloguePage = () => {
         <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
           What goes where?
         </h1>
-        <p className="text-body-muted mt-3 max-w-2xl text-base leading-7">
+        <p className="mt-3 max-w-2xl text-base leading-7 text-body-muted">
           Search an item to find out which Hamilton bin it belongs in. Browse
           the full Council sorter below.
         </p>
@@ -86,7 +89,7 @@ export const BinCataloguePage = () => {
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               aria-pressed={selectedBin === null}
-              className={`focus-visible:outline-focus-leaf rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 ${selectedBin === null ? "border-focus-leaf bg-highlight text-ink" : "border-sage-border bg-panel text-ink hover:border-forest"}`}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-leaf ${selectedBin === null ? "border-focus-leaf bg-highlight text-ink" : "border-sage-border bg-panel text-ink hover:border-forest"}`}
               onClick={() => setSelectedBin(null)}
               type="button"
             >
@@ -95,7 +98,7 @@ export const BinCataloguePage = () => {
             {BIN_TYPES.map((bin) => (
               <button
                 aria-pressed={selectedBin === bin}
-                className={`focus-visible:outline-focus-leaf rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 ${selectedBin === bin ? "border-focus-leaf bg-highlight text-ink" : "border-sage-border bg-panel text-ink hover:border-forest"}`}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-leaf ${selectedBin === bin ? "border-focus-leaf bg-highlight text-ink" : "border-sage-border bg-panel text-ink hover:border-forest"}`}
                 key={bin}
                 onClick={() => setSelectedBin(bin)}
                 type="button"
@@ -106,7 +109,7 @@ export const BinCataloguePage = () => {
           </div>
         </fieldset>
 
-        <p aria-live="polite" className="text-copy-muted mt-4 text-sm">
+        <p aria-live="polite" className="mt-4 text-sm text-copy-muted">
           {resultSummary}
         </p>
 
@@ -118,7 +121,7 @@ export const BinCataloguePage = () => {
           </ul>
         )}
 
-        <p className="text-copy-muted mt-8 text-xs leading-5">
+        <p className="mt-8 text-xs leading-5 text-copy-muted">
           Checked{" "}
           {verificationDateFormatter.format(
             new Date(`${BIN_ITEM_SOURCE.verifiedOn}T12:00:00Z`)

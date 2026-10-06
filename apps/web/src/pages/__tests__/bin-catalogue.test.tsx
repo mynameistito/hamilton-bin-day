@@ -7,7 +7,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   LINCOLN_FACILITIES,
@@ -22,7 +22,7 @@ import { BinCataloguePage } from "@/pages/bin-catalogue";
 describe("bin catalogue page", () => {
   afterEach(cleanup);
 
-  test("shows the full Council catalogue with a destination for each item", () => {
+  it("shows the full Council catalogue with a destination for each item", () => {
     render(<BinCataloguePage />);
 
     expect(
@@ -34,7 +34,7 @@ describe("bin catalogue page", () => {
     ).toBeGreaterThan(0);
   });
 
-  test("filters items and displays the matching glass crate photo", () => {
+  it("filters items and displays the matching glass crate photo", () => {
     render(<BinCataloguePage />);
     fireEvent.change(
       screen.getByRole("searchbox", { name: "Search all items" }),
@@ -61,7 +61,7 @@ describe("bin catalogue page", () => {
     });
   });
 
-  test("filters catalogue entries by bin type and combines with search", () => {
+  it("filters catalogue entries by bin type and combines with search", () => {
     render(<BinCataloguePage />);
 
     for (const bin of BIN_TYPES) {
@@ -101,7 +101,7 @@ describe("bin catalogue page", () => {
     });
   });
 
-  test("explains when an active bin filter hides search matches", () => {
+  it("explains when an active bin filter hides search matches", () => {
     render(<BinCataloguePage />);
     fireEvent.change(
       screen.getByRole("searchbox", { name: "Search all items" }),
@@ -120,7 +120,7 @@ describe("bin catalogue page", () => {
     ).toBeTruthy();
   });
 
-  test("links Lincoln facility notes to their Google Maps location", () => {
+  it("links Lincoln facility notes to their Google Maps location", () => {
     render(<BinCataloguePage />);
 
     const facilities = Object.values(LINCOLN_FACILITIES);
@@ -160,7 +160,7 @@ describe("bin catalogue page", () => {
     });
   });
 
-  test("links soft plastics stores and scheme website in catalogue notes", () => {
+  it("links soft plastics stores and scheme website in catalogue notes", () => {
     render(<BinCataloguePage />);
 
     const participatingStoreNotes = BIN_ITEMS.filter((item) =>
@@ -227,7 +227,7 @@ describe("bin catalogue page", () => {
     ).toBeTruthy();
   });
 
-  test("labels non-kerbside disposal without assigning a bin photo", () => {
+  it("labels non-kerbside disposal without assigning a bin photo", () => {
     render(<BinCataloguePage />);
     fireEvent.change(
       screen.getByRole("searchbox", { name: "Search all items" }),

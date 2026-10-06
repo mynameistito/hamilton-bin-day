@@ -63,6 +63,9 @@ const lookup = async (address: string): Promise<LookupState> => {
   return { kind: "success", schedule: result.schedule };
 };
 
+/** Coordinate address submission, lookup state, and remembered-address updates.
+ * @returns Address state and lookup actions for the calling component.
+ */
 export const useAddressLookup = () => {
   const [address, setAddress] = useState(() => {
     const query = new URLSearchParams(window.location.search).get("query");

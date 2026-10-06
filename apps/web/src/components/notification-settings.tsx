@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { RefObject } from "react";
 
 import { useReminderDelivery } from "@/hooks/use-reminder-delivery";
@@ -65,7 +65,9 @@ const describeReminderStatus = (
   return deliveryActive ? "Reminders are on." : "Setting up your reminders…";
 };
 
-/** Render consent, schedule, and delivery status for bin-day reminders. */
+/** Render consent, schedule, and delivery status for bin-day reminders.
+ * @returns The reminder settings dialog content, or `null` when unavailable.
+ */
 export const NotificationSettings = ({
   schedule,
   cancelMissingSchedule,
@@ -97,12 +99,21 @@ export const NotificationSettings = ({
     storageAvailable,
     save
   );
-  const timeZone = readDeviceTimeZone();
+  const [timeZone, setTimeZone] = useState(readDeviceTimeZone);
+  const [today, setToday] = useState(() => new Date());
+  useEffect(() => {
+    const refreshPreviewContext = () => {
+      setToday(new Date());
+      setTimeZone(readDeviceTimeZone());
+    };
+    const interval = window.setInterval(refreshPreviewContext, 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
   let collectionDate = schedule?.nextCollection.date;
   if (
     schedule &&
     preferences.leadDays === 7 &&
-    daysUntilCollection(schedule.nextCollection.date, new Date()) < 7
+    daysUntilCollection(schedule.nextCollection.date, today) < 7
   ) {
     collectionDate =
       schedule.nextCollection.type === "red"
@@ -139,7 +150,7 @@ export const NotificationSettings = ({
       id="notification-settings-dialog"
       ref={dialogRef}
     >
-      <section className="border-card-border bg-surface text-ink h-dvh max-h-none w-full overflow-y-auto rounded-none border p-5 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-lg sm:rounded-3xl sm:p-6">
+      <section className="h-dvh max-h-none w-full overflow-y-auto rounded-none border border-card-border bg-surface p-5 text-ink shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-lg sm:rounded-3xl sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2
@@ -148,13 +159,13 @@ export const NotificationSettings = ({
             >
               Bin-day reminders
             </h2>
-            <p className="text-copy-muted mt-2 text-sm leading-6">
+            <p className="mt-2 text-sm leading-6 text-copy-muted">
               Choose when to get a notification before collection.
             </p>
           </div>
           <button
             aria-label="Close reminder settings"
-            className="border-sage-border bg-surface text-step-copy focus-visible:outline-focus-leaf hover:bg-panel inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border text-xl transition focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-sage-border bg-surface text-xl text-step-copy transition hover:bg-panel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-leaf"
             onClick={() => dialogRef.current?.close()}
             type="button"
           >
@@ -164,8 +175,10 @@ export const NotificationSettings = ({
         <label className="mt-5 inline-flex min-h-11 cursor-pointer items-center gap-3 font-semibold">
           <input
             checked={preferences.enabled}
-            className="accent-forest size-5"
+            className="size-5 accent-forest"
             onChange={(event) => {
+              setToday(new Date());
+              setTimeZone(readDeviceTimeZone());
               if (event.target.checked) {
                 void enableReminders();
               } else {
@@ -181,9 +194,11 @@ export const NotificationSettings = ({
           <label className="text-sm font-medium">
             Remind me
             <select
-              className="border-sage-border bg-panel text-ink mt-2 min-h-11 w-full rounded-xl border px-3 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 min-h-11 w-full rounded-xl border border-sage-border bg-panel px-3 text-ink disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!preferences.enabled}
               onChange={(event) => {
+                setToday(new Date());
+                setTimeZone(readDeviceTimeZone());
                 const saved = save({
                   ...preferences,
                   leadDays: leadDaysFromValue(event.target.value),
@@ -203,9 +218,11 @@ export const NotificationSettings = ({
           <label className="text-sm font-medium">
             At my local time
             <input
-              className="border-sage-border bg-panel text-ink mt-2 min-h-11 w-full rounded-xl border px-3 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 min-h-11 w-full rounded-xl border border-sage-border bg-panel px-3 text-ink disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!preferences.enabled}
               onChange={(event) => {
+                setToday(new Date());
+                setTimeZone(readDeviceTimeZone());
                 if (event.target.value) {
                   setTimeInputMessage("");
                   const saved = save({
@@ -227,7 +244,7 @@ export const NotificationSettings = ({
               value={preferences.localTime}
             />
             {timeInputMessage && (
-              <output className="text-copy-muted mt-1 block text-xs">
+              <output className="mt-1 block text-xs text-copy-muted">
                 {timeInputMessage}
               </output>
             )}
@@ -235,7 +252,7 @@ export const NotificationSettings = ({
         </div>
 
         {reminder && (
-          <p className="bg-panel mt-4 rounded-xl p-4 text-sm">
+          <p className="mt-4 rounded-xl bg-panel p-4 text-sm">
             Next reminder: {formatCollectionDate(reminder.scheduledLocalDate)}{" "}
             at {reminder.scheduledLocalTime}.
           </p>
@@ -243,12 +260,12 @@ export const NotificationSettings = ({
 
         <div
           aria-live="polite"
-          className="bg-panel mt-4 rounded-xl p-3 text-sm"
+          className="mt-4 rounded-xl bg-panel p-3 text-sm"
         >
           <output>{statusMessage}</output>
         </div>
 
-        <p className="text-copy-muted mt-4 text-xs leading-5">
+        <p className="mt-4 text-xs leading-5 text-copy-muted">
           Reminders continue each week until you turn them off. Dates are
           projected from your latest lookup, so exceptional Council changes
           require a fresh lookup. Works on Android and desktop. On iPhone or

@@ -1,5 +1,5 @@
 import { decodeUnknownSync } from "effect/Schema";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { CollectionDatesResultsSchema } from "@/council-schema";
 
@@ -14,19 +14,19 @@ const validCollection = {
 describe("Council collection response schema", () => {
   const decodeCollections = decodeUnknownSync(CollectionDatesResultsSchema);
 
-  test("accepts valid collection dates and day numbers", () => {
+  it("accepts valid collection dates and day numbers", () => {
     expect(decodeCollections([validCollection])).toStrictEqual([
       validCollection,
     ]);
   });
 
-  test("rejects invalid calendar dates", () => {
+  it("rejects invalid calendar dates", () => {
     expect(() =>
       decodeCollections([{ ...validCollection, RedBin: "2026-02-30T00:00:00" }])
     ).toThrow(/./u);
   });
 
-  test.each([
+  it.each([
     "not-a-date",
     "2026-09-21T24:00:00",
     "2026-09-21T00:60:00",
@@ -37,13 +37,13 @@ describe("Council collection response schema", () => {
     );
   });
 
-  test("rejects a day outside the council's Monday-to-Sunday range", () => {
+  it("rejects a day outside the council's Monday-to-Sunday range", () => {
     expect(() =>
       decodeCollections([{ ...validCollection, CollectionDay: 8 }])
     ).toThrow(/./u);
   });
 
-  test("rejects a non-integer collection day", () => {
+  it("rejects a non-integer collection day", () => {
     expect(() =>
       decodeCollections([{ ...validCollection, CollectionDay: 1.5 }])
     ).toThrow(/./u);

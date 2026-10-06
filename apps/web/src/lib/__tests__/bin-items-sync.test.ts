@@ -4,7 +4,7 @@ import {
   planCatalogueSync,
   renderCatalogue,
 } from "@web-scripts/sync-hcc-bin-items";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { BIN_ITEMS, BIN_ITEM_SOURCE } from "@/lib/bin-items";
 import catalogue from "@/lib/bin-items-data.json" with { type: "json" };
@@ -17,7 +17,7 @@ const detail = {
     '<img src="/SorterGlassCrate.png"/>',
     "<h3>Glass jars &amp; bottles</h3>",
     "<h4>This item goes into your glass recycling crate.</h4>",
-    "<small><p>Remove lids&nbsp;and rinse.</p></small>",
+    "<small><p>Remove lids&nbsp;<span/>and rinse.</p></small>",
   ].join(""),
 };
 
@@ -35,7 +35,7 @@ const failingFetch: typeof fetch = async (input, init) => {
 };
 
 describe("Council sorter catalogue sync", () => {
-  test("renders the checked-in catalogue in the same canonical format", () => {
+  it("renders the checked-in catalogue in the same canonical format", () => {
     const content = `${JSON.stringify(catalogue, null, 2)}\n`;
     expect(
       renderCatalogue({
@@ -45,7 +45,7 @@ describe("Council sorter catalogue sync", () => {
     ).toBe(content);
   });
 
-  test("normalizes HTML entities, whitespace, category, destination and notes", () => {
+  it("normalizes HTML entities, whitespace, category, destination and notes", () => {
     expect(parseSorterDetail(listingItem, detail)).toStrictEqual({
       id: 42,
       item: "Glass jars & bottles",
@@ -55,7 +55,7 @@ describe("Council sorter catalogue sync", () => {
     });
   });
 
-  test("preserves bare ampersands in catalogue names", () => {
+  it("preserves bare ampersands in catalogue names", () => {
     const listing = { id: 44, text: "M&M's" };
     const response = {
       success: true,
@@ -70,7 +70,7 @@ describe("Council sorter catalogue sync", () => {
     expect(parseSorterDetail(listing, response).item).toBe("M&M's");
   });
 
-  test("fails safely for failed details, unknown categories, and name or destination mismatches", () => {
+  it("fails safely for failed details, unknown categories, and name or destination mismatches", () => {
     expect(() =>
       parseSorterDetail(listingItem, { ...detail, success: false })
     ).toThrow("detail failed");
@@ -97,7 +97,7 @@ describe("Council sorter catalogue sync", () => {
     ).toThrow("listing/detail mismatch");
   });
 
-  test("checks and updates through the injected fetch seam", async () => {
+  it("checks and updates through the injected fetch seam", async () => {
     const calls: Request[] = [];
     const fetcher: typeof fetch = (input, init) => {
       const request = new Request(input, init);
@@ -136,7 +136,7 @@ describe("Council sorter catalogue sync", () => {
     });
   });
 
-  test("does not produce a partial catalogue if a detail fetch fails", async () => {
+  it("does not produce a partial catalogue if a detail fetch fails", async () => {
     await expect(
       fetchCouncilCatalogue(failingFetch, "2026-10-03")
     ).rejects.toThrow("detail request failed for item 43");

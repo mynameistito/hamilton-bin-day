@@ -27,7 +27,7 @@ const hasConflictingKerbsideGuidance = (itemId: number): boolean =>
 
 const KerbsideGuidanceNotice = () => (
   <p
-    className="text-copy-muted bg-panel border-sage-border mt-2 rounded-lg border px-3 py-2 text-xs leading-5"
+    className="mt-2 rounded-lg border border-sage-border bg-panel px-3 py-2 text-xs leading-5 text-copy-muted"
     role="note"
   >
     Council sources conflict on takeaway containers: the sorter lists them as
@@ -121,10 +121,10 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
       onKeyDown={handleKeyDown}
       ref={dialogRef}
     >
-      <section className="border-card-border bg-surface text-ink h-dvh max-h-none w-full overflow-y-auto rounded-none border p-5 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-lg sm:rounded-3xl sm:p-6">
+      <section className="h-dvh max-h-none w-full overflow-y-auto rounded-none border border-card-border bg-surface p-5 text-ink shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-lg sm:rounded-3xl sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-caption text-xs font-bold tracking-wide uppercase">
+            <p className="text-xs font-bold tracking-wide text-caption uppercase">
               Bin help
             </p>
             <h2 className="mt-1 text-xl font-semibold" id="bin-help-title">
@@ -145,7 +145,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
           Search the full catalogue
         </label>
         <input
-          className="border-sage-border bg-panel focus-visible:outline-focus-leaf mt-2 min-h-12 w-full rounded-xl border px-4 py-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="mt-2 min-h-12 w-full rounded-xl border border-sage-border bg-panel px-4 py-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-leaf"
           id="bin-item-search"
           onChange={(event) => setQuery(event.currentTarget.value)}
           placeholder="e.g. glass bottles"
@@ -170,7 +170,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
         )}
 
         <a
-          className="text-sage-dark mt-3 inline-block text-sm font-semibold underline underline-offset-2"
+          className="mt-3 inline-block text-sm font-semibold text-sage-dark underline underline-offset-2"
           href="/what-goes-where"
         >
           Browse the full catalogue
@@ -204,13 +204,13 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
           </>
         )}
         {showNoGuidance && (
-          <p className="text-copy-muted mt-2 text-sm leading-6">
+          <p className="mt-2 text-sm leading-6 text-copy-muted">
             The Council sorter has no listed items for this bin. Search the
             catalogue below or visit Hamilton City Council for current advice.
           </p>
         )}
 
-        <p className="text-copy-muted mt-5 text-xs leading-5">
+        <p className="mt-5 text-xs leading-5 text-copy-muted">
           Checked{" "}
           {verificationDateFormatter.format(
             new Date(`${BIN_ITEM_SOURCE.verifiedOn}T12:00:00Z`)
@@ -231,7 +231,9 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
   );
 };
 
-/** Render a per-bin help trigger and its dismissible item guide. */
+/** Render a per-bin help trigger and its dismissible item guide.
+ * @returns The help trigger and guide.
+ */
 const BinHelpControl = ({ bin, binName }: BinHelpControlProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);

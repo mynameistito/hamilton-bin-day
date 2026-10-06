@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   BIN_ITEMS,
@@ -9,13 +9,13 @@ import {
 } from "@/lib/bin-items";
 
 describe("verified bin item lookup", () => {
-  test("finds item names without case or surrounding-space sensitivity", () => {
+  it("finds item names without case or surrounding-space sensitivity", () => {
     expect(
       searchBinItems("  aLuMiNiUm cans ").map(({ item }) => item)
     ).toStrictEqual(["Aluminium cans"]);
   });
 
-  test("returns the Council destination and handling notes for matches", () => {
+  it("returns the Council destination and handling notes for matches", () => {
     expect(searchBinItems("formula")[0]).toMatchObject({
       item: "Baby formula tins (remove lid and scoop)",
       bin: "yellow",
@@ -27,14 +27,14 @@ describe("verified bin item lookup", () => {
     );
   });
 
-  test("finds Council handling advice for non-kerbside disposal", () => {
+  it("finds Council handling advice for non-kerbside disposal", () => {
     expect(searchBinItems("batteries").map(({ bin }) => bin)).toContain(
       "other"
     );
     expect(searchBinItems(" ")).toStrictEqual([]);
   });
 
-  test("preserves the current sorter result for entries 231 and 232", () => {
+  it("preserves the current sorter result for entries 231 and 232", () => {
     expect(
       BIN_ITEMS.filter(({ id }) => id === 231 || id === 232).map(
         ({ id, bin, destination }) => ({ id, bin, destination })
@@ -53,7 +53,7 @@ describe("verified bin item lookup", () => {
     ]);
   });
 
-  test("maps only known Council bin labels", () => {
+  it("maps only known Council bin labels", () => {
     expect(binTypeFromName("Glass recycling crate")).toBe("glass");
     expect(binTypeFromName("RED BIN")).toBe("red");
     expect(binTypeFromName("Covered container")).toBeNull();
@@ -61,11 +61,11 @@ describe("verified bin item lookup", () => {
     expect(binTypeName("food-scraps")).toBe("food scraps bin");
   });
 
-  test("maps the human-readable other label back to its bin type", () => {
+  it("maps the human-readable other label back to its bin type", () => {
     expect(binTypeFromName(binTypeName("other"))).toBe("other");
   });
 
-  test("records a complete checked Council catalogue with stable IDs", () => {
+  it("records a complete checked Council catalogue with stable IDs", () => {
     expect({
       url: BIN_ITEM_SOURCE.url,
       verifiedOn: /^\d{4}-\d{2}-\d{2}$/u.test(BIN_ITEM_SOURCE.verifiedOn),

@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createRef } from "react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, vi, it } from "vitest";
 
 import { NotificationSettings } from "@/components/notification-settings";
 import { NOTIFICATION_PREFERENCES_KEY } from "@/lib/notifications";
@@ -75,7 +75,7 @@ describe("reminder settings dialog", () => {
     );
   });
 
-  test("hides the reminder entry point when web push is unsupported", () => {
+  it("hides the reminder entry point when web push is unsupported", () => {
     vi.stubGlobal("Notification", { permission: "default" });
     const dialogRef = createRef<HTMLDialogElement>();
 
@@ -90,7 +90,7 @@ describe("reminder settings dialog", () => {
     expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
   });
 
-  test("keeps the settings in a dialog and explains Android, desktop, and iOS support", () => {
+  it("keeps the settings in a dialog and explains Android, desktop, and iOS support", () => {
     vi.stubGlobal("Notification", {
       permission: "default",
       requestPermission: vi.fn<() => Promise<NotificationPermission>>(),
@@ -115,10 +115,10 @@ describe("reminder settings dialog", () => {
     );
 
     const dialog = screen.getByRole("dialog", { hidden: true });
-    expect(
-      dialog.classList.contains("hidden") &&
-        dialog.classList.contains("open:grid")
-    ).toBeTruthy();
+    expect({
+      hidden: dialog.classList.contains("hidden"),
+      gridWhenOpen: dialog.classList.contains("open:grid"),
+    }).toStrictEqual({ hidden: true, gridWhenOpen: true });
     dialogRef.current?.showModal();
 
     expect(dialog.hasAttribute("open")).toBeTruthy();
@@ -133,7 +133,7 @@ describe("reminder settings dialog", () => {
     expect(dialog.hasAttribute("open")).toBeFalsy();
   });
 
-  test("previews the following collection for a seven-day reminder that is too close", () => {
+  it("previews the following collection for a seven-day reminder that is too close", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-01T00:00:00.000Z"));
     vi.stubGlobal("Notification", {

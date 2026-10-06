@@ -37,7 +37,9 @@ const readPermissionState = (): NotificationPermissionState => {
   });
 };
 
-/** Whether this secure browser exposes the APIs needed for web push. */
+/** Whether this secure browser exposes the APIs needed for web push.
+ * @returns Whether reminder delivery APIs are available.
+ */
 export const isReminderBrowserSupported = (): boolean => {
   const permission = readPermissionState();
   return permission !== "unsupported" && permission !== "insecure";
@@ -122,7 +124,11 @@ const STORAGE_CLEANUP_FAILED =
 const REMINDER_ENABLED_MESSAGE =
   "Reminders are enabled for the schedule shown. The server stores the push subscription and schedule preferences, not your address.";
 
-/** Delete the server record and browser subscription using the active or cached endpoint. */
+/** Delete the server record and browser subscription using the active or cached endpoint.
+ * @param subscription - Active browser subscription, if available.
+ * @param isCurrent - Whether this async operation still belongs to the active view.
+ * @returns The result of the cleanup attempt.
+ */
 const cleanupPushSubscription = async (
   subscription: PushSubscription | null,
   isCurrent: () => boolean = () => true
@@ -319,7 +325,6 @@ const getOrCreatePushSubscription = async (
       return null;
     }
   }
-  // oxlint-disable-next-line react-doctor/effect-needs-cleanup -- SAFETY: The subscription is unsubscribed if consent changes before enrollment completes.
   const created = await registration.pushManager.subscribe({
     applicationServerKey: expectedKey,
     userVisibleOnly: true,
@@ -331,7 +336,14 @@ const getOrCreatePushSubscription = async (
   return created;
 };
 
-/** Manage explicit browser push consent and synchronize the address-free delivery snapshot. */
+/** Manage explicit browser push consent and synchronize the address-free delivery snapshot.
+ * @param schedule - Current collection dates and bin information.
+ * @param cancelMissingSchedule - Whether delivery should be removed when no schedule exists.
+ * @param preferences - User reminder settings.
+ * @param storageAvailable - Whether preferences can be saved on this device.
+ * @param savePreferences - Persist updated preferences.
+ * @returns Delivery state and actions for managing browser push reminders.
+ */
 export const useReminderDelivery = (
   schedule: ScheduleResponse | null,
   cancelMissingSchedule: boolean,
@@ -547,6 +559,8 @@ export const useReminderDelivery = (
       }
       mutationVersion.current += 1;
       const operationVersion = mutationVersion.current;
+      const isOperationCurrent = () =>
+        active && operationVersion === mutationVersion.current;
       const removeMissingSchedule = async () => {
         await enqueuePushMutation(async () => {
           if (!active || operationVersion !== mutationVersion.current) {
@@ -561,7 +575,7 @@ export const useReminderDelivery = (
             }
             const cleanup = await cleanupPushSubscription(
               subscription,
-              () => active && operationVersion === mutationVersion.current
+              isOperationCurrent
             );
             if (!active || operationVersion !== mutationVersion.current) {
               return;
@@ -599,6 +613,8 @@ export const useReminderDelivery = (
     }
     mutationVersion.current += 1;
     const operationVersion = mutationVersion.current;
+    const isOperationCurrent = () =>
+      active && operationVersion === mutationVersion.current;
     const syncSchedule = async () => {
       await enqueuePushMutation(async () => {
         if (!active || operationVersion !== mutationVersion.current) {
@@ -617,7 +633,7 @@ export const useReminderDelivery = (
               null,
               synchronizedPreferences,
               savePreferences,
-              () => active && operationVersion === mutationVersion.current
+              isOperationCurrent
             );
             reportMissingSubscription(
               cleanup,
@@ -635,7 +651,7 @@ export const useReminderDelivery = (
               subscription,
               synchronizedPreferences,
               savePreferences,
-              () => active && operationVersion === mutationVersion.current
+              isOperationCurrent
             );
             if (!active || operationVersion !== mutationVersion.current) {
               return;

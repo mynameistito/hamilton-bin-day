@@ -127,7 +127,7 @@ const textFromHtml = (value: string): string =>
       value
         .replaceAll(/<!--.*?-->/gsu, " ")
         .replaceAll(/<\/?(?:br|div|p|li|ul|ol|h[1-6])\b[^>]*>/giu, " ")
-        .replaceAll(/<[^>]*>/gu, " ")
+        .replaceAll(/<\/?[A-Za-z][^<>]*>/gu, " ")
     )
   );
 
@@ -137,7 +137,11 @@ const sectionText = (html: string, tag: "h3" | "h4" | "small"): string => {
   return match?.[1] ? textFromHtml(match[1]) : "";
 };
 
-/** Parse one Council sorter detail response into a normalized catalogue item. */
+/** Parse one Council sorter detail response into a normalized catalogue item.
+ * @param listingItem - Item metadata from the Council listing endpoint.
+ * @param detail - Item detail returned by the Council sorter.
+ * @returns The normalized item for the local catalogue.
+ */
 export const parseSorterDetail = (
   listingItem: SorterListingItem,
   detail: CouncilSorterDetail
@@ -217,7 +221,11 @@ const fetchItemDetail = async (
   return parseSorterDetail(listingItem, detail);
 };
 
-/** Fetch the full official listing and every item detail, failing on partial data. */
+/** Fetch the full official listing and every item detail, failing on partial data.
+ * @param fetcher - Fetch implementation for the Council API requests.
+ * @param checkedOn - Verification date to record in the catalogue.
+ * @returns The complete normalized Council catalogue.
+ */
 export const fetchCouncilCatalogue = async (
   fetcher: typeof fetch,
   checkedOn: string
@@ -265,7 +273,10 @@ export const fetchCouncilCatalogue = async (
   return { checkedOn, items: await fetchBatches() };
 };
 
-/** Render the deterministic JSON representation written to the web catalogue. */
+/** Render the deterministic JSON representation written to the web catalogue.
+ * @param catalogue - Verified listing and detail records.
+ * @returns Stable, formatted JSON with a trailing newline.
+ */
 export const renderCatalogue = ({
   checkedOn,
   items,
@@ -276,7 +287,12 @@ export const renderCatalogue = ({
     2
   )}\n`;
 
-/** Plan a check-only or update result without performing filesystem writes. */
+/** Plan a check-only or update result without performing filesystem writes.
+ * @param current - Existing serialized catalogue.
+ * @param next - Newly fetched catalogue data.
+ * @param checkOnly - Whether to report changes without writing.
+ * @returns The planned content and user-facing result message.
+ */
 export const planCatalogueSync = (
   current: string,
   next: CouncilCatalogue,

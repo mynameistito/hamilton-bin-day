@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   daysUntilCollection,
@@ -20,26 +20,26 @@ const fridaySchedule: ScheduleResponse = {
 };
 
 describe(formatCollectionDate, () => {
-  test("formats a collection date with its weekday and month", () => {
+  it("formats a collection date with its weekday and month", () => {
     expect(formatCollectionDate("2026-09-25")).toContain("September");
     expect(formatCollectionDate("2026-09-25")).toContain("Friday");
   });
 });
 
 describe(daysUntilCollection, () => {
-  test("calculates days using calendar dates rather than the current time", () => {
+  it("calculates days using calendar dates rather than the current time", () => {
     expect(
       daysUntilCollection("2026-09-28", new Date("2026-09-25T11:50:00Z"))
     ).toBe(3);
   });
 
-  test("returns zero on collection day", () => {
+  it("returns zero on collection day", () => {
     expect(
       daysUntilCollection("2026-09-25", new Date("2026-09-25T08:00:00"))
     ).toBe(0);
   });
 
-  test("uses Hamilton's calendar date around local midnight", () => {
+  it("uses Hamilton's calendar date around local midnight", () => {
     expect(
       daysUntilCollection("2026-10-02", new Date("2026-10-01T10:59:00Z"))
     ).toBe(1);
@@ -48,7 +48,7 @@ describe(daysUntilCollection, () => {
     ).toBe(0);
   });
 
-  test("counts calendar days across the end of daylight saving", () => {
+  it("counts calendar days across the end of daylight saving", () => {
     expect(
       daysUntilCollection("2026-04-10", new Date("2026-04-05T14:30:00Z"))
     ).toBe(4);
@@ -56,7 +56,7 @@ describe(daysUntilCollection, () => {
 });
 
 describe(resolveNextCollection, () => {
-  test.each([
+  it.each([
     ["before collection day", "2026-10-01T10:59:00Z", "2026-10-02", "red"],
     ["on collection day", "2026-10-01T11:00:00Z", "2026-10-02", "red"],
     [
@@ -77,7 +77,7 @@ describe(resolveNextCollection, () => {
     }
   );
 
-  test("advances all schedule details together after the displayed date passes", () => {
+  it("advances all schedule details together after the displayed date passes", () => {
     const schedule = resolveNextCollection(
       fridaySchedule,
       new Date("2026-10-03T12:00:00Z")
@@ -94,7 +94,7 @@ describe(resolveNextCollection, () => {
     });
   });
 
-  test("advances correctly across a month and year boundary", () => {
+  it("advances correctly across a month and year boundary", () => {
     const schedule = resolveNextCollection(
       {
         ...fridaySchedule,
@@ -116,7 +116,7 @@ describe(resolveNextCollection, () => {
     });
   });
 
-  test("keeps the upcoming week correct through Hamilton's daylight-saving change", () => {
+  it("keeps the upcoming week correct through Hamilton's daylight-saving change", () => {
     const now = new Date("2026-04-05T14:30:00Z");
     const schedule = resolveNextCollection(
       {

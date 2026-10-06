@@ -1,13 +1,46 @@
 import { readFile } from "node:fs/promises";
-import { runInNewContext } from "node:vm";
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
+
+import { registerServiceWorker } from "@/service-worker-runtime.js";
 
 const readAppFile = (relativePath: string): Promise<string> =>
   readFile(new URL(relativePath, import.meta.url), "utf-8");
 
+interface FetchEvent {
+  readonly request: {
+    readonly method: string;
+    readonly mode: string;
+    readonly url: string;
+  };
+  respondWith: (response: Promise<Response>) => void;
+}
+
+const makeFetchWorker = (
+  fetch: (request: FetchEvent["request"]) => Promise<Response>,
+  caches: {
+    readonly match: (request: Request | string) => Response | undefined;
+    readonly open: () => { readonly put: () => Promise<void> };
+  }
+) => {
+  const fetchHandlers: ((event: FetchEvent) => void)[] = [];
+  registerServiceWorker({
+    Response,
+    URL,
+    caches,
+    fetch,
+    location: { origin: "https://example.test" },
+    addEventListener: (type: string, handler: (event: FetchEvent) => void) => {
+      if (type === "fetch") {
+        fetchHandlers.push(handler);
+      }
+    },
+  });
+  return fetchHandlers[0];
+};
+
 describe("PWA app shell", () => {
-  test("declares install metadata and registers the root service worker", async () => {
+  it("declares install metadata and registers the root service worker", async () => {
     const [manifestSource, html, main, buildScript, networkStatus] =
       await Promise.all([
         readAppFile("../../public/manifest.webmanifest"),
@@ -51,11 +84,13 @@ describe("PWA app shell", () => {
         /<meta\s+name="apple-mobile-web-app-status-bar-style"\s+content="black"\s*\/>/u.test(
           html
         ),
-      registersServiceWorker: main.includes('.register("/sw.js")'),
+      registersServiceWorker: main.includes(
+        '.register(\n      "/sw.js",\n      import.meta.env.DEV ? { type: "module" } : undefined'
+      ),
       detectsWaitingUpdates:
         main.includes("if (registration.waiting)") &&
         main.includes("let updatePending = false"),
-      sortsBuildAssets: buildScript.includes("assetFiles.sort()"),
+      sortsBuildAssets: buildScript.includes("assetFiles.toSorted()"),
       validatesPlaceholders: buildScript.includes(
         "Expected exactly one service-worker placeholder"
       ),
@@ -73,8 +108,8 @@ describe("PWA app shell", () => {
     });
   });
 
-  test("precaches the app shell and falls back to it for offline navigation", async () => {
-    const serviceWorker = await readAppFile("../../public/sw.js");
+  it("precaches the app shell and falls back to it for offline navigation", async () => {
+    const serviceWorker = await readAppFile("../service-worker-runtime.js");
 
     expect({
       precachesRoot: serviceWorker.includes('"/"'),
@@ -103,11 +138,11 @@ describe("PWA app shell", () => {
     });
   });
 
-  test("requests permission only from explicit reminder opt-in and syncs consent to the worker", async () => {
+  it("requests permission only from explicit reminder opt-in and syncs consent to the worker", async () => {
     const [settings, deliveryHook, serviceWorker] = await Promise.all([
       readAppFile("../components/notification-settings.tsx"),
       readAppFile("../hooks/use-reminder-delivery.ts"),
-      readAppFile("../../public/sw.js"),
+      readAppFile("../service-worker-runtime.js"),
     ]);
     const enableStart = deliveryHook.indexOf("const enableReminders = async");
     const disableStart = deliveryHook.indexOf("const disableReminders = async");
@@ -153,48 +188,15 @@ describe("PWA app shell", () => {
     });
   });
 
-  test("returns a network response when caching it fails", async () => {
-    const serviceWorker = await readAppFile("../../public/sw.js");
-    interface FetchEvent {
-      readonly request: {
-        readonly method: string;
-        readonly mode: string;
-        readonly url: string;
-      };
-      respondWith: (response: Promise<Response>) => void;
-    }
-
-    const fetchHandlers: ((event: FetchEvent) => void)[] = [];
-    const self = {
-      addEventListener: (
-        type: string,
-        handler: (event: FetchEvent) => void
-      ) => {
-        if (type === "fetch") {
-          fetchHandlers.push(handler);
-        }
-      },
-      location: { origin: "https://example.test" },
-    };
+  it("keeps network navigation responses when the cache is unavailable", async () => {
     const networkResponse = new Response("network response");
-    const caches = {
-      open: () => ({
-        put: () => {
-          throw new Error("storage full");
-        },
-      }),
-    };
-
-    // oxlint-disable-next-line sonarjs/code-eval -- SAFETY: This executes the checked-in service-worker source in a controlled test scope to verify its fetch behavior.
-    runInNewContext(serviceWorker, {
-      Response,
-      URL,
-      caches,
-      fetch: () => Promise.resolve(networkResponse),
-      self,
-    });
-
-    const [fetchHandler] = fetchHandlers;
+    const fetchHandler = makeFetchWorker(
+      () => Promise.resolve(networkResponse),
+      {
+        match: () => {},
+        open: () => ({ put: () => Promise.reject(new Error("storage full")) }),
+      }
+    );
     expect(fetchHandler).toBeTypeOf("function");
     if (!fetchHandler) {
       return;
@@ -211,52 +213,18 @@ describe("PWA app shell", () => {
         response = value;
       },
     });
-    expect(response).toBeDefined();
-    if (!response) {
-      return;
-    }
     await expect(response).resolves.toBe(networkResponse);
   });
 
-  test("returns the app shell for an offline navigation", async () => {
-    const serviceWorker = await readAppFile("../../public/sw.js");
-    interface FetchEvent {
-      readonly request: {
-        readonly method: string;
-        readonly mode: string;
-        readonly url: string;
-      };
-      respondWith: (response: Promise<Response>) => void;
-    }
-
-    const fetchHandlers: ((event: FetchEvent) => void)[] = [];
-    const self = {
-      addEventListener: (
-        type: string,
-        handler: (event: FetchEvent) => void
-      ) => {
-        if (type === "fetch") {
-          fetchHandlers.push(handler);
-        }
-      },
-      location: { origin: "https://example.test" },
-    };
+  it("falls back to the cached app shell when navigation is offline", async () => {
     const appShell = new Response("app shell");
-    const caches = {
-      match: (request: Request | string) =>
-        request === "/" ? appShell : undefined,
-    };
-
-    // oxlint-disable-next-line sonarjs/code-eval -- SAFETY: This executes the checked-in service-worker source in a controlled test scope to verify its fetch behavior.
-    runInNewContext(serviceWorker, {
-      Response,
-      URL,
-      caches,
-      fetch: () => Promise.reject(new Error("offline")),
-      self,
-    });
-
-    const [fetchHandler] = fetchHandlers;
+    const fetchHandler = makeFetchWorker(
+      () => Promise.reject(new Error("offline")),
+      {
+        match: (request) => (request === "/" ? appShell : undefined),
+        open: () => ({ put: () => Promise.resolve() }),
+      }
+    );
     expect(fetchHandler).toBeTypeOf("function");
     if (!fetchHandler) {
       return;
@@ -273,10 +241,6 @@ describe("PWA app shell", () => {
         response = value;
       },
     });
-    expect(response).toBeDefined();
-    if (!response) {
-      return;
-    }
     await expect(response).resolves.toBe(appShell);
   });
 });

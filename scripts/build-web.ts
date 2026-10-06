@@ -9,9 +9,9 @@ const docsOutput = path.resolve(import.meta.dir, "../apps/docs/dist");
 const webOutput = path.resolve(webDirectory, "dist");
 
 await $`bun x vite build`.cwd(webDirectory);
+await $`bun build ${path.resolve(webDirectory, "src/service-worker-entry.js")} --target browser --outfile ${path.resolve(webOutput, "sw.js")}`;
 const assetFiles = await readdir(path.resolve(webOutput, "assets"));
-// oxlint-disable-next-line unicorn/no-array-sort -- SAFETY: This fresh list is sorted only to stabilize the emitted service-worker cache key.
-const builtAssets = assetFiles.sort().map((asset) => `/assets/${asset}`);
+const builtAssets = assetFiles.toSorted().map((asset) => `/assets/${asset}`);
 const fixedShellFiles = [
   "/index.html",
   "/sw.js",

@@ -48,6 +48,10 @@ const lookupDevPlugin: Plugin = {
   name: "hcc-bin-day-dev-api",
 };
 
+/** Configure development API middleware and client-side build plugins.
+ * @param mode - Vite configuration mode.
+ * @returns Vite's configuration for the selected mode.
+ */
 export default defineConfig(({ mode }) => ({
   plugins: [
     ...(mode === "tunnel" ? [cloudflare({ tunnel: { autoStart: true } })] : []),

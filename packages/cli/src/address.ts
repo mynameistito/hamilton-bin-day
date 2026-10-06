@@ -1,8 +1,8 @@
-// oxlint-disable-next-line sonarjs/no-wildcard-import
-import * as Effect from "effect/Effect";
+import { gen } from "effect/Effect";
+import type { Effect as EffectType } from "effect/Effect";
 
 import { HccApi } from "@/hcc-api";
-import type { HccApiError } from "@/hcc-api";
+import type { HccApiError } from "@/hcc-api-error";
 import {
   expandAddressQuery,
   filterAddressMatches,
@@ -10,6 +10,7 @@ import {
 } from "@/normalize-address";
 import type { CollectionSchedule } from "@/schedule";
 
+/** A successful or unsuccessful resolution of an address query. */
 export type AddressResolution =
   | {
       ok: true;
@@ -21,11 +22,17 @@ export type AddressResolution =
       matches: readonly string[];
     };
 
+/**
+ * Resolve an address query against council search and collection data.
+ *
+ * @param query - The user-provided address query.
+ * @returns The matching schedule or the available address suggestions.
+ */
 export const resolveAddressQuery = (
   query: string
-): Effect.Effect<AddressResolution, HccApiError, HccApi> => {
+): EffectType<AddressResolution, HccApiError, HccApi> => {
   const expandedQuery = expandAddressQuery(query);
-  return Effect.gen(function* resolveAddress() {
+  return gen(function* resolveAddress() {
     const api = yield* HccApi;
     let matches = filterAddressMatches(yield* api.searchAddresses(query));
 

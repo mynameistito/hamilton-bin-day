@@ -3,12 +3,14 @@ import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
 import { runPromise } from "effect/Effect";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, vi, it } from "vitest";
+import { z } from "zod";
 
 import {
   handleReminderPublicKey,
   handleReminderSubscribe,
   handleReminderUnsubscribe,
+  ReminderRecordSchema,
   sendDueReminders,
 } from "@/lib/reminder-server";
 import type { ReminderDatabase } from "@/lib/reminder-server";
@@ -38,20 +40,22 @@ class SQLiteReminderDatabase implements ReminderDatabase {
         values = nextValues;
         return api;
       },
-      first: <T>() => {
-        // SAFETY: The SQL query and its caller specify the selected test row.
-        const result = statement.get(...values) as T | undefined;
-        return Promise.resolve(result ?? null);
+      first: () => {
+        const result = statement.get(...values);
+        return Promise.resolve(
+          result ? ReminderRecordSchema.parse(result) : null
+        );
       },
       run: () => {
         const result = statement.run(...values);
         return Promise.resolve({ meta: { changes: Number(result.changes) } });
       },
-      all: <T>() => {
-        // SAFETY: The SQL query and its caller specify the selected test rows.
-        const results = statement.all(...values) as T[];
-        return Promise.resolve({ results });
-      },
+      all: () =>
+        Promise.resolve({
+          results: statement
+            .all(...values)
+            .map((row) => ReminderRecordSchema.parse(row)),
+        }),
     };
     return api;
   }
@@ -143,7 +147,7 @@ describe("reminder delivery database behavior", () => {
   });
 
   describe("reminder subscription API", () => {
-    test("keeps delivery disabled until the complete VAPID configuration is available", async () => {
+    it("keeps delivery disabled until the complete VAPID configuration is available", async () => {
       const publicKeyResponse = await handleReminderPublicKey({});
       expect(publicKeyResponse.status).toBe(503);
       const response = await handleReminderSubscribe(
@@ -154,7 +158,7 @@ describe("reminder delivery database behavior", () => {
       expect(response.status).toBe(503);
     });
 
-    test("stores only a validated subscription, schedule snapshot, timezone, and preferences", async () => {
+    it("stores only a validated subscription, schedule snapshot, timezone, and preferences", async () => {
       const response = await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -163,16 +167,17 @@ describe("reminder delivery database behavior", () => {
 
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toStrictEqual({ saved: true });
-      // SAFETY: The query result uses the declared SQLite migration columns.
-      const row = database.sqlite
-        .prepare("SELECT * FROM reminder_subscriptions")
-        .get() as {
-        collection_date: string;
-        following_date: string;
-        local_time: string;
-        time_zone: string;
-        subscription_json: string;
-      };
+      const row = z
+        .object({
+          collection_date: z.string(),
+          following_date: z.string(),
+          local_time: z.string(),
+          time_zone: z.string(),
+          subscription_json: z.string(),
+        })
+        .parse(
+          database.sqlite.prepare("SELECT * FROM reminder_subscriptions").get()
+        );
       expect(row).toMatchObject({
         collection_date: schedule.collectionDate,
         following_date: schedule.followingDate,
@@ -185,7 +190,7 @@ describe("reminder delivery database behavior", () => {
       );
     });
 
-    test("rejects unsafe push endpoints and mismatched or malformed schedule data", async () => {
+    it("rejects unsafe push endpoints and mismatched or malformed schedule data", async () => {
       const unsafe = await handleReminderSubscribe(
         subscriptionRequest({
           subscription: {
@@ -208,7 +213,7 @@ describe("reminder delivery database behavior", () => {
       expect(mismatchedDate.status).toBe(400);
     });
 
-    test("bounds subscription payload reads before parsing or storage", async () => {
+    it("bounds subscription payload reads before parsing or storage", async () => {
       const response = await handleReminderSubscribe(
         new Request("https://example.test/api/reminders/subscription", {
           method: "POST",
@@ -227,7 +232,7 @@ describe("reminder delivery database behavior", () => {
       ).toMatchObject({ count: 0 });
     });
 
-    test("rejects cross-origin writes before touching the subscription store", async () => {
+    it("rejects cross-origin writes before touching the subscription store", async () => {
       const response = await handleReminderSubscribe(
         new Request("https://example.test/api/reminders/subscription", {
           method: "POST",
@@ -246,7 +251,7 @@ describe("reminder delivery database behavior", () => {
       ).toMatchObject({ count: 0 });
     });
 
-    test("updates the saved schedule for a changed collection date without retaining an address", async () => {
+    it("updates the saved schedule for a changed collection date without retaining an address", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -267,16 +272,19 @@ describe("reminder delivery database behavior", () => {
       );
 
       expect(changed.status).toBe(200);
-      // SAFETY: The query result uses the declared SQLite migration columns.
-      const row = database.sqlite
-        .prepare(
-          "SELECT collection_date, following_date, collection_type FROM reminder_subscriptions"
-        )
-        .get() as {
-        collection_date: string;
-        following_date: string;
-        collection_type: string;
-      };
+      const row = z
+        .object({
+          collection_date: z.string(),
+          following_date: z.string(),
+          collection_type: z.string(),
+        })
+        .parse(
+          database.sqlite
+            .prepare(
+              "SELECT collection_date, following_date, collection_type FROM reminder_subscriptions"
+            )
+            .get()
+        );
       expect(row).toMatchObject({
         collection_date: "2026-10-12",
         following_date: "2026-10-19",
@@ -284,7 +292,7 @@ describe("reminder delivery database behavior", () => {
       });
     });
 
-    test("schedules a seven-day reminder against the following collection when the next is too close", async () => {
+    it("schedules a seven-day reminder against the following collection when the next is too close", async () => {
       const response = await handleReminderSubscribe(
         subscriptionRequest({
           preferences: { enabled: true, leadDays: 7, localTime: "19:00" },
@@ -309,7 +317,7 @@ describe("reminder delivery database behavior", () => {
       });
     });
 
-    test("requires the unguessable subscription endpoint and removes its record", async () => {
+    it("requires the unguessable subscription endpoint and removes its record", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -350,7 +358,7 @@ describe("reminder delivery database behavior", () => {
     });
   });
 
-  test("does not store a subscription when VAPID signing configuration is invalid", async () => {
+  it("does not store a subscription when VAPID signing configuration is invalid", async () => {
     const response = await handleReminderSubscribe(
       subscriptionRequest(),
       { ...environment, VAPID_PRIVATE_KEY: "not-a-key" },
@@ -365,7 +373,7 @@ describe("reminder delivery database behavior", () => {
     ).toMatchObject({ count: 0 });
   });
 
-  test("does not advertise malformed or mismatched VAPID configuration", async () => {
+  it("does not advertise malformed or mismatched VAPID configuration", async () => {
     const anotherPair = await crypto.subtle.generateKey(
       { name: "ECDSA", namedCurve: "P-256" },
       true,
@@ -391,7 +399,7 @@ describe("reminder delivery database behavior", () => {
   });
 
   describe("scheduled reminder delivery", () => {
-    test("encrypts the due payload and sends it only to the push service endpoint", async () => {
+    it("encrypts the due payload and sends it only to the push service endpoint", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -446,7 +454,7 @@ describe("reminder delivery database behavior", () => {
       expect(body.byteLength).toBeGreaterThan(0);
     });
 
-    test("sends one due push, advances the schedule, and suppresses duplicate cron runs", async () => {
+    it("sends one due push, advances the schedule, and suppresses duplicate cron runs", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -481,7 +489,7 @@ describe("reminder delivery database behavior", () => {
       });
     });
 
-    test("continues recurring reminders for more than a year with unique IDs and alternating bins", async () => {
+    it("continues recurring reminders for more than a year with unique IDs and alternating bins", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -494,19 +502,22 @@ describe("reminder delivery database behavior", () => {
         if (remainingCycles === 0) {
           return;
         }
-        // SAFETY: This row is selected from the schema created by the real migrations.
-        const current = database.sqlite
-          .prepare(
-            `SELECT collection_date, following_date, collection_type, scheduled_at,
+        const current = z
+          .object({
+            collection_date: z.string(),
+            following_date: z.string(),
+            collection_type: z.enum(["red", "yellow"]),
+            scheduled_at: z.string(),
+            notification_id: z.string(),
+          })
+          .parse(
+            database.sqlite
+              .prepare(
+                `SELECT collection_date, following_date, collection_type, scheduled_at,
                     notification_id FROM reminder_subscriptions`
-          )
-          .get() as {
-          collection_date: string;
-          following_date: string;
-          collection_type: "red" | "yellow";
-          scheduled_at: string;
-          notification_id: string;
-        };
+              )
+              .get()
+          );
         const now = new Date(current.scheduled_at);
         let sentNotificationId = "";
 
@@ -524,18 +535,21 @@ describe("reminder delivery database behavior", () => {
         expect(notificationIds.has(sentNotificationId)).toBeFalsy();
         notificationIds.add(sentNotificationId);
 
-        // SAFETY: The updated row is selected from the migrated test database.
-        const next = database.sqlite
-          .prepare(
-            `SELECT collection_date, following_date, collection_type, updated_at
+        const next = z
+          .object({
+            collection_date: z.string(),
+            following_date: z.string(),
+            collection_type: z.enum(["red", "yellow"]),
+            updated_at: z.string(),
+          })
+          .parse(
+            database.sqlite
+              .prepare(
+                `SELECT collection_date, following_date, collection_type, updated_at
              FROM reminder_subscriptions`
-          )
-          .get() as {
-          collection_date: string;
-          following_date: string;
-          collection_type: "red" | "yellow";
-          updated_at: string;
-        };
+              )
+              .get()
+          );
         expect(next).toMatchObject({
           collection_date: current.following_date,
           collection_type: current.collection_type === "red" ? "yellow" : "red",
@@ -563,7 +577,7 @@ describe("reminder delivery database behavior", () => {
       ).toMatchObject({ collection_date: "2027-10-11" });
     });
 
-    test("describes the actual collection date when a lead-time reminder is already due", async () => {
+    it("describes the actual collection date when a lead-time reminder is already due", async () => {
       const now = new Date("2026-10-05T08:00:00.000Z");
       await handleReminderSubscribe(subscriptionRequest(), environment, now);
       let sentPayload = "";
@@ -578,7 +592,7 @@ describe("reminder delivery database behavior", () => {
       });
     });
 
-    test("advances expired collections without sending an overdue push", async () => {
+    it("advances expired collections without sending an overdue push", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -608,7 +622,7 @@ describe("reminder delivery database behavior", () => {
       });
     });
 
-    test("claims a due subscription before an overlapping cron can send it", async () => {
+    it("claims a due subscription before an overlapping cron can send it", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -633,7 +647,7 @@ describe("reminder delivery database behavior", () => {
       await firstRun;
     });
 
-    test.each([404, 410])(
+    it.each([404, 410])(
       "deletes subscriptions invalidated by push status %s",
       async (status) => {
         await handleReminderSubscribe(
@@ -655,7 +669,7 @@ describe("reminder delivery database behavior", () => {
       }
     );
 
-    test("does not delete a renewed subscription after a stale push failure", async () => {
+    it("does not delete a renewed subscription after a stale push failure", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -694,7 +708,7 @@ describe("reminder delivery database behavior", () => {
       ).toMatchObject({ revision: 2 });
     });
 
-    test("advances the current schedule revision after an in-flight successful send", async () => {
+    it("advances the current schedule revision after an in-flight successful send", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -753,7 +767,7 @@ describe("reminder delivery database behavior", () => {
       });
     });
 
-    test("retries a transient push failure on the next cron instead of suppressing delivery", async () => {
+    it("retries a transient push failure on the next cron instead of suppressing delivery", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -778,7 +792,7 @@ describe("reminder delivery database behavior", () => {
       ).toMatchObject({ collection_date: "2026-10-12" });
     });
 
-    test("advances after a permanent client failure", async () => {
+    it("advances after a permanent client failure", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
@@ -798,7 +812,7 @@ describe("reminder delivery database behavior", () => {
       ).toMatchObject({ collection_date: "2026-10-12" });
     });
 
-    test.each([408, 429])(
+    it.each([408, 429])(
       "retries transient client status %s and advances after success",
       async (status) => {
         await handleReminderSubscribe(
@@ -827,7 +841,7 @@ describe("reminder delivery database behavior", () => {
       }
     );
 
-    test("retains an opted-in subscription beyond 90 days when VAPID delivery is unavailable", async () => {
+    it("retains an opted-in subscription beyond 90 days when VAPID delivery is unavailable", async () => {
       await handleReminderSubscribe(
         subscriptionRequest(),
         environment,

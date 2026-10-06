@@ -10,7 +10,11 @@ import type {
 import { readVapidConfiguration, sendWebPush } from "@/lib/web-push";
 import type { VapidConfiguration } from "@/lib/web-push";
 import { parseWebPushSubscription } from "@/lib/web-push-subscription";
-import type { WebPushSubscription } from "@/lib/web-push-subscription";
+
+type WebPushSubscription = NonNullable<
+  ReturnType<typeof parseWebPushSubscription>
+>;
+type WebPushSubscriptionInput = Parameters<typeof parseWebPushSubscription>[0];
 
 const isCalendarDate = (value: string): boolean => {
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -20,7 +24,14 @@ const isCalendarDate = (value: string): boolean => {
 };
 const CollectionDate = z.iso.date().refine(isCalendarDate);
 const SubscriptionRequest = z.strictObject({
-  subscription: z.unknown(),
+  subscription: z.strictObject({
+    endpoint: z.unknown(),
+    expirationTime: z.unknown().optional(),
+    keys: z.strictObject({
+      auth: z.unknown(),
+      p256dh: z.unknown(),
+    }),
+  }),
   schedule: z.strictObject({
     collectionDate: CollectionDate,
     followingDate: CollectionDate,
@@ -44,9 +55,9 @@ interface D1Statement {
   readonly bind: (
     ...values: readonly (string | number | null)[]
   ) => D1Statement;
-  readonly first: <T>() => Promise<T | null>;
+  readonly first: () => Promise<ReminderRecord | null>;
   readonly run: () => Promise<D1Result>;
-  readonly all: <T>() => Promise<{ readonly results: readonly T[] }>;
+  readonly all: () => Promise<{ readonly results: readonly ReminderRecord[] }>;
 }
 
 /** The minimum D1 surface required by reminder routes and the scheduled sender. */
@@ -67,20 +78,21 @@ export interface ReminderEnvironment {
   readonly VAPID_SUBJECT?: string;
 }
 
-interface ReminderRecord {
-  readonly endpoint: string;
-  readonly subscription_json: string;
-  readonly collection_date: string;
-  readonly following_date: string;
-  readonly collection_type: "red" | "yellow";
-  readonly lead_days: ReminderLeadDays;
-  readonly local_time: string;
-  readonly time_zone: string;
-  readonly scheduled_at: string;
-  readonly notification_id: string;
-  readonly claim_until: string | null;
-  readonly revision: number;
-}
+export const ReminderRecordSchema = z.strictObject({
+  endpoint: z.string(),
+  subscription_json: z.string(),
+  collection_date: z.string(),
+  following_date: z.string(),
+  collection_type: z.enum(["red", "yellow"]),
+  lead_days: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(7)]),
+  local_time: z.string(),
+  time_zone: z.string(),
+  scheduled_at: z.string(),
+  notification_id: z.string(),
+  claim_until: z.string().nullable(),
+  revision: z.number(),
+});
+type ReminderRecord = z.infer<typeof ReminderRecordSchema>;
 
 const PUSH_SERVICE_SUFFIXES = [
   ".push.apple.com",
@@ -129,7 +141,10 @@ export class ReminderDeliveryError extends Error {
   }
 }
 
-/** Respond with a public key only when the complete VAPID configuration exists. */
+/** Respond with a public key only when the complete VAPID configuration exists.
+ * @param environment - Worker bindings and VAPID configuration.
+ * @returns The public-key response or a service-unavailable error.
+ */
 export const handleReminderPublicKey = async (
   environment: ReminderEnvironment
 ): Promise<Response> => {
@@ -197,7 +212,10 @@ const bearerEndpoint = (request: Request): string | null => {
   }
 };
 
-/** Check that a mutation request originates from this site's own origin. */
+/** Check that a mutation request originates from this site's own origin.
+ * @param request - Mutation request to inspect.
+ * @returns Whether the request is same-origin or has no origin header.
+ */
 export const isSameOriginRequest = (request: Request): boolean => {
   const origin = request.headers.get("origin");
   return origin === null || origin === new URL(request.url).origin;
@@ -214,22 +232,15 @@ const readBoundedJson = async (
   ) {
     return null;
   }
-  const reader = request.body?.getReader();
-  if (!reader) {
+  const { body } = request;
+  if (!body) {
     return null;
   }
   const chunks: Uint8Array[] = [];
   let byteLength = 0;
-  for (;;) {
-    // oxlint-disable-next-line no-await-in-loop -- SAFETY: A stream reader must be consumed sequentially so each chunk is counted before buffering.
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
+  for await (const value of body) {
     byteLength += value.byteLength;
     if (byteLength > MAX_SUBSCRIPTION_BODY_BYTES) {
-      // oxlint-disable-next-line no-await-in-loop -- SAFETY: Cancel the active reader before rejecting an oversized request body.
-      await reader.cancel();
       return null;
     }
     chunks.push(value);
@@ -253,7 +264,9 @@ const readBoundedJson = async (
 type ParsedSubscriptionRequest = Omit<
   z.infer<typeof SubscriptionRequest>,
   "subscription"
-> & { readonly subscription: WebPushSubscription };
+> & {
+  readonly subscription: WebPushSubscription;
+};
 
 const parseRequest = async (request: Request, now: Date) => {
   try {
@@ -310,7 +323,12 @@ const advanceDate = (date: string, days: number): string => {
   return instant.toISOString().slice(0, 10);
 };
 
-/** Create/update an opt-in subscription without receiving or retaining an address. */
+/** Create/update an opt-in subscription without receiving or retaining an address.
+ * @param request - Subscription request with validated JSON body.
+ * @param environment - Worker bindings and VAPID configuration.
+ * @param now - Current instant used for deterministic scheduling.
+ * @returns The subscription result or a suitable HTTP error.
+ */
 export const handleReminderSubscribe = async (
   request: Request,
   environment: ReminderEnvironment,
@@ -407,7 +425,11 @@ export const handleReminderSubscribe = async (
   }
 };
 
-/** Remove the subscription identified by its unguessable push endpoint. */
+/** Remove the subscription identified by its unguessable push endpoint.
+ * @param request - Unsubscribe request with the endpoint bearer credential.
+ * @param environment - Worker bindings containing reminder storage.
+ * @returns The deletion result or a suitable HTTP error.
+ */
 export const handleReminderUnsubscribe = async (
   request: Request,
   environment: ReminderEnvironment
@@ -467,7 +489,7 @@ const advanceSubscription = async (
   notBeforeDate?: string,
   attempt = 0
 ): Promise<void> => {
-  const currentRecord = await database
+  const currentRecordResult = await database
     .prepare(
       `SELECT endpoint, subscription_json, collection_date, following_date,
               collection_type, lead_days, local_time, time_zone, scheduled_at,
@@ -475,10 +497,11 @@ const advanceSubscription = async (
        FROM reminder_subscriptions WHERE endpoint = ? AND notification_id = ?`
     )
     .bind(record.endpoint, record.notification_id)
-    .first<ReminderRecord>();
-  if (!currentRecord) {
+    .first();
+  if (!currentRecordResult) {
     return;
   }
+  const currentRecord = ReminderRecordSchema.parse(currentRecordResult);
 
   let nextDate = currentRecord.following_date;
   let nextFollowingDate = advanceDate(nextDate, 7);
@@ -568,7 +591,7 @@ const sendDueRecord = async (
     return;
   }
 
-  let storedSubscription: unknown;
+  let storedSubscription: WebPushSubscriptionInput;
   try {
     storedSubscription = JSON.parse(record.subscription_json);
   } catch {
@@ -619,7 +642,12 @@ const sendDueRecord = async (
   }
 };
 
-/** Send due notifications and advance the rolling schedule snapshot. */
+/** Send due notifications and advance the rolling schedule snapshot.
+ * @param environment - Worker bindings containing reminder storage and keys.
+ * @param now - Current instant used to select due records.
+ * @param send - Push transport used for each due notification.
+ * @returns An Effect that completes after processing due notifications.
+ */
 export const sendDueReminders = (
   environment: ReminderEnvironment,
   now = new Date(),
@@ -655,18 +683,25 @@ export const sendDueReminders = (
              ORDER BY scheduled_at LIMIT 100`
           )
           .bind(nowIso, nowIso)
-          .all<ReminderRecord>(),
+          .all(),
       catch: (cause) => new ReminderDeliveryError("selectDue", cause),
     });
 
     yield* all(
-      results.map((record) =>
+      results.map((result) =>
         tryPromise({
           try: () =>
-            sendDueRecord(database, record, keys, now, claimedThrough, send),
+            sendDueRecord(
+              database,
+              ReminderRecordSchema.parse(result),
+              keys,
+              now,
+              claimedThrough,
+              send
+            ),
           catch: (cause) => new ReminderDeliveryError("deliver", cause),
         })
       ),
-      { concurrency: "unbounded" }
+      { concurrency: "unbounded", mode: "result" }
     );
   });

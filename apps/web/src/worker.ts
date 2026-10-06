@@ -44,6 +44,10 @@ const checkReminderRateLimit = async (
   }
 };
 
+/** Resolve a lookup request and serialize the result as JSON.
+ * @param request - Incoming lookup request.
+ * @returns The JSON response with the lookup's status code.
+ */
 export const handleLookup = async (request: Request): Promise<Response> => {
   const rawAddress = new URL(request.url).searchParams.get("address");
   const result = await lookupAddress(rawAddress);

@@ -7,7 +7,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { BinHelpControl } from "@/components/bin-help";
 
@@ -17,7 +17,7 @@ describe("per-bin help", () => {
     document.querySelector("#root")?.remove();
   });
 
-  test("makes the app inert behind the development dialog", () => {
+  it("makes the app inert behind the development dialog", () => {
     const appRoot = document.createElement("div");
     appRoot.id = "root";
     document.body.append(appRoot);
@@ -36,7 +36,7 @@ describe("per-bin help", () => {
     expect(appRoot.inert).toBeFalsy();
   });
 
-  test("opens for the selected bin and focuses its labelled item search", () => {
+  it("opens for the selected bin and focuses its labelled item search", () => {
     render(
       <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
     );
@@ -72,7 +72,7 @@ describe("per-bin help", () => {
     );
   });
 
-  test("keeps the full catalogue collapsed and its source outside live regions", () => {
+  it("keeps the full catalogue collapsed and its source outside live regions", () => {
     render(
       <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
     );
@@ -115,7 +115,7 @@ describe("per-bin help", () => {
     });
   });
 
-  test("searches the catalogue with compact photo cards and announces no matches", () => {
+  it("searches the catalogue with compact photo cards and announces no matches", () => {
     render(
       <BinHelpControl bin="yellow" binName="yellow recycling wheelie bin" />
     );
@@ -149,7 +149,7 @@ describe("per-bin help", () => {
     ).toContain("No item matches “not a council item”");
   });
 
-  test("shows a compact Council guidance conflict note for the red bin", () => {
+  it("shows a compact Council guidance conflict note for the red bin", () => {
     render(<BinHelpControl bin="red" binName="red rubbish wheelie bin" />);
     fireEvent.click(
       screen.getByRole("button", {
@@ -169,7 +169,7 @@ describe("per-bin help", () => {
     ).toBe("https://hamilton.govt.nz/fight-the-landfill/kerbside-collection");
   });
 
-  test("closes with Escape and returns focus to its help control", () => {
+  it("closes with Escape and returns focus to its help control", () => {
     render(<BinHelpControl bin="food-scraps" binName="food scraps bin" />);
     const trigger = screen.getByRole("button", {
       name: "What goes in the food scraps bin?",
@@ -182,7 +182,7 @@ describe("per-bin help", () => {
     expect(trigger).toBe(document.activeElement);
   });
 
-  test("shows non-bin advice and closes with the accessible control", () => {
+  it("shows non-bin advice and closes with the accessible control", () => {
     render(<BinHelpControl bin={null} binName="collection bins" />);
     const trigger = screen.getByRole("button", {
       name: "What goes in the collection bins?",

@@ -58,10 +58,8 @@ const encodeBase64Url = (bytes: Uint8Array): string => {
   for (const byte of bytes) {
     binary += String.fromCodePoint(byte);
   }
-  return btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
+  const encoded = btoa(binary).replaceAll("+", "-").replaceAll("/", "_");
+  return encoded.split("=")[0] ?? "";
 };
 
 const matchesVapidKeyPair = async (
@@ -112,7 +110,10 @@ const matchesVapidKeyPair = async (
   }
 };
 
-/** Parse and cryptographically verify a complete VAPID keypair and subject. */
+/** Parse and cryptographically verify a complete VAPID keypair and subject.
+ * @param environment - Worker environment containing VAPID values.
+ * @returns Valid configuration, or `null` when values are missing or invalid.
+ */
 export const readVapidConfiguration = async (
   environment: VapidEnvironment
 ): Promise<VapidConfiguration | null> => {
@@ -132,7 +133,11 @@ export const readVapidConfiguration = async (
   return parsed.data;
 };
 
-/** Build and send one encrypted Web Push request while leaving response policy to the caller. */
+/** Build and send one encrypted Web Push request while leaving response policy to the caller.
+ * @param input - Subscription, payload, VAPID configuration, and TTL.
+ * @param fetcher - Fetch implementation used to send the request.
+ * @returns The push service's HTTP response.
+ */
 export const sendWebPush = async (
   input: {
     readonly subscription: WebPushSubscription;
