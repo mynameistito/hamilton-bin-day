@@ -44,6 +44,7 @@ scripts/         Council catalogue synchronization
 
 ```text
 bun run dev:web
+bun run dev:site
 bun run dev:tunnel
 bun run --filter @mynameistito/hcc-bin-day-web test
 bun run --filter @mynameistito/hcc-bin-day-web typecheck

@@ -53,8 +53,10 @@ alchemy.run.ts          Cloudflare Worker, D1, and rate-limit resources
 ## COMMANDS
 
 ```text
-bun run dev                 # Local web app
+bun run dev:web              # Local web app
+bun run dev:site             # Web app and docs at /docs
 bun run dev:docs             # Docs app
+bun run dev:cli              # CLI
 bun run check                # Ultracite checks
 bun run typecheck            # Workspace and root type checks
 bun run test                 # Workspace tests with coverage
