@@ -6,7 +6,7 @@
       "project": ["*.config.ts", "scripts/**/*.ts"]
     },
     "apps/docs": {
-      "entry": ["blume.config.ts"]
+      "entry": ["blume.config.ts", "components.ts"]
     },
     "apps/web": {
       "entry": ["scripts/sync-hcc-bin-items.ts", "src/worker.ts"],
