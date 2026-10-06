@@ -30,12 +30,12 @@ const printHelp = () => {
   npx @mynameistito/hcc-bin-day schedule <address> --text
 
 Examples:
-  npx @mynameistito/hcc-bin-day schedule "14b mountbatten pl"
-  npx @mynameistito/hcc-bin-day schedule "14b mountbatten pl" --text
+  npx @mynameistito/hcc-bin-day schedule "12b Grey Street"
+  npx @mynameistito/hcc-bin-day schedule "12b Grey Street" --text
   npx @mynameistito/hcc-bin-day lookup "12 grey st"
 
 Output is JSON by default. Use --text (or --pretty) for human-readable output.
-Address input is flexible: unit suffixes (14b -> 14B) and street types (pl, st, rd, etc.).
+Address input is flexible: unit suffixes (12b -> 12B) and street types (pl, st, rd, etc.).
 `);
 };
 
