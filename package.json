@@ -18,7 +18,7 @@
   },
   "type": "module",
   "scripts": {
-    "build": "bun run --filter @mynameistito/hcc-bin-day build && bun run --filter @mynameistito/hcc-bin-day-docs build && bun run --filter @mynameistito/hcc-bin-day-web build",
+    "build": "turbo run build",
     "bins:sync": "bun apps/web/scripts/sync-hcc-bin-items.ts",
     "check": "ultracite check",
     "ci": "bun run check && bun run typecheck && bun run test && bun run build",
@@ -26,16 +26,17 @@
     "changeset-add": "bun ./packages/cli/scripts/changeset-add.ts",
     "deploy": "bun ./scripts/alchemy-command.ts deploy",
     "destroy": "bun ./scripts/alchemy-command.ts destroy",
-    "dev": "bun run --filter @mynameistito/hcc-bin-day-web dev",
-    "dev:docs": "bun run --filter @mynameistito/hcc-bin-day-docs dev",
-    "dev:web": "bun run --filter @mynameistito/hcc-bin-day-web dev",
-    "dev:tunnel": "bun run --filter @mynameistito/hcc-bin-day-web dev:tunnel",
+    "dev": "turbo run dev --filter=@mynameistito/hcc-bin-day-web",
+    "dev:cli": "turbo run dev --filter=@mynameistito/hcc-bin-day",
+    "dev:docs": "turbo run dev --filter=@mynameistito/hcc-bin-day-docs",
+    "dev:web": "turbo run dev --filter=@mynameistito/hcc-bin-day-web",
+    "dev:tunnel": "turbo run dev:tunnel --filter=@mynameistito/hcc-bin-day-web",
     "fix": "ultracite fix",
     "knip": "bunx knip@latest",
     "prepare": "lefthook install",
-    "test": "bun run --filter '*' test --coverage",
+    "test": "turbo run test -- --coverage",
     "vapid:generate": "bun run --filter @mynameistito/hcc-bin-day-web vapid:generate",
-    "typecheck": "bun run --filter '*' typecheck && bunx tsc --project tsconfig.json"
+    "typecheck": "turbo run typecheck && bunx tsc --project tsconfig.json"
   },
   "dependencies": {
     "@changesets/cli": "^3.0.3",
@@ -58,6 +59,7 @@
     "oxlint": "^1.87.0",
     "oxlint-plugin-react-doctor": "^0.9.16",
     "tsdown": "0.23.0",
+    "turbo": "^2.11.7",
     "typescript": "catalog:",
     "ultracite": "7.12.3",
     "vitest": "5.0.2"
