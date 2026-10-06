@@ -70,9 +70,10 @@ const registerServiceWorker = async (): Promise<void> => {
   });
 
   try {
-    const registration = await navigator.serviceWorker.register("/sw.js", {
-      type: "module",
-    });
+    const registration = await navigator.serviceWorker.register(
+      "/sw.js",
+      import.meta.env.DEV ? { type: "module" } : undefined
+    );
     const notifyUpdateAvailable = () => {
       if (navigator.serviceWorker.controller) {
         updatePending = true;

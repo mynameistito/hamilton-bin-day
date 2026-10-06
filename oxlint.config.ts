@@ -14,7 +14,7 @@ export default defineConfig({
   jsPlugins: [...jsPlugins.jsPlugins, ...shadcn.jsPlugins],
   overrides: [
     {
-      files: ["src/**"],
+      files: ["src/**", "packages/cli/src/**"],
       rules: {
         "no-restricted-imports": [
           "error",

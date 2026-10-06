@@ -127,7 +127,7 @@ const textFromHtml = (value: string): string =>
       value
         .replaceAll(/<!--.*?-->/gsu, " ")
         .replaceAll(/<\/?(?:br|div|p|li|ul|ol|h[1-6])\b[^>]*>/giu, " ")
-        .replaceAll(/<\/?[A-Za-z][A-Za-z0-9]*(?:\s[^<>]*)?>/gu, " ")
+        .replaceAll(/<\/?[A-Za-z][^<>]*>/gu, " ")
     )
   );
 

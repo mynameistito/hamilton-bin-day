@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { RefObject } from "react";
 
 import { useReminderDelivery } from "@/hooks/use-reminder-delivery";
@@ -101,6 +101,14 @@ export const NotificationSettings = ({
   );
   const [timeZone, setTimeZone] = useState(readDeviceTimeZone);
   const [today, setToday] = useState(() => new Date());
+  useEffect(() => {
+    const refreshPreviewContext = () => {
+      setToday(new Date());
+      setTimeZone(readDeviceTimeZone());
+    };
+    const interval = window.setInterval(refreshPreviewContext, 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
   let collectionDate = schedule?.nextCollection.date;
   if (
     schedule &&

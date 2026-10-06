@@ -702,6 +702,6 @@ export const sendDueReminders = (
           catch: (cause) => new ReminderDeliveryError("deliver", cause),
         })
       ),
-      { concurrency: "unbounded" }
+      { concurrency: "unbounded", mode: "result" }
     );
   });

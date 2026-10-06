@@ -17,7 +17,7 @@ const detail = {
     '<img src="/SorterGlassCrate.png"/>',
     "<h3>Glass jars &amp; bottles</h3>",
     "<h4>This item goes into your glass recycling crate.</h4>",
-    "<small><p>Remove lids&nbsp;and rinse.</p></small>",
+    "<small><p>Remove lids&nbsp;<span/>and rinse.</p></small>",
   ].join(""),
 };
 

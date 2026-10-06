@@ -84,9 +84,9 @@ describe("PWA app shell", () => {
         /<meta\s+name="apple-mobile-web-app-status-bar-style"\s+content="black"\s*\/>/u.test(
           html
         ),
-      registersServiceWorker:
-        main.includes('.register("/sw.js", {') &&
-        main.includes('type: "module"'),
+      registersServiceWorker: main.includes(
+        '.register(\n      "/sw.js",\n      import.meta.env.DEV ? { type: "module" } : undefined'
+      ),
       detectsWaitingUpdates:
         main.includes("if (registration.waiting)") &&
         main.includes("let updatePending = false"),
