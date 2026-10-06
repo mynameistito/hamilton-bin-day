@@ -139,9 +139,6 @@ export const useAddressLookup = () => {
       return;
     }
 
-    const url = new URL(window.location.href);
-    url.searchParams.set("query", query);
-    window.history.replaceState(window.history.state, "", url);
     await runLookup(query);
   };
 

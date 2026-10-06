@@ -8,7 +8,7 @@ import { LegalPage } from "@/pages/legal-page";
 export const PrivacyPage = () => (
   <LegalPage title="Privacy policy">
     <p>
-      <strong>Last updated: 3 October 2026</strong>
+      <strong>Last updated: 6 October 2026</strong>
     </p>
     <p>
       Hamilton Bin Day ("the site", "we", or "us") is an independent community
@@ -28,25 +28,29 @@ export const PrivacyPage = () => (
     <h2 className="text-xl font-semibold text-ink">Information we handle</h2>
     <h3 className="text-lg font-semibold text-ink">Address searches</h3>
     <p>
-      When you submit an address, the site puts it in the page URL as the{" "}
-      <code>query</code> parameter and sends it to our Cloudflare-hosted
+      When you submit an address, the site sends it to our Cloudflare-hosted
       service. The service forwards the search address to Hamilton City
       Council's public lookup API (<code>api2.hcc.govt.nz</code>) to find a
       matching address and collection schedule. The Council therefore receives
       the address you search for and may handle it under its own privacy policy
-      and retention practices.
+      and retention practices. Searches entered in the form are not added to the
+      page URL. You can also open an optional address link or use a custom
+      search shortcut (“search bang”) configured with the site's{" "}
+      <code>?query=</code> URL parameter; in that case, the address is in the
+      page URL.
     </p>
     <p>
-      The address in the <code>query</code> parameter remains in the current
-      page URL until you remove it or navigate away. Browser history, bookmarks,
-      screenshots, or a URL you share may expose it. After a successful lookup,
-      the site also remembers the address in your browser using a first-party
-      cookie for up to one year. If the browser's Cookie Store API is
-      unavailable or the cookie cannot be written, the site falls back to local
-      storage, which has no expiry set by this site. These copies stay on your
-      device unless your browser syncs them or you clear them. To remove them,
-      clear site data for this site in your browser; also remove the address
-      from the URL and any saved or shared copies.
+      If you opened a link or search shortcut with an address in the{" "}
+      <code>query</code> parameter, it remains in the current page URL until you
+      remove it or navigate away. Browser history, bookmarks, screenshots, or a
+      URL you share may expose it. After a successful lookup, the site also
+      remembers the address in your browser using a first-party cookie for up to
+      one year. If the browser's Cookie Store API is unavailable or the cookie
+      cannot be written, the site falls back to local storage, which has no
+      expiry set by this site. These copies stay on your device unless your
+      browser syncs them or you clear them. To remove them, clear site data for
+      this site in your browser; also remove the address from any query URL and
+      saved or shared copies.
     </p>
     <p>
       We do not operate an application database of address searches or ask for
@@ -83,8 +87,9 @@ export const PrivacyPage = () => (
     <p>
       Cloudflare Zaraz is configured to send page-view measurements to{" "}
       <strong>Google Analytics 4</strong>. A page view can include the full page
-      URL, including the <code>query</code> parameter, so Google Analytics may
-      receive the address in a search URL. The configuration also includes a{" "}
+      URL. If you open a link or search shortcut with an address in the{" "}
+      <code>query</code> parameter, Google Analytics may receive that address in
+      the page URL. The configuration also includes a{" "}
       <strong>Twitter/X Pixel</strong> for tracked events. The site code
       currently does not call event-tracking functions, so the Pixel is not
       intentionally sent custom interaction events by this app. These services
@@ -93,9 +98,9 @@ export const PrivacyPage = () => (
       use cookies or similar technologies. Zaraz's <code>hideOriginalIP</code>{" "}
       option is enabled for Google Analytics 4: Cloudflare removes the visitor's
       originating IP address before sending GA4 requests. This applies to GA4
-      only; it does not remove the searched address from the page URL or change
-      what Cloudflare or the Council API may process. Google and X handle
-      information under their own terms and privacy policies:{" "}
+      only; it does not remove an address from a query URL or change what
+      Cloudflare or the Council API may process. Google and X handle information
+      under their own terms and privacy policies:{" "}
       <a className="underline" href="https://policies.google.com/privacy">
         Google privacy
       </a>{" "}

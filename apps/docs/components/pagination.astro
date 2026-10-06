@@ -1,0 +1,67 @@
+---
+import type { UIStrings } from "blume/core/i18n-ui";
+import Icon from "blume/components/Icon.astro";
+import { withMountedBase } from "blume/components/islands/base-path";
+import type { FlatPage } from "blume/components/layout/nav-utils";
+
+interface Props {
+  prev: FlatPage | null;
+  next: FlatPage | null;
+  strings: UIStrings["page"];
+}
+
+const { prev, next, strings } = Astro.props;
+const showMainSiteLink = prev === null;
+---
+
+{
+  (showMainSiteLink || prev || next) && (
+    <nav
+      aria-label={strings.pagination}
+      class="mx-auto mt-12 flex max-w-content justify-between gap-4 border-border border-t pt-6"
+    >
+      {showMainSiteLink && (
+        <a
+          class="flex max-w-[48%] flex-1 items-center gap-2 rounded-blume border border-border px-4 py-3 text-foreground transition-colors hover:border-foreground"
+          href="/"
+        >
+          <Icon class="rtl:-scale-x-100" name="arrow-left" size={16} />
+          <span class="min-w-0">
+            <span class="block text-muted-foreground text-xs">Back</span>
+            <span class="block font-medium max-md:line-clamp-2 max-md:wrap-break-word md:truncate">
+              Back to Main Site
+            </span>
+          </span>
+        </a>
+      )}
+      {prev && (
+      <a
+        class="flex max-w-[48%] flex-1 items-center gap-2 rounded-blume border border-border px-4 py-3 text-foreground transition-colors hover:border-foreground"
+        href={withMountedBase(prev.route)}
+      >
+        <Icon class="rtl:-scale-x-100" name="arrow-left" size={16} />
+        <span class="min-w-0">
+          <span class="block text-muted-foreground text-xs">{strings.previous}</span>
+          <span class="block font-medium max-md:line-clamp-2 max-md:wrap-break-word md:truncate">
+            {prev.label}
+          </span>
+        </span>
+      </a>
+      )}
+      {next && (
+      <a
+        class="ms-auto flex max-w-[48%] flex-1 items-center justify-end gap-2 rounded-blume border border-border px-4 py-3 text-end text-foreground transition-colors hover:border-foreground"
+        href={withMountedBase(next.route)}
+      >
+        <span class="min-w-0">
+          <span class="block text-muted-foreground text-xs">{strings.next}</span>
+          <span class="block font-medium max-md:line-clamp-2 max-md:wrap-break-word md:truncate">
+            {next.label}
+          </span>
+        </span>
+        <Icon class="rtl:-scale-x-100" name="arrow-right" size={16} />
+      </a>
+      )}
+    </nav>
+  )
+}

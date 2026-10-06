@@ -42,6 +42,7 @@ const restoreProperty = <T extends object>(
 
 describe("home page navigation", () => {
   beforeEach(() => {
+    window.history.replaceState({}, "", "/");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
@@ -183,6 +184,8 @@ describe("home page navigation", () => {
     }
     fireEvent.submit(form);
 
+    expect(new URL(window.location.href).searchParams.has("query")).toBeFalsy();
+
     await waitFor(() =>
       expect(screen.getByText("Change address")).toBeTruthy()
     );
@@ -202,5 +205,44 @@ describe("home page navigation", () => {
         .getByRole("heading", { name: "Never miss your bin day again." })
         .classList.contains("sr-only")
     ).toBeTruthy();
+  });
+
+  it("uses an optional query parameter to fill and run the address search", async () => {
+    window.history.replaceState({}, "", "/?query=12+Grey+Street");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        Response.json({
+          found: true,
+          schedule: {
+            address: "12 Grey Street",
+            collectionDayName: "Monday",
+            nextCollection: {
+              bins: ["red bin"],
+              date: "2026-10-05",
+              type: "red",
+            },
+            redBin: "2026-10-05",
+            yellowBin: "2026-10-12",
+          },
+        })
+      )
+    );
+
+    render(<HomePage />);
+
+    const addressInput = screen.getByRole("textbox", {
+      name: "Hamilton street address",
+    });
+    if (!(addressInput instanceof HTMLInputElement)) {
+      throw new Error("Expected the address field to be an input.");
+    }
+    expect(addressInput.value).toBe("12 Grey Street");
+    await waitFor(() =>
+      expect(screen.getByText("Change address")).toBeTruthy()
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/lookup?address=12%20Grey%20Street"
+    );
   });
 });
