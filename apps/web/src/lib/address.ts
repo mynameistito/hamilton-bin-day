@@ -10,7 +10,8 @@ export const isLookupAddressValid = (address: string): boolean =>
   address.length <= ADDRESS_LENGTH_LIMIT &&
   address.trim().length > 0;
 
-const ADDRESS_COOKIE_NAME = "hcc-bin-day-address";
+const ADDRESS_COOKIE_NAME = "hamilton-bin-day-address";
+const LEGACY_ADDRESS_COOKIE_NAME = "hcc-bin-day-address";
 const ADDRESS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 let addressWriteQueue: Promise<void> = Promise.resolve();
 
@@ -26,7 +27,17 @@ export const normalizeRememberedAddress = (
 
 const readAddressStorage = (): string | null => {
   try {
-    return window.localStorage.getItem(ADDRESS_COOKIE_NAME);
+    const current = window.localStorage.getItem(ADDRESS_COOKIE_NAME);
+    if (current !== null) {
+      window.localStorage.removeItem(LEGACY_ADDRESS_COOKIE_NAME);
+      return current;
+    }
+    const legacy = window.localStorage.getItem(LEGACY_ADDRESS_COOKIE_NAME);
+    if (legacy !== null) {
+      window.localStorage.setItem(ADDRESS_COOKIE_NAME, legacy);
+      window.localStorage.removeItem(LEGACY_ADDRESS_COOKIE_NAME);
+    }
+    return legacy;
   } catch {
     return null;
   }
@@ -35,20 +46,9 @@ const readAddressStorage = (): string | null => {
 const writeAddressStorage = (address: string): void => {
   try {
     window.localStorage.setItem(ADDRESS_COOKIE_NAME, address);
+    window.localStorage.removeItem(LEGACY_ADDRESS_COOKIE_NAME);
   } catch {
     // Keep lookup usable if browser storage is unavailable.
-  }
-};
-
-/** Read and validate the remembered address from cookie or local storage. */
-/** @returns The remembered address, or `null` when none can be read. */
-export const readRememberedAddress = async (): Promise<string | null> => {
-  try {
-    const cookie = await window.cookieStore.get(ADDRESS_COOKIE_NAME);
-    const address = normalizeRememberedAddress(cookie?.value);
-    return address ?? normalizeRememberedAddress(readAddressStorage());
-  } catch {
-    return normalizeRememberedAddress(readAddressStorage());
   }
 };
 
@@ -63,6 +63,37 @@ const persistAddress = async (address: string): Promise<void> => {
     });
   } catch {
     writeAddressStorage(address);
+    return;
+  }
+  try {
+    await window.cookieStore.delete({
+      name: LEGACY_ADDRESS_COOKIE_NAME,
+      path: "/",
+    });
+  } catch {
+    // Keep the migrated address even if removing the old cookie fails.
+  }
+};
+
+/** Read and validate the remembered address from cookie or local storage. */
+/** @returns The remembered address, or `null` when none can be read. */
+export const readRememberedAddress = async (): Promise<string | null> => {
+  try {
+    const currentCookie = await window.cookieStore.get(ADDRESS_COOKIE_NAME);
+    const currentAddress = normalizeRememberedAddress(currentCookie?.value);
+    if (currentAddress) {
+      return currentAddress;
+    }
+    const legacyCookie = await window.cookieStore.get(
+      LEGACY_ADDRESS_COOKIE_NAME
+    );
+    const address = normalizeRememberedAddress(legacyCookie?.value);
+    if (address) {
+      await persistAddress(address);
+    }
+    return address ?? normalizeRememberedAddress(readAddressStorage());
+  } catch {
+    return normalizeRememberedAddress(readAddressStorage());
   }
 };
 

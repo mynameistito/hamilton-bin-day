@@ -8,7 +8,8 @@ import {
   Union,
 } from "effect/Schema";
 
-export const NOTIFICATION_PREFERENCES_KEY = "hcc-bin-day-notifications-v1";
+export const NOTIFICATION_PREFERENCES_KEY = "hamilton-bin-day-notifications-v1";
+const LEGACY_NOTIFICATION_PREFERENCES_KEY = "hcc-bin-day-notifications-v1";
 
 /** Supported number of days before collection for a reminder. */
 export type ReminderLeadDays = 0 | 1 | 2 | 7;
@@ -123,7 +124,14 @@ export const parseNotificationPreferences = (
  */
 export const readNotificationPreferences = (): NotificationPreferences => {
   try {
-    const stored = window.localStorage.getItem(NOTIFICATION_PREFERENCES_KEY);
+    let stored = window.localStorage.getItem(NOTIFICATION_PREFERENCES_KEY);
+    if (stored === null) {
+      stored = window.localStorage.getItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
+      if (stored !== null) {
+        window.localStorage.setItem(NOTIFICATION_PREFERENCES_KEY, stored);
+      }
+    }
+    window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
     return stored === null
       ? DEFAULT_PREFERENCES
       : parseNotificationPreferences(JSON.parse(stored));
@@ -145,6 +153,7 @@ export const saveNotificationPreferences = (
       NOTIFICATION_PREFERENCES_KEY,
       JSON.stringify(parsedPreferences)
     );
+    window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
     return true;
   } catch {
     return false;

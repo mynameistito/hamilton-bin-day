@@ -92,7 +92,7 @@ export const TermsPage = () => (
       The project software is made available under the{" "}
       <a
         className="underline"
-        href="https://github.com/mynameistito/hcc-bin-day/blob/main/LICENSE"
+        href="https://github.com/mynameistito/hamilton-bin-day/blob/main/LICENSE"
       >
         MIT License
       </a>
@@ -149,9 +149,9 @@ export const TermsPage = () => (
       at{" "}
       <a
         className="underline"
-        href="mailto:contact%2Bhcc-bin-day@mynameistito.com"
+        href="mailto:contact%2Bhamilton-bin-day@mynameistito.com"
       >
-        contact+hcc-bin-day@mynameistito.com
+        contact+hamilton-bin-day@mynameistito.com
       </a>
       .
     </p>

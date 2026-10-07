@@ -2,7 +2,8 @@ import type { NotificationPreferences } from "@/lib/notifications";
 import type { ScheduleResponse } from "@/lib/schedule";
 import type { WebPushSubscription } from "@/lib/web-push-subscription";
 
-export const PUSH_ENDPOINT_STORAGE_KEY = "hcc-bin-day-push-endpoint-v1";
+export const PUSH_ENDPOINT_STORAGE_KEY = "hamilton-bin-day-push-endpoint-v1";
+const LEGACY_PUSH_ENDPOINT_STORAGE_KEY = "hcc-bin-day-push-endpoint-v1";
 
 /** A queue that executes browser push mutations in the order they were submitted. */
 export type PushMutationQueue = <T>(operation: () => Promise<T>) => Promise<T>;
@@ -39,7 +40,19 @@ export const enqueuePushMutation: PushMutationQueue = (operation) =>
  */
 export const readStoredPushEndpoint = (): string | null => {
   try {
-    return window.localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
+    const current = window.localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
+    if (current !== null) {
+      window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
+      return current;
+    }
+    const legacy = window.localStorage.getItem(
+      LEGACY_PUSH_ENDPOINT_STORAGE_KEY
+    );
+    if (legacy !== null) {
+      window.localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, legacy);
+      window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
+    }
+    return legacy;
   } catch {
     return null;
   }
@@ -52,6 +65,7 @@ export const readStoredPushEndpoint = (): string | null => {
 export const rememberPushEndpoint = (endpoint: string): boolean => {
   try {
     window.localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, endpoint);
+    window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
     return true;
   } catch {
     return false;
@@ -64,6 +78,7 @@ export const rememberPushEndpoint = (endpoint: string): boolean => {
 export const forgetPushEndpoint = (): boolean => {
   try {
     window.localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
+    window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
     return true;
   } catch {
     return false;

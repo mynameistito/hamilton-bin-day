@@ -123,22 +123,22 @@ export const PrivacyPage = () => (
     <h3 className="text-lg font-semibold text-ink">Theme preference</h3>
     <p>
       If you change the site's light/dark theme, that preference is saved in
-      your browser's local storage under <code>hcc-bin-day-theme</code>. It is
-      not sent to us and remains until you clear the site's browser data.
+      your browser's local storage under <code>hamilton-bin-day-theme</code>. It
+      is not sent to us and remains until you clear the site's browser data.
     </p>
     <h3 className="text-lg font-semibold text-ink">Bin-day reminders</h3>
     <p>
       Reminder preferences (on/off, lead time, and local time) are saved in this
-      browser's local storage under <code>hcc-bin-day-notifications-v1</code>.
-      The opaque push endpoint is also kept locally under{" "}
-      <code>hcc-bin-day-push-endpoint-v1</code> so the site can request
-      server-side deletion even if the browser no longer reports its push
-      subscription. If you explicitly turn reminders on, the browser then asks
-      for notification permission. After permission is granted, the site sends
-      the browser's push subscription, the next two collection dates and
-      bin-week type, your selected lead time and local time, and your IANA
-      timezone to its Cloudflare Worker and D1 database so it can schedule
-      closed-app reminders.{" "}
+      browser's local storage under{" "}
+      <code>hamilton-bin-day-notifications-v1</code>. The opaque push endpoint
+      is also kept locally under <code>hamilton-bin-day-push-endpoint-v1</code>{" "}
+      so the site can request server-side deletion even if the browser no longer
+      reports its push subscription. If you explicitly turn reminders on, the
+      browser then asks for notification permission. After permission is
+      granted, the site sends the browser's push subscription, the next two
+      collection dates and bin-week type, your selected lead time and local
+      time, and your IANA timezone to its Cloudflare Worker and D1 database so
+      it can schedule closed-app reminders.{" "}
       <strong>
         The reminder service does not receive or retain your street address or
         an address-derived lookup key.
@@ -168,9 +168,9 @@ export const PrivacyPage = () => (
       If you email{" "}
       <a
         className="underline"
-        href="mailto:contact%2Bhcc-bin-day@mynameistito.com"
+        href="mailto:contact%2Bhamilton-bin-day@mynameistito.com"
       >
-        contact+hcc-bin-day@mynameistito.com
+        contact+hamilton-bin-day@mynameistito.com
       </a>
       , we receive the email address and any information you choose to include.
       We use it to respond and handle the matter raised. Email providers may
@@ -223,9 +223,9 @@ export const PrivacyPage = () => (
       information we hold, email{" "}
       <a
         className="underline"
-        href="mailto:contact%2Bhcc-bin-day@mynameistito.com"
+        href="mailto:contact%2Bhamilton-bin-day@mynameistito.com"
       >
-        contact+hcc-bin-day@mynameistito.com
+        contact+hamilton-bin-day@mynameistito.com
       </a>
       . We may need enough information to locate the relevant message, but do
       not send extra sensitive details.
@@ -253,9 +253,9 @@ export const PrivacyPage = () => (
       at{" "}
       <a
         className="underline"
-        href="mailto:contact%2Bhcc-bin-day@mynameistito.com"
+        href="mailto:contact%2Bhamilton-bin-day@mynameistito.com"
       >
-        contact+hcc-bin-day@mynameistito.com
+        contact+hamilton-bin-day@mynameistito.com
       </a>
       .
     </p>

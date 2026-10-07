@@ -3,20 +3,20 @@ title: CLI guide
 description: Install and use the Hamilton Bin Day command-line client.
 ---
 
-The `hamilton-bin-day` package provides a command-line client for the same public Hamilton City Council lookup used by the website. It requires Node.js 22 or newer.
+The `@hamilton-bin-day/cli` package provides a command-line client for the same public Hamilton City Council lookup used by the website. It requires Node.js 22 or newer.
 
 ## Run without installing
 
 Use `npx` to run the latest published package:
 
 ```sh
-npx hamilton-bin-day schedule "12 Grey Street"
+npx @hamilton-bin-day/cli schedule "12 Grey Street"
 ```
 
 Or install it globally with your package manager, then run `hamilton-bin-day`:
 
 ```sh
-npm install --global hamilton-bin-day
+npm install --global @hamilton-bin-day/cli
 hamilton-bin-day schedule "12 Grey Street"
 ```
 
@@ -41,7 +41,7 @@ hamilton-bin-day schedule "12b Grey Street" --text
 hamilton-bin-day lookup "12 grey st" --json
 ```
 
-The `hcc-bin-day` executable remains available as a compatibility alias.
+The primary executable is `hamilton-bin-day`. The deprecated `hcc-bin-day` alias remains available for existing scripts; use `hamilton-bin-day` for new usage.
 
 A successful JSON schedule result includes `found`, `matchedAddress`, and `schedule`. The schedule contains the next and following collections, dates, collection day, and the bins for each week. An unmatched query includes `found: false` and a `matches` array. Council request failures are written to stderr and exit with a non-zero status.
 

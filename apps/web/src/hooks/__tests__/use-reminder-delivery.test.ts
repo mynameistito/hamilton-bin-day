@@ -39,7 +39,7 @@ describe("reminder delivery configuration", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
-    window.localStorage.removeItem("hcc-bin-day-push-endpoint-v1");
+    window.localStorage.removeItem("hamilton-bin-day-push-endpoint-v1");
     if (originalServiceWorker) {
       Object.defineProperty(navigator, "serviceWorker", originalServiceWorker);
     } else {
