@@ -89,7 +89,7 @@ const Site = Website.StaticSite(
 );
 
 export default Stack(
-  "HamiltonBinDay",
+  "hamilton-bin-day",
   { providers: providers(), state: state() },
   gen(function* createStack() {
     yield* Reminders;
