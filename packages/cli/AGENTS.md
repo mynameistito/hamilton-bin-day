@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-Published `@mynameistito/hcc-bin-day` package: a Node.js TypeScript CLI and Effect-based client for Hamilton City Council's public address/schedule API.
+Published `hamilton-bin-day` package: a Node.js TypeScript CLI and Effect-based client for Hamilton City Council's public address/schedule API.
 
 ## STRUCTURE
 
@@ -36,10 +36,10 @@ tsdown.config.ts   Published bundle configuration
 ## COMMANDS
 
 ```text
-bun run --filter @mynameistito/hcc-bin-day test
-bun run --filter @mynameistito/hcc-bin-day typecheck
-bun run --filter @mynameistito/hcc-bin-day build
-bun run --filter @mynameistito/hcc-bin-day dev
+bun run --filter hamilton-bin-day test
+bun run --filter hamilton-bin-day typecheck
+bun run --filter hamilton-bin-day build
+bun run --filter hamilton-bin-day dev
 ```
 
 ## ANTI-PATTERNS

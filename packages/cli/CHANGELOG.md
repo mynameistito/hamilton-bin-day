@@ -1,4 +1,4 @@
-# @mynameistito/hcc-bin-day
+# hamilton-bin-day
 
 ## 0.1.8
 

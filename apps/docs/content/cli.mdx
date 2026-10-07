@@ -3,30 +3,30 @@ title: CLI guide
 description: Install and use the Hamilton Bin Day command-line client.
 ---
 
-The `@mynameistito/hcc-bin-day` package provides a command-line client for the same public Hamilton City Council lookup used by the website. It requires Node.js 22 or newer.
+The `hamilton-bin-day` package provides a command-line client for the same public Hamilton City Council lookup used by the website. It requires Node.js 22 or newer.
 
 ## Run without installing
 
 Use `npx` to run the latest published package:
 
 ```sh
-npx @mynameistito/hcc-bin-day schedule "12 Grey Street"
+npx hamilton-bin-day schedule "12 Grey Street"
 ```
 
-Or install it globally with your package manager, then run `hcc-bin-day`:
+Or install it globally with your package manager, then run `hamilton-bin-day`:
 
 ```sh
-npm install --global @mynameistito/hcc-bin-day
-hcc-bin-day schedule "12 Grey Street"
+npm install --global hamilton-bin-day
+hamilton-bin-day schedule "12 Grey Street"
 ```
 
 ## Commands
 
 ```sh
-hcc-bin-day search "12 Grey Street"
-hcc-bin-day lookup "12 Grey Street"
-hcc-bin-day schedule "12 Grey Street"
-hcc-bin-day --version
+hamilton-bin-day search "12 Grey Street"
+hamilton-bin-day lookup "12 Grey Street"
+hamilton-bin-day schedule "12 Grey Street"
+hamilton-bin-day --version
 ```
 
 - `search` returns matching Council addresses.
@@ -37,9 +37,11 @@ hcc-bin-day --version
 JSON is the default output, suitable for scripts and other tools. Use `--text` (also `--pretty` or `-p`) for a readable terminal summary. `--json` or `-j` explicitly selects JSON.
 
 ```sh
-hcc-bin-day schedule "12b Grey Street" --text
-hcc-bin-day lookup "12 grey st" --json
+hamilton-bin-day schedule "12b Grey Street" --text
+hamilton-bin-day lookup "12 grey st" --json
 ```
+
+The `hcc-bin-day` executable remains available as a compatibility alias.
 
 A successful JSON schedule result includes `found`, `matchedAddress`, and `schedule`. The schedule contains the next and following collections, dates, collection day, and the bins for each week. An unmatched query includes `found: false` and a `matches` array. Council request failures are written to stderr and exit with a non-zero status.
 

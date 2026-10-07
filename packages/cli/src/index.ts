@@ -23,16 +23,16 @@ const printHelp = () => {
   console.log(`Hamilton bin-day client
 
   Usage:
-  npx @mynameistito/hcc-bin-day --version
-  npx @mynameistito/hcc-bin-day search <address>
-  npx @mynameistito/hcc-bin-day schedule <address>
-  npx @mynameistito/hcc-bin-day lookup <address>
-  npx @mynameistito/hcc-bin-day schedule <address> --text
+  npx hamilton-bin-day --version
+  npx hamilton-bin-day search <address>
+  npx hamilton-bin-day schedule <address>
+  npx hamilton-bin-day lookup <address>
+  npx hamilton-bin-day schedule <address> --text
 
 Examples:
-  npx @mynameistito/hcc-bin-day schedule "12b Grey Street"
-  npx @mynameistito/hcc-bin-day schedule "12b Grey Street" --text
-  npx @mynameistito/hcc-bin-day lookup "12 grey st"
+  npx hamilton-bin-day schedule "12b Grey Street"
+  npx hamilton-bin-day schedule "12b Grey Street" --text
+  npx hamilton-bin-day lookup "12 grey st"
 
 Output is JSON by default. Use --text (or --pretty) for human-readable output.
 Address input is flexible: unit suffixes (12b -> 12B) and street types (pl, st, rd, etc.).
