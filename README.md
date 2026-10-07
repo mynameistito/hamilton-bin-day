@@ -6,7 +6,7 @@ Look up the next Hamilton City Council bin collection for an address, or use the
 
 - **Web app:** address lookup, next collection date, and bins to put out.
 - **Documentation:** collection guide and project details at `/docs`.
-- **CLI:** published TypeScript client at `@hamilton-bin-day/cli`.
+- **CLI:** published TypeScript client at `hamilton-bin-day`.
 
 ## What it does
 
@@ -97,12 +97,12 @@ https://api2.hcc.govt.nz
 ## Usage
 
 ```bash
-npx @hamilton-bin-day/cli
-npx @hamilton-bin-day/cli --version
-npx @hamilton-bin-day/cli search "12 Grey Street"
-npx @hamilton-bin-day/cli lookup "12 Grey Street"
-npx @hamilton-bin-day/cli schedule "12 Grey Street"
-npx @hamilton-bin-day/cli --json lookup "12 Grey Street"
+npx hamilton-bin-day
+npx hamilton-bin-day --version
+npx hamilton-bin-day search "12 Grey Street"
+npx hamilton-bin-day lookup "12 Grey Street"
+npx hamilton-bin-day schedule "12 Grey Street"
+npx hamilton-bin-day --json lookup "12 Grey Street"
 ```
 
 ## Output modes
@@ -120,7 +120,7 @@ apps/
   docs/      Blume content and configuration
   web/       TanStack React app, Cloudflare Worker, and Tailwind CSS
 packages/
-  cli/       Published @hamilton-bin-day/cli client
+  cli/       Published hamilton-bin-day client
 ```
 
 ## Development
@@ -138,7 +138,7 @@ bun run test
 bun run build
 ```
 
-The repository is a Bun workspace. Its CLI, web app, and Blume documentation packages are `@hamilton-bin-day/cli`, `@hamilton-bin-day/web`, and `@hamilton-bin-day/docs`. The CLI's primary executable is `hamilton-bin-day`; the deprecated `hcc-bin-day` alias remains available for existing scripts. Run `bun run dev:site` to start both development servers and serve the docs through the web app at `/docs`, matching the production URL structure. To share the web app temporarily, run `bun run dev:web:tunnel`; the Cloudflare Vite plugin starts a Quick Tunnel and prints its public `trycloudflare.com` URL. Anyone with the URL can reach the development server and its HMR endpoints, so only share it with people you trust. Press `t` then Enter to toggle the tunnel, or stop the dev server to close it. `bun run dev:web` stays local-only. In production, the docs are built into the website's `/docs` path and deployed together as one Cloudflare Worker.
+The repository is a Bun workspace. Its CLI package is `hamilton-bin-day`; the web app and Blume documentation packages are `@hamilton-bin-day/web` and `@hamilton-bin-day/docs`. The CLI's primary executable is `hamilton-bin-day`; the deprecated `hcc-bin-day` alias remains available for existing scripts. Run `bun run dev:site` to start both development servers and serve the docs through the web app at `/docs`, matching the production URL structure. To share the web app temporarily, run `bun run dev:web:tunnel`; the Cloudflare Vite plugin starts a Quick Tunnel and prints its public `trycloudflare.com` URL. Anyone with the URL can reach the development server and its HMR endpoints, so only share it with people you trust. Press `t` then Enter to toggle the tunnel, or stop the dev server to close it. `bun run dev:web` stays local-only. In production, the docs are built into the website's `/docs` path and deployed together as one Cloudflare Worker.
 
 ## Deployment
 

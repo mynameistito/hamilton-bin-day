@@ -1,4 +1,4 @@
-# @hamilton-bin-day/cli
+# hamilton-bin-day
 
 ## 0.1.9
 

@@ -27,7 +27,7 @@
     "deploy": "bun ./scripts/alchemy-command.ts deploy",
     "destroy": "bun ./scripts/alchemy-command.ts destroy",
     "dev": "turbo run dev --filter=@hamilton-bin-day/web",
-    "dev:cli": "turbo run dev --filter=@hamilton-bin-day/cli",
+    "dev:cli": "turbo run dev --filter=hamilton-bin-day",
     "dev:docs": "turbo run dev --filter=@hamilton-bin-day/docs",
     "dev:site": "turbo run dev:site --filter=@hamilton-bin-day/web",
     "dev:web": "turbo run dev --filter=@hamilton-bin-day/web",
