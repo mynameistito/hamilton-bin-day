@@ -1,5 +1,11 @@
 # hamilton-bin-day
 
+## 0.1.9
+
+### Patch Changes
+
+- 82f4c9a: Publish the CLI under its new npm name `hamilton-bin-day` while retaining the `hcc-bin-day` executable alias.
+
 ## 0.1.8
 
 ### Patch Changes
