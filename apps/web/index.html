@@ -23,9 +23,17 @@
         const legacyTheme = localStorage.getItem(legacyThemeKey);
         const theme = currentTheme ?? legacyTheme;
         if (currentTheme === null && legacyTheme !== null) {
-          localStorage.setItem(themeKey, theme);
+          try {
+            localStorage.setItem(themeKey, legacyTheme);
+          } catch {
+            // Apply the saved theme even when migration storage is full.
+          }
         }
-        localStorage.removeItem(legacyThemeKey);
+        try {
+          localStorage.removeItem(legacyThemeKey);
+        } catch {
+          // Apply the selected theme even if legacy cleanup fails.
+        }
         document.documentElement.dataset.theme =
           theme === "light" ? "light" : "dark";
         document.querySelector('meta[name="theme-color"]').content =

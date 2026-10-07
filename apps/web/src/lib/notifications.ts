@@ -119,22 +119,49 @@ export const parseNotificationPreferences = (
   }
 };
 
+const parseStoredPreferences = (
+  stored: string | null
+): NotificationPreferences | null => {
+  if (stored === null) {
+    return null;
+  }
+  try {
+    return parsePreferences(JSON.parse(stored));
+  } catch {
+    return null;
+  }
+};
+
 /** Read notification preferences from local storage, returning safe defaults on failure.
  * @returns Saved settings, or defaults when storage is empty or unavailable.
  */
 export const readNotificationPreferences = (): NotificationPreferences => {
   try {
-    let stored = window.localStorage.getItem(NOTIFICATION_PREFERENCES_KEY);
-    if (stored === null) {
-      stored = window.localStorage.getItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
-      if (stored !== null) {
-        window.localStorage.setItem(NOTIFICATION_PREFERENCES_KEY, stored);
+    const current = parseStoredPreferences(
+      window.localStorage.getItem(NOTIFICATION_PREFERENCES_KEY)
+    );
+    if (current) {
+      try {
+        window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
+      } catch {
+        // Current preferences remain usable if legacy cleanup fails.
       }
+      return current;
     }
-    window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
-    return stored === null
-      ? DEFAULT_PREFERENCES
-      : parseNotificationPreferences(JSON.parse(stored));
+    const legacyStored = window.localStorage.getItem(
+      LEGACY_NOTIFICATION_PREFERENCES_KEY
+    );
+    const legacy = parseStoredPreferences(legacyStored);
+    if (!legacy || legacyStored === null) {
+      return DEFAULT_PREFERENCES;
+    }
+    try {
+      window.localStorage.setItem(NOTIFICATION_PREFERENCES_KEY, legacyStored);
+      window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
+    } catch {
+      // Keep using valid legacy preferences if migration storage is full.
+    }
+    return legacy;
   } catch {
     return DEFAULT_PREFERENCES;
   }

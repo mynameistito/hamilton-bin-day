@@ -42,15 +42,23 @@ export const readStoredPushEndpoint = (): string | null => {
   try {
     const current = window.localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
     if (current !== null) {
-      window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
+      try {
+        window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
+      } catch {
+        // The current endpoint is usable even if legacy cleanup fails.
+      }
       return current;
     }
     const legacy = window.localStorage.getItem(
       LEGACY_PUSH_ENDPOINT_STORAGE_KEY
     );
     if (legacy !== null) {
-      window.localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, legacy);
-      window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
+      try {
+        window.localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, legacy);
+        window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
+      } catch {
+        // Keep the endpoint usable if migration storage is full.
+      }
     }
     return legacy;
   } catch {

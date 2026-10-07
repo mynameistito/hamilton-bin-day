@@ -40,7 +40,10 @@ const Reminders = D1.Database(
   "ReminderSubscriptions",
   resolveStackValue((stack) => ({
     migrations: "./apps/web/migrations",
-    name: `hamilton-bin-day-reminders-${stack.stage}`,
+    name:
+      stack.stage === "prod"
+        ? "hcc-bin-day-reminders-prod"
+        : `hamilton-bin-day-reminders-${stack.stage}`,
     primaryLocationHint: "oc" as const,
   }))
 );

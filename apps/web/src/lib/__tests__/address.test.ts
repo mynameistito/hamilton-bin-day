@@ -126,6 +126,27 @@ describe("remembered addresses", () => {
     });
   });
 
+  it("uses a valid legacy local address if the current value is invalid or migration fails", async () => {
+    vi.stubGlobal("window", {
+      cookieStore: {
+        get: vi
+          .fn<() => Promise<never>>()
+          .mockRejectedValue(new Error("blocked")),
+      },
+      localStorage: {
+        getItem: vi.fn<(key: string) => string | null>((key) =>
+          key === "hamilton-bin-day-address" ? "  " : "  12 Grey Street  "
+        ),
+        removeItem: vi.fn<(key: string) => void>(),
+        setItem: vi.fn<(key: string, value: string) => void>(() => {
+          throw new Error("storage full");
+        }),
+      },
+    });
+
+    await expect(readRememberedAddress()).resolves.toBe("12 Grey Street");
+  });
+
   it("stores addresses in cookies and falls back to local storage", async () => {
     const set = vi
       .fn<

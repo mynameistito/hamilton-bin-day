@@ -27,15 +27,27 @@ export const normalizeRememberedAddress = (
 
 const readAddressStorage = (): string | null => {
   try {
-    const current = window.localStorage.getItem(ADDRESS_COOKIE_NAME);
-    if (current !== null) {
-      window.localStorage.removeItem(LEGACY_ADDRESS_COOKIE_NAME);
+    const current = normalizeRememberedAddress(
+      window.localStorage.getItem(ADDRESS_COOKIE_NAME)
+    );
+    if (current) {
+      try {
+        window.localStorage.removeItem(LEGACY_ADDRESS_COOKIE_NAME);
+      } catch {
+        // The current address is usable even if legacy cleanup fails.
+      }
       return current;
     }
-    const legacy = window.localStorage.getItem(LEGACY_ADDRESS_COOKIE_NAME);
-    if (legacy !== null) {
-      window.localStorage.setItem(ADDRESS_COOKIE_NAME, legacy);
-      window.localStorage.removeItem(LEGACY_ADDRESS_COOKIE_NAME);
+    const legacy = normalizeRememberedAddress(
+      window.localStorage.getItem(LEGACY_ADDRESS_COOKIE_NAME)
+    );
+    if (legacy) {
+      try {
+        window.localStorage.setItem(ADDRESS_COOKIE_NAME, legacy);
+        window.localStorage.removeItem(LEGACY_ADDRESS_COOKIE_NAME);
+      } catch {
+        // The legacy address remains usable if migration storage is full.
+      }
     }
     return legacy;
   } catch {

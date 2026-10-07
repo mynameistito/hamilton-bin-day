@@ -65,6 +65,24 @@ describe("push reminder client requests", () => {
     expect(values.has(previousKey)).toBeFalsy();
   });
 
+  it("returns the legacy endpoint if migration storage is full", () => {
+    const previousKey = "hcc-bin-day-push-endpoint-v1";
+    const endpoint = "https://fcm.googleapis.com/fcm/send/secret";
+    const values = new Map([[previousKey, endpoint]]);
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        removeItem: (key: string) => values.delete(key),
+        setItem: () => {
+          throw new Error("storage full");
+        },
+      },
+    });
+
+    expect(readStoredPushEndpoint()).toBe(endpoint);
+    expect(values.has(previousKey)).toBeTruthy();
+  });
+
   it("handles blocked browser storage without throwing", () => {
     vi.stubGlobal("window", {
       localStorage: {
