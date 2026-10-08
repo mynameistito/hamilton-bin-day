@@ -1,4 +1,4 @@
-# @mynameistito/hcc-bin-day
+# @hamilton-bin-day/workspace
 
 ## 0.1.4
 

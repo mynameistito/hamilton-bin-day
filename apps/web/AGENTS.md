@@ -31,7 +31,7 @@ scripts/         Council catalogue synchronization
 ## CONVENTIONS
 
 - Keep route-specific worker behavior in the dispatcher and substantive business logic in `src/lib/` or endpoint modules.
-- Colocate tests under `__tests__/` in the relevant source area; run `bun run --filter @mynameistito/hcc-bin-day-web test` from root.
+- Colocate tests under `__tests__/` in the relevant source area; run `bun run --filter @hamilton-bin-day/web test` from root.
 - Worker and service-worker environments differ from browser UI; keep APIs/types compatible with their respective runtimes.
 
 ## ANTI-PATTERNS
@@ -46,8 +46,8 @@ scripts/         Council catalogue synchronization
 bun run dev:web
 bun run dev:site
 bun run dev:tunnel
-bun run --filter @mynameistito/hcc-bin-day-web test
-bun run --filter @mynameistito/hcc-bin-day-web typecheck
-bun run --filter @mynameistito/hcc-bin-day-web build
+bun run --filter @hamilton-bin-day/web test
+bun run --filter @hamilton-bin-day/web typecheck
+bun run --filter @hamilton-bin-day/web build
 bun run vapid:generate
 ```

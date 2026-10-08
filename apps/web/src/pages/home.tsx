@@ -300,7 +300,8 @@ export const HomePage = () => {
       ?.setAttribute("content", nextTheme === "light" ? "#f7f6f2" : "#171d19");
     setTheme(nextTheme);
     try {
-      window.localStorage.setItem("hcc-bin-day-theme", nextTheme);
+      window.localStorage.setItem("hamilton-bin-day-theme", nextTheme);
+      window.localStorage.removeItem("hcc-bin-day-theme");
     } catch {
       // Keep the toggle usable when browser storage is unavailable.
     }

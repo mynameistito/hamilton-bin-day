@@ -41,7 +41,7 @@ hamilton-bin-day schedule "12b Grey Street" --text
 hamilton-bin-day lookup "12 grey st" --json
 ```
 
-The `hcc-bin-day` executable remains available as a compatibility alias.
+The primary executable is `hamilton-bin-day`. The deprecated `hcc-bin-day` alias remains available for existing scripts; use `hamilton-bin-day` for new usage.
 
 A successful JSON schedule result includes `found`, `matchedAddress`, and `schedule`. The schedule contains the next and following collections, dates, collection day, and the bins for each week. An unmatched query includes `found: false` and a `matches` array. Council request failures are written to stderr and exit with a non-zero status.
 

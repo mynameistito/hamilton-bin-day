@@ -8,7 +8,7 @@ const resolveStackValue = Stack.useSync.bind(Stack);
 
 const reminderRateLimitNamespaceId = (stage: string): number => {
   let hash = 7;
-  for (const character of `hcc-bin-day:${stage}`) {
+  for (const character of `hamilton-bin-day:${stage}`) {
     hash = (hash * 31 + (character.codePointAt(0) ?? 0)) % 2_147_483_647;
   }
   return hash || 1;
@@ -24,7 +24,7 @@ const websiteProps = (stage: string) => {
     command: "bun run build",
     crons: ["*/5 * * * *"],
     main: "./apps/web/src/worker.ts",
-    name: stage === "prod" ? "hcc-bin-day" : `hcc-bin-day-${stage}`,
+    name: stage === "prod" ? "hamilton-bin-day" : `hamilton-bin-day-${stage}`,
     outdir: "apps/web/dist",
     workersDev: true,
   };
@@ -40,7 +40,7 @@ const Reminders = D1.Database(
   "ReminderSubscriptions",
   resolveStackValue((stack) => ({
     migrations: "./apps/web/migrations",
-    name: `hcc-bin-day-reminders-${stack.stage}`,
+    name: `hamilton-bin-day-reminders-${stack.stage}`,
     primaryLocationHint: "oc" as const,
   }))
 );
@@ -89,7 +89,7 @@ const Site = Website.StaticSite(
 );
 
 export default Stack(
-  "HamiltonBinDay",
+  "hamilton-bin-day",
   { providers: providers(), state: state() },
   gen(function* createStack() {
     yield* Reminders;

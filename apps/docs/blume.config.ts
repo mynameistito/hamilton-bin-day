@@ -5,7 +5,7 @@ export default defineConfig({
   content: { root: "content" },
   description:
     "Address lookup and collection schedule details for Hamilton, New Zealand.",
-  github: { dir: "apps/docs", owner: "mynameistito", repo: "hcc-bin-day" },
+  github: { dir: "apps/docs", owner: "mynameistito", repo: "hamilton-bin-day" },
   theme: { accent: "green", mode: "system", radius: "md" },
   title: "Hamilton Bin Day",
 });

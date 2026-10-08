@@ -45,7 +45,7 @@ const lookupDevPlugin: Plugin = {
       });
     });
   },
-  name: "hcc-bin-day-dev-api",
+  name: "hamilton-bin-day-dev-api",
 };
 
 /** Configure development API middleware and client-side build plugins.

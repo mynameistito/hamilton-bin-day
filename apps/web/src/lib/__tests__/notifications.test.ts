@@ -42,6 +42,7 @@ describe("notification preference persistence", () => {
     vi.stubGlobal("window", {
       localStorage: {
         getItem: (key: string) => values.get(key) ?? null,
+        removeItem: (key: string) => values.delete(key),
         setItem: (key: string, value: string) => values.set(key, value),
       },
     });
@@ -52,6 +53,46 @@ describe("notification preference persistence", () => {
       JSON.stringify(preferences)
     );
     expect(readNotificationPreferences()).toStrictEqual(preferences);
+  });
+
+  it("migrates saved preferences from the previous storage key", () => {
+    const previousKey = "hcc-bin-day-notifications-v1";
+    const preferences = enabledPreferences({ leadDays: 2 });
+    const values = new Map([[previousKey, JSON.stringify(preferences)]]);
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        removeItem: (key: string) => values.delete(key),
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    });
+
+    expect(readNotificationPreferences()).toStrictEqual(preferences);
+    expect(values.get(NOTIFICATION_PREFERENCES_KEY)).toBe(
+      JSON.stringify(preferences)
+    );
+    expect(values.has(previousKey)).toBeFalsy();
+  });
+
+  it("uses valid legacy preferences when current data is invalid and storage is full", () => {
+    const previousKey = "hcc-bin-day-notifications-v1";
+    const preferences = enabledPreferences({ leadDays: 2 });
+    const values = new Map([
+      [NOTIFICATION_PREFERENCES_KEY, "invalid json"],
+      [previousKey, JSON.stringify(preferences)],
+    ]);
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        removeItem: (key: string) => values.delete(key),
+        setItem: () => {
+          throw new Error("storage full");
+        },
+      },
+    });
+
+    expect(readNotificationPreferences()).toStrictEqual(preferences);
+    expect(values.has(previousKey)).toBeTruthy();
   });
 
   it("fails safely when browser storage is unavailable", () => {

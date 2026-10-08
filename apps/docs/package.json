@@ -1,6 +1,6 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
-  "name": "@mynameistito/hcc-bin-day-docs",
+  "name": "@hamilton-bin-day/docs",
   "private": true,
   "type": "module",
   "scripts": {

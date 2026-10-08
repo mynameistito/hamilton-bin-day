@@ -17,7 +17,23 @@
     <title>Hamilton Bin Day</title>
     <script>
       try {
-        const theme = localStorage.getItem("hcc-bin-day-theme");
+        const themeKey = "hamilton-bin-day-theme";
+        const legacyThemeKey = "hcc-bin-day-theme";
+        const currentTheme = localStorage.getItem(themeKey);
+        const legacyTheme = localStorage.getItem(legacyThemeKey);
+        const theme = currentTheme ?? legacyTheme;
+        if (currentTheme === null && legacyTheme !== null) {
+          try {
+            localStorage.setItem(themeKey, legacyTheme);
+          } catch {
+            // Apply the saved theme even when migration storage is full.
+          }
+        }
+        try {
+          localStorage.removeItem(legacyThemeKey);
+        } catch {
+          // Apply the selected theme even if legacy cleanup fails.
+        }
         document.documentElement.dataset.theme =
           theme === "light" ? "light" : "dark";
         document.querySelector('meta[name="theme-color"]').content =

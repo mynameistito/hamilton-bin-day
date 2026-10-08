@@ -6,12 +6,12 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
-    "@mynameistito/hcc-bin-day-web#build": {
-      "dependsOn": ["@mynameistito/hcc-bin-day-docs#build"],
+    "@hamilton-bin-day/web#build": {
+      "dependsOn": ["@hamilton-bin-day/docs#build"],
       "outputs": ["dist/**"]
     },
-    "@mynameistito/hcc-bin-day-web#dev:site": {
-      "with": ["@mynameistito/hcc-bin-day-docs#dev"],
+    "@hamilton-bin-day/web#dev:site": {
+      "with": ["@hamilton-bin-day/docs#dev"],
       "cache": false,
       "persistent": true
     },

@@ -8,7 +8,8 @@ import {
   Union,
 } from "effect/Schema";
 
-export const NOTIFICATION_PREFERENCES_KEY = "hcc-bin-day-notifications-v1";
+export const NOTIFICATION_PREFERENCES_KEY = "hamilton-bin-day-notifications-v1";
+const LEGACY_NOTIFICATION_PREFERENCES_KEY = "hcc-bin-day-notifications-v1";
 
 /** Supported number of days before collection for a reminder. */
 export type ReminderLeadDays = 0 | 1 | 2 | 7;
@@ -118,15 +119,49 @@ export const parseNotificationPreferences = (
   }
 };
 
+const parseStoredPreferences = (
+  stored: string | null
+): NotificationPreferences | null => {
+  if (stored === null) {
+    return null;
+  }
+  try {
+    return parsePreferences(JSON.parse(stored));
+  } catch {
+    return null;
+  }
+};
+
 /** Read notification preferences from local storage, returning safe defaults on failure.
  * @returns Saved settings, or defaults when storage is empty or unavailable.
  */
 export const readNotificationPreferences = (): NotificationPreferences => {
   try {
-    const stored = window.localStorage.getItem(NOTIFICATION_PREFERENCES_KEY);
-    return stored === null
-      ? DEFAULT_PREFERENCES
-      : parseNotificationPreferences(JSON.parse(stored));
+    const current = parseStoredPreferences(
+      window.localStorage.getItem(NOTIFICATION_PREFERENCES_KEY)
+    );
+    if (current) {
+      try {
+        window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
+      } catch {
+        // Current preferences remain usable if legacy cleanup fails.
+      }
+      return current;
+    }
+    const legacyStored = window.localStorage.getItem(
+      LEGACY_NOTIFICATION_PREFERENCES_KEY
+    );
+    const legacy = parseStoredPreferences(legacyStored);
+    if (!legacy || legacyStored === null) {
+      return DEFAULT_PREFERENCES;
+    }
+    try {
+      window.localStorage.setItem(NOTIFICATION_PREFERENCES_KEY, legacyStored);
+      window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
+    } catch {
+      // Keep using valid legacy preferences if migration storage is full.
+    }
+    return legacy;
   } catch {
     return DEFAULT_PREFERENCES;
   }
@@ -145,6 +180,7 @@ export const saveNotificationPreferences = (
       NOTIFICATION_PREFERENCES_KEY,
       JSON.stringify(parsedPreferences)
     );
+    window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
     return true;
   } catch {
     return false;

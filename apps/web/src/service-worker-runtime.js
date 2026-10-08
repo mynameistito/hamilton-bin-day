@@ -49,10 +49,12 @@ const parsePushPayload = (event) => {
 export const registerServiceWorker = (scope = globalThis) => {
   const self = scope;
   const { caches, fetch, Response, URL, console } = scope;
-  const CACHE_PREFIX = "hcc-bin-day-shell-";
+  const CACHE_PREFIX = "hamilton-bin-day-shell-";
+  const LEGACY_CACHE_PREFIX = "hcc-bin-day-shell-";
   const BUILD_ID = "development";
   const BUILD_ASSETS = [];
-  const NOTIFICATION_CACHE = "hcc-bin-day-notification-delivery-v1";
+  const NOTIFICATION_CACHE = "hamilton-bin-day-notification-delivery-v1";
+  const LEGACY_NOTIFICATION_CACHE = "hcc-bin-day-notification-delivery-v1";
   const NOTIFICATION_CONSENT_KEY = new URL(
     "/__notification-consent__",
     self.location.origin
@@ -145,8 +147,27 @@ export const registerServiceWorker = (scope = globalThis) => {
       (async () => {
         const keys = await caches.keys();
         const deletions = [];
+        const previousNotifications = keys.includes(LEGACY_NOTIFICATION_CACHE)
+          ? await caches.open(LEGACY_NOTIFICATION_CACHE)
+          : null;
+        if (previousNotifications) {
+          const nextNotifications = await caches.open(NOTIFICATION_CACHE);
+          const previousRequests = await previousNotifications.keys();
+          await Promise.all(
+            previousRequests.map(async (request) => {
+              const response = await previousNotifications.match(request);
+              if (response) {
+                await nextNotifications.put(request, response);
+              }
+            })
+          );
+          deletions.push(caches.delete(LEGACY_NOTIFICATION_CACHE));
+        }
         for (const key of keys) {
-          if (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME) {
+          if (
+            (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME) ||
+            key.startsWith(LEGACY_CACHE_PREFIX)
+          ) {
             deletions.push(caches.delete(key));
           }
         }

@@ -16,6 +16,8 @@ Use `--version` (or `-v`) to print the installed package version.
 
 This is an unofficial community project, not affiliated with Hamilton City Council. API behavior and collection data may change without notice.
 
+Install globally with `npm install --global hamilton-bin-day`; the installed executable is `hamilton-bin-day`.
+
 See the [repository README](../../README.md) for workspace and development instructions.
 
-The `hcc-bin-day` executable remains available as a compatibility alias.
+The primary executable is `hamilton-bin-day`. The deprecated `hcc-bin-day` alias remains available for existing scripts; use `hamilton-bin-day` for new usage.

@@ -89,7 +89,7 @@ describe("home page navigation", () => {
   });
 
   it("places two reminder triggers in the header and footer for one dialog", () => {
-    window.localStorage.removeItem("hcc-bin-day-notifications-v1");
+    window.localStorage.removeItem("hamilton-bin-day-notifications-v1");
     vi.stubGlobal("Notification", {
       permission: "default",
       requestPermission: vi.fn<() => Promise<NotificationPermission>>(),

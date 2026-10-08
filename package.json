@@ -1,6 +1,6 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
-  "name": "hcc-bin-day-workspace",
+  "name": "@hamilton-bin-day/workspace",
   "version": "0.0.0",
   "private": true,
   "workspaces": {
@@ -26,18 +26,18 @@
     "changeset-add": "bun ./packages/cli/scripts/changeset-add.ts",
     "deploy": "bun ./scripts/alchemy-command.ts deploy",
     "destroy": "bun ./scripts/alchemy-command.ts destroy",
-    "dev": "turbo run dev --filter=@mynameistito/hcc-bin-day-web",
+    "dev": "turbo run dev --filter=@hamilton-bin-day/web",
     "dev:cli": "turbo run dev --filter=hamilton-bin-day",
-    "dev:docs": "turbo run dev --filter=@mynameistito/hcc-bin-day-docs",
-    "dev:site": "turbo run dev:site --filter=@mynameistito/hcc-bin-day-web",
-    "dev:web": "turbo run dev --filter=@mynameistito/hcc-bin-day-web",
-    "dev:web:tunnel": "turbo run dev:tunnel --filter=@mynameistito/hcc-bin-day-web",
-    "dev:tunnel": "turbo run dev:tunnel --filter=@mynameistito/hcc-bin-day-web",
+    "dev:docs": "turbo run dev --filter=@hamilton-bin-day/docs",
+    "dev:site": "turbo run dev:site --filter=@hamilton-bin-day/web",
+    "dev:web": "turbo run dev --filter=@hamilton-bin-day/web",
+    "dev:web:tunnel": "turbo run dev:tunnel --filter=@hamilton-bin-day/web",
+    "dev:tunnel": "turbo run dev:tunnel --filter=@hamilton-bin-day/web",
     "fix": "ultracite fix",
     "knip": "bunx knip@latest",
     "prepare": "lefthook install",
     "test": "turbo run test -- --coverage",
-    "vapid:generate": "bun run --filter @mynameistito/hcc-bin-day-web vapid:generate",
+    "vapid:generate": "bun run --filter @hamilton-bin-day/web vapid:generate",
     "typecheck": "turbo run typecheck && bunx tsc --project tsconfig.json"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 # Hamilton Bin Day
 
-[![CI](https://github.com/mynameistito/hcc-bin-day/actions/workflows/ci.yml/badge.svg)](https://github.com/mynameistito/hcc-bin-day/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![CI](https://github.com/mynameistito/hamilton-bin-day/actions/workflows/ci.yml/badge.svg)](https://github.com/mynameistito/hamilton-bin-day/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 Look up the next Hamilton City Council bin collection for an address, or use the TypeScript CLI client to query the same public service.
 
@@ -57,7 +57,7 @@ The trusted production deploy provisions the D1 database and five-minute Cron Tr
 1. Generate a long-lived keypair once with `bun run vapid:generate`. The script prints the values; it does not save them. Keep the private key secret.
 2. Add `VAPID_PRIVATE_KEY` as a GitHub Actions **secret**.
 3. Add `VAPID_PUBLIC_KEY` as a GitHub Actions **variable**.
-4. Optionally set `VAPID_SUBJECT` as a GitHub Actions **variable**. If omitted, the deploy workflow uses the project's contact address, `mailto:contact+hcc-bin-day@mynameistito.com`.
+4. Optionally set `VAPID_SUBJECT` as a GitHub Actions **variable**. If omitted, the deploy workflow uses the project's contact address, `mailto:contact+hamilton-bin-day@mynameistito.com`.
 5. Deploy through the normal trusted workflow (merge/push to `main`). GitHub Actions passes the private key to Alchemy as a redacted value, which Alchemy provisions as a Cloudflare Worker `secret_text` binding. The public key and subject are non-secret Worker configuration. Do not use `wrangler secret put` or commit key material.
 
 The keypair is stable deployment configuration; it is never generated during CI, builds, deploys, Cron runs, or subscription creation. Rotating it is an explicit operation and may invalidate or disrupt existing browser subscriptions. PR artifact previews intentionally receive no VAPID values and cannot send real push notifications; `/api/reminders/public-key` returns the safe `503` not-configured response and the UI reports that background delivery is unavailable.
@@ -138,7 +138,7 @@ bun run test
 bun run build
 ```
 
-The repository is a Bun workspace. The CLI package is `hamilton-bin-day` in `packages/cli`; the web app and Blume documentation have their own package scripts. The `hcc-bin-day` executable remains available as a compatibility alias. Run `bun run dev:site` to start both development servers and serve the docs through the web app at `/docs`, matching the production URL structure. To share the web app temporarily, run `bun run dev:web:tunnel`; the Cloudflare Vite plugin starts a Quick Tunnel and prints its public `trycloudflare.com` URL. Anyone with the URL can reach the development server and its HMR endpoints, so only share it with people you trust. Press `t` then Enter to toggle the tunnel, or stop the dev server to close it. `bun run dev:web` stays local-only. In production, the docs are built into the website's `/docs` path and deployed together as one Cloudflare Worker.
+The repository is a Bun workspace. Its CLI package is `hamilton-bin-day`; the web app and Blume documentation packages are `@hamilton-bin-day/web` and `@hamilton-bin-day/docs`. The CLI's primary executable is `hamilton-bin-day`; the deprecated `hcc-bin-day` alias remains available for existing scripts. Run `bun run dev:site` to start both development servers and serve the docs through the web app at `/docs`, matching the production URL structure. To share the web app temporarily, run `bun run dev:web:tunnel`; the Cloudflare Vite plugin starts a Quick Tunnel and prints its public `trycloudflare.com` URL. Anyone with the URL can reach the development server and its HMR endpoints, so only share it with people you trust. Press `t` then Enter to toggle the tunnel, or stop the dev server to close it. `bun run dev:web` stays local-only. In production, the docs are built into the website's `/docs` path and deployed together as one Cloudflare Worker.
 
 ## Deployment
 

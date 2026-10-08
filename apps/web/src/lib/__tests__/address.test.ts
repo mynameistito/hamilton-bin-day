@@ -49,7 +49,7 @@ describe("remembered addresses", () => {
           .fn<() => Promise<{ value: string }>>()
           .mockResolvedValue({ value: "  Cookie address  " }),
       },
-      localStorage: { getItem },
+      localStorage: { getItem, removeItem: vi.fn<(key: string) => void>() },
     });
 
     await expect(readRememberedAddress()).resolves.toBe("Cookie address");
@@ -61,7 +61,7 @@ describe("remembered addresses", () => {
           .fn<() => Promise<{ value: string }>>()
           .mockResolvedValue({ value: "  " }),
       },
-      localStorage: { getItem },
+      localStorage: { getItem, removeItem: vi.fn<(key: string) => void>() },
     });
     await expect(readRememberedAddress()).resolves.toBe("Local address");
   });
@@ -77,6 +77,7 @@ describe("remembered addresses", () => {
         getItem: vi
           .fn<() => string | null>()
           .mockReturnValue("  Stored address  "),
+        removeItem: vi.fn<(key: string) => void>(),
       },
     });
     await expect(readRememberedAddress()).resolves.toBe("Stored address");
@@ -91,9 +92,59 @@ describe("remembered addresses", () => {
         getItem: vi.fn<() => string | null>().mockImplementation(() => {
           throw new Error("blocked");
         }),
+        removeItem: vi.fn<(key: string) => void>(),
       },
     });
     await expect(readRememberedAddress()).resolves.toBeNull();
+  });
+
+  it("migrates a remembered address from the previous cookie name", async () => {
+    const set = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const remove = vi.fn<() => Promise<void>>().mockResolvedValue();
+    vi.stubGlobal("window", {
+      cookieStore: {
+        delete: remove,
+        get: vi
+          .fn<(name: string) => Promise<{ value: string } | null>>()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ value: "12 Grey Street" }),
+        set,
+      },
+      localStorage: { getItem: vi.fn<() => string | null>() },
+    });
+
+    await expect(readRememberedAddress()).resolves.toBe("12 Grey Street");
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "hamilton-bin-day-address",
+        value: "12 Grey Street",
+      })
+    );
+    expect(remove).toHaveBeenCalledWith({
+      name: "hcc-bin-day-address",
+      path: "/",
+    });
+  });
+
+  it("uses a valid legacy local address if the current value is invalid or migration fails", async () => {
+    vi.stubGlobal("window", {
+      cookieStore: {
+        get: vi
+          .fn<() => Promise<never>>()
+          .mockRejectedValue(new Error("blocked")),
+      },
+      localStorage: {
+        getItem: vi.fn<(key: string) => string | null>((key) =>
+          key === "hamilton-bin-day-address" ? "  " : "  12 Grey Street  "
+        ),
+        removeItem: vi.fn<(key: string) => void>(),
+        setItem: vi.fn<(key: string, value: string) => void>(() => {
+          throw new Error("storage full");
+        }),
+      },
+    });
+
+    await expect(readRememberedAddress()).resolves.toBe("12 Grey Street");
   });
 
   it("stores addresses in cookies and falls back to local storage", async () => {
@@ -116,7 +167,7 @@ describe("remembered addresses", () => {
     await saveAddressCookie("12 Grey Street");
     expect(set).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: "hcc-bin-day-address",
+        name: "hamilton-bin-day-address",
         value: "12 Grey Street",
         path: "/",
         sameSite: "lax",
@@ -134,7 +185,7 @@ describe("remembered addresses", () => {
     });
     await saveAddressCookie("12 Grey Street");
     expect(setItem).toHaveBeenCalledWith(
-      "hcc-bin-day-address",
+      "hamilton-bin-day-address",
       "12 Grey Street"
     );
 
