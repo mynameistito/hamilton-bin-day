@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { layer as nodeFileSystemLayer } from "@effect/platform-node/NodeFileSystem";
-import { Effect, FileSystem, Layer, PlatformError } from "effect";
+import { Effect, FileSystem, Layer, Logger, PlatformError } from "effect";
 import { isFailure } from "effect/Exit";
 import { describe, expect, it } from "vitest";
 
@@ -100,6 +100,43 @@ describe("export pipeline", () => {
       expect(readdirSync(directory)).toStrictEqual(["dataset.json"]);
     } finally {
       rmSync(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("logs usable records including duplicate schedules", async () => {
+    const outputPath = path.join(tmpdir(), `hcc-bin-day-${randomUUID()}.json`);
+    const logMessages: unknown[] = [];
+    const logger = Logger.make(({ message }) => logMessages.push(message));
+    const api: ArcGisClient["Service"] = {
+      allObjectIds: Effect.succeed([1, 2]),
+      featuresByObjectIds: () =>
+        Effect.succeed(
+          [1, 2].map((OBJECTID) => ({
+            attributes: {
+              OBJECTID,
+              Parcel_Street_Address: "12 Grey Street",
+              RubbishRecycling_Area_Day: "Monday",
+              RubbishRecycling_Area_Type: "Area 1",
+            },
+          }))
+        ),
+    };
+    const dependencies = Layer.mergeAll(
+      Layer.succeed(ArcGisClient, ArcGisClient.of(api)),
+      nodeFileSystemLayer,
+      Logger.layer([logger])
+    );
+
+    try {
+      const summary = await Effect.runPromise(
+        exportDataset(outputPath).pipe(Effect.provide(dependencies))
+      );
+
+      expect(summary.usableRecords).toBe(2);
+      expect(summary.uniqueRecords).toBe(1);
+      expect(logMessages.map(String)).toContain("Usable records: 2");
+    } finally {
+      rmSync(outputPath, { force: true });
     }
   });
 });

@@ -117,6 +117,7 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
   );
 
   const transformed = transformFeatures(downloadedFeatures);
+  const usableRecords = transformed.records.length + transformed.duplicateCount;
   if (transformed.invalidDays.length > 0) {
     return yield* Effect.fail(
       new ExportError(
@@ -189,9 +190,7 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
   yield* Effect.log(`Area 1: ${output.binWeek["Area 1"]}`);
   yield* Effect.log(`Area 2: ${output.binWeek["Area 2"]}`);
   yield* Effect.log(`Source records: ${formatNumber(ids.length)}`);
-  yield* Effect.log(
-    `Usable records: ${formatNumber(transformed.records.length)}`
-  );
+  yield* Effect.log(`Usable records: ${formatNumber(usableRecords)}`);
   yield* Effect.log(
     `Unique address rows: ${formatNumber(transformed.records.length)}`
   );
@@ -203,6 +202,6 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
     outputPath,
     sourceRecords: ids.length,
     uniqueRecords: transformed.records.length,
-    usableRecords: transformed.records.length + transformed.duplicateCount,
+    usableRecords,
   } satisfies ExportSummary;
 });
