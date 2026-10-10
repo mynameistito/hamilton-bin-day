@@ -42,7 +42,7 @@ const formatNumber = (value: number): string => value.toLocaleString("en-NZ");
 /**
  * Split an input list into ordered batches of at most `size` items.
  *
- * @template A - Type of each input item.
+ * @typeParam A - Type of each input item.
  * @param values - Ordered items to split.
  * @param size - Maximum number of items in each batch.
  * @returns Ordered batches that preserve the input order.

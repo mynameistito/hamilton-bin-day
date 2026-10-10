@@ -114,7 +114,7 @@ const make = Effect.gen(function* make() {
   /**
    * Send a form-encoded query and decode its JSON response schema.
    *
-   * @template S - The response schema used to decode the ArcGIS JSON body.
+   * @typeParam S - The response schema used to decode the ArcGIS JSON body.
    * @param params - Query parameters encoded as form fields.
    * @param schema - Schema for the response body.
    * @returns A decoded response or an `ArcGisError` when the request or decode

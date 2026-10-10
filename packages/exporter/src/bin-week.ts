@@ -28,7 +28,7 @@ const DATE_PARTS_FORMATTER = new Intl.DateTimeFormat("en-NZ", {
  *
  * @param date - Instant to format.
  * @returns ISO calendar date in `Pacific/Auckland`.
- * @throws {TypeError} If the supplied date is invalid.
+ * Throws if the supplied date is invalid.
  */
 const getAucklandDate = (date: Date): string => {
   if (Number.isNaN(date.getTime())) {
@@ -97,7 +97,7 @@ const weeksBetween = (fromWeek: string, toWeek: string): number => {
  * @param area - The HCC rubbish/recycling area.
  * @param date - The instant to evaluate, defaulting to the current instant.
  * @returns The color collected from that area in the relevant week.
- * @throws {TypeError} If `date` is invalid or `area` is not a supported HCC area.
+ * Throws if `date` is invalid or `area` is not a supported HCC area.
  */
 export const getBinWeek = (
   area: CollectionArea,
@@ -124,7 +124,7 @@ export const getBinWeek = (
  *
  * @param date - The instant to evaluate.
  * @returns The Monday date as an ISO calendar date.
- * @throws {TypeError} If `date` is invalid.
+ * Throws if `date` is invalid.
  */
 export const getWeekStarting = (date: Date): string =>
   getMonday(getAucklandDate(date));
