@@ -7,3 +7,4 @@ coverage/
 apps/docs/.blume/
 apps/web/.wrangler/
 .alchemy/
+packages/exporter/hcc-bin-days.json
