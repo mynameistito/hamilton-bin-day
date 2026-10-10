@@ -19,7 +19,7 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
-    "bins:export": "bun run --filter @mynameistito/hcc-bin-day-exporter export",
+    "bins:export": "bun run --filter @hamilton-bin-day/exporter export",
     "bins:sync": "bun apps/web/scripts/sync-hcc-bin-items.ts",
     "check": "ultracite check",
     "ci": "bun run check && bun run typecheck && bun run test && bun run build",
