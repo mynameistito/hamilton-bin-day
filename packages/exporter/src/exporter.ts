@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { Clock, Effect, FileSystem } from "effect";
 
 import { ArcGisClient, sourceUrl } from "@/arcgis/client";
@@ -154,9 +156,29 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
   yield* Effect.log(
     `Conflicting addresses: ${formatNumber(transformed.conflictingAddresses)}`
   );
-  yield* fs
-    .writeFileString(outputPath, `${JSON.stringify(output, null, 2)}\n`)
+  const temporaryDirectory = yield* fs
+    .makeTempDirectory({
+      directory: path.dirname(outputPath),
+      prefix: `${path.basename(outputPath)}.`,
+    })
     .pipe(
+      Effect.mapError(
+        () => new ExportError(`Could not write dataset to ${outputPath}.`)
+      )
+    );
+  const temporaryPath = path.join(
+    temporaryDirectory,
+    path.basename(outputPath)
+  );
+  yield* fs
+    .writeFileString(temporaryPath, `${JSON.stringify(output, null, 2)}\n`)
+    .pipe(
+      Effect.flatMap(() => fs.rename(temporaryPath, outputPath)),
+      Effect.ensuring(
+        fs
+          .remove(temporaryDirectory, { force: true, recursive: true })
+          .pipe(Effect.ignore)
+      ),
       Effect.mapError(
         () => new ExportError(`Could not write dataset to ${outputPath}.`)
       )
