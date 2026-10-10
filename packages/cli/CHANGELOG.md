@@ -1,5 +1,11 @@
 # hamilton-bin-day
 
+## 0.1.10
+
+### Patch Changes
+
+- 2b46644: Keep the CLI package published as `hamilton-bin-day`, and document `hcc-bin-day` as a deprecated alias.
+
 ## 0.1.9
 
 ### Patch Changes
