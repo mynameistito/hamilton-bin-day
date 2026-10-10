@@ -1,6 +1,6 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
-  "name": "@mynameistito/hcc-bin-day-exporter",
+  "name": "@hamilton-bin-day/exporter",
   "private": true,
   "description": "Internal tool for exporting Hamilton City Council bin-day address and rotation data.",
   "keywords": [
