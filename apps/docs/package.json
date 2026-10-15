@@ -9,6 +9,6 @@
     "typecheck": "blume check && tsc --noEmit"
   },
   "devDependencies": {
-    "blume": "^2.0.0"
+    "blume": "^2.2.3"
   }
 }
