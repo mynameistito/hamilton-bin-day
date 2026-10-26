@@ -1,5 +1,11 @@
 # hamilton-bin-day
 
+## 0.1.11
+
+### Patch Changes
+
+- 699c500: Update the CLI's Effect runtime dependency.
+
 ## 0.1.10
 
 ### Patch Changes
