@@ -9,10 +9,10 @@
       "packages/*"
     ],
     "catalog": {
-      "@effect/platform-bun": "4.0.4",
-      "@effect/platform-node": "4.0.4",
+      "@effect/platform-bun": "4.0.6",
+      "@effect/platform-node": "4.0.6",
       "@types/node": "^26.6.5",
-      "effect": "4.0.4",
+      "effect": "4.0.6",
       "typescript": "npm:@typescript/typescript6@^6.0.2"
     }
   },
@@ -42,9 +42,10 @@
     "typecheck": "turbo run typecheck && bunx tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@alchemy.run/cloudflare": "2.0.0-beta.84",
     "@changesets/cli": "^3.0.3",
     "@effect/platform-bun": "catalog:",
-    "alchemy": "2.0.0-beta.83",
+    "alchemy": "2.0.0-beta.84",
     "effect": "catalog:"
   },
   "devDependencies": {
@@ -52,7 +53,7 @@
     "@types/bun": "1.4.3",
     "@types/node": "catalog:",
     "@typescript/native": "npm:typescript@^7.0.2",
-    "@vitest/coverage-v8": "5.0.4",
+    "@vitest/coverage-v8": "5.0.5",
     "eslint-plugin-github": "6.1.2",
     "eslint-plugin-jsdoc": "^65.3.4",
     "eslint-plugin-sonarjs": "^4.2.2",
@@ -65,7 +66,7 @@
     "turbo": "^2.11.8",
     "typescript": "catalog:",
     "ultracite": "7.12.4",
-    "vitest": "5.0.4"
+    "vitest": "5.0.5"
   },
   "overrides": {},
   "packageManager": "bun@1.4.2"

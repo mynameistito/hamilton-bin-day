@@ -43,7 +43,7 @@ jobs:
           fi
       - name: Deploy or clean up preview
         if: steps.credentials.outputs.available == 'true'
-        uses: mynameistito/alchemy-deploy@68f577f3032660bd4919dfcc5725db21d5b64f9d # v3.1.5
+        uses: mynameistito/alchemy-deploy@d20c33c9a06b6a2f15816a3a4ebc39eda4b9d9ea # v3.1.8
         with:
           worker-name: hamilton-bin-day
           deploy-command: bunx --no-install alchemy deploy --stage "$STAGE" --yes
@@ -87,7 +87,7 @@ jobs:
           fi
       - name: Reconcile closed pull-request previews
         if: steps.credentials.outputs.available == 'true'
-        uses: mynameistito/alchemy-deploy@68f577f3032660bd4919dfcc5725db21d5b64f9d # v3.1.5
+        uses: mynameistito/alchemy-deploy@d20c33c9a06b6a2f15816a3a4ebc39eda4b9d9ea # v3.1.8
         with:
           worker-name: hamilton-bin-day
           deploy-command: bun ./node_modules/alchemy/bin/cli.js deploy --stage "$STAGE" --yes
