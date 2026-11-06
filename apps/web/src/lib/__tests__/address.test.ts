@@ -43,6 +43,7 @@ describe("remembered addresses", () => {
     const getItem = vi
       .fn<() => string | null>()
       .mockReturnValue("  Local address  ");
+
     vi.stubGlobal("window", {
       cookieStore: {
         get: vi
@@ -159,6 +160,7 @@ describe("remembered addresses", () => {
         }) => Promise<void>
       >()
       .mockResolvedValue();
+
     const setItem = vi.fn<(key: string, value: string) => void>();
     vi.stubGlobal("window", {
       cookieStore: { set },
@@ -209,16 +211,20 @@ describe("remembered addresses", () => {
   it("serializes overlapping address writes in invocation order", async () => {
     const pendingWrites: (() => void)[] = [];
     let storedAddress: string | null = null;
+
     const set = vi.fn<(options: { value: string }) => Promise<void>>(
+      // oxlint-disable-next-line typescript/promise-function-async -- Preserve the controllable write promise.
       (options) => {
-        const write = Promise.withResolvers<null>();
+        const write = Promise.withResolvers<undefined>();
         pendingWrites.push(() => {
           storedAddress = options.value;
-          write.resolve(null);
+          write.resolve(undefined);
         });
+
         return write.promise;
       }
     );
+
     vi.stubGlobal("window", {
       cookieStore: { set },
       localStorage: { setItem: vi.fn<(key: string, value: string) => void>() },

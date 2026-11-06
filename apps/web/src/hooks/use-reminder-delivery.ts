@@ -24,10 +24,12 @@ import { parseWebPushSubscription } from "@/lib/web-push-subscription";
 
 const readDeviceTimeZone = (): string =>
   Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 const parsePublicKey = decodeUnknownSync(Struct({ publicKey: SchemaString }));
 
 const readPermissionState = (): NotificationPermissionState => {
   const hasNotification = "Notification" in window;
+
   return resolveNotificationPermissionState({
     hasNotification,
     hasPushManager: "PushManager" in window,
@@ -42,14 +44,17 @@ const readPermissionState = (): NotificationPermissionState => {
  */
 export const isReminderBrowserSupported = (): boolean => {
   const permission = readPermissionState();
+
   return permission !== "unsupported" && permission !== "insecure";
 };
 
 const isInstalledIosApp = (): boolean => {
   const isIos = /iPad|iPhone|iPod/u.test(navigator.userAgent);
+
   const isStandalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     ("standalone" in navigator && navigator.standalone === true);
+
   return !isIos || isStandalone;
 };
 
@@ -60,16 +65,21 @@ const validateReminderEnable = (
 ): schedule is ScheduleResponse => {
   if (!schedule) {
     setDeliveryMessage("Look up your address before enabling reminders.");
+
     return false;
   }
+
   if (!isInstalledIosApp()) {
     setDeliveryMessage(
       "On iPhone or iPad, add this app to your Home Screen and open it there before enabling web push."
     );
+
     return false;
   }
+
   const support = readPermissionState();
   setPermission(support);
+
   if (
     support === "unsupported" ||
     support === "insecure" ||
@@ -78,8 +88,10 @@ const validateReminderEnable = (
     setDeliveryMessage(
       "Reminders cannot be enabled with this browser's current notification settings."
     );
+
     return false;
   }
+
   return true;
 };
 
@@ -89,23 +101,29 @@ const requestBrowserNotificationPermission = async (
   setDeliveryMessage: (message: string) => void
 ): Promise<boolean> => {
   const permission = await Notification.requestPermission();
+
   if (!isCurrent()) {
     return false;
   }
+
   setPermission(permission);
+
   if (permission === "granted") {
     return true;
   }
+
   setDeliveryMessage(
     permission === "denied"
       ? "Notifications are blocked. Change this site's permission in browser settings to enable reminders."
       : "Notification permission was not granted, so reminders remain off."
   );
+
   return false;
 };
 
 const serializeSubscription = (subscription: PushSubscription) => {
   const json = subscription.toJSON();
+
   return parseWebPushSubscription({
     endpoint: subscription.endpoint,
     expirationTime: subscription.expirationTime,
@@ -118,9 +136,12 @@ const PUSH_CLEANUP = {
   removed: "removed",
   serverFailed: "server-failed",
 } as const;
+
 type PushCleanupResult = (typeof PUSH_CLEANUP)[keyof typeof PUSH_CLEANUP];
+
 const STORAGE_CLEANUP_FAILED =
   "Browser storage is unavailable and the server could not remove the subscription. It remains enabled; try again.";
+
 const REMINDER_ENABLED_MESSAGE =
   "Reminders are enabled for the schedule shown. The server stores the push subscription and schedule preferences, not your address.";
 
@@ -134,12 +155,15 @@ const cleanupPushSubscription = async (
   isCurrent: () => boolean = () => true
 ): Promise<PushCleanupResult> => {
   const endpoint = subscription?.endpoint ?? readStoredPushEndpoint();
-  if (!endpoint) {
+
+  if (endpoint === null || endpoint === "") {
     return PUSH_CLEANUP.missingEndpoint;
   }
+
   if (!(await deletePushReminder(endpoint))) {
     return PUSH_CLEANUP.serverFailed;
   }
+
   if (subscription && isCurrent()) {
     try {
       await subscription.unsubscribe();
@@ -147,9 +171,11 @@ const cleanupPushSubscription = async (
       // Server deletion is already confirmed, so a local browser error must not keep reminders enabled.
     }
   }
+
   if (isCurrent()) {
     forgetPushEndpoint();
   }
+
   return PUSH_CLEANUP.removed;
 };
 
@@ -160,9 +186,11 @@ const cleanupAndDisable = async (
   isCurrent: () => boolean = () => true
 ): Promise<PushCleanupResult> => {
   const cleanup = await cleanupPushSubscription(subscription, isCurrent);
+
   if (cleanup === PUSH_CLEANUP.removed && isCurrent()) {
     savePreferences({ ...preferences, enabled: false });
   }
+
   return cleanup;
 };
 
@@ -175,13 +203,16 @@ const reportMissingSubscription = (
   if (!active) {
     return;
   }
+
   if (cleanup === PUSH_CLEANUP.removed) {
     setDeliveryActive(false);
     setDeliveryMessage(
       "No browser push subscription exists, so its server-side reminder was removed and reminders are off."
     );
+
     return;
   }
+
   setDeliveryMessage(
     cleanup === PUSH_CLEANUP.missingEndpoint
       ? "No browser push subscription exists and server cleanup cannot be confirmed. Reminders remain on."
@@ -201,13 +232,17 @@ const enrollReminder = async (
   savePreferences: (next: NotificationPreferences) => boolean
 ): Promise<EnrollmentOutcome> => {
   const nextPreferences = { ...preferences, enabled: true };
+
   try {
     const serialized = serializeSubscription(subscription);
+
     if (!serialized) {
       const cleanup = await cleanupPushSubscription(subscription);
+
       if (cleanup !== PUSH_CLEANUP.removed) {
         savePreferences(nextPreferences);
       }
+
       return {
         active: cleanup !== PUSH_CLEANUP.removed,
         message:
@@ -216,60 +251,76 @@ const enrollReminder = async (
             : "This browser could not provide a complete push subscription, and server cleanup failed. Reminders remain on.",
       };
     }
+
     if (!rememberPushEndpoint(subscription.endpoint)) {
       const cleanup = await cleanupPushSubscription(subscription);
+
       if (cleanup !== PUSH_CLEANUP.removed) {
         savePreferences(nextPreferences);
+
         return {
           active: true,
           message:
             "Browser storage is unavailable and server cleanup failed. Reminders remain on until cleanup succeeds.",
         };
       }
+
       return {
         active: false,
         message:
           "Browser storage is unavailable, so the server subscription was removed and reminders remain off.",
       };
     }
+
     const saved = await savePushReminder(
       serialized,
       schedule,
       nextPreferences,
       readDeviceTimeZone()
     );
+
     if (!saved) {
       const cleanup = await cleanupPushSubscription(subscription);
+
       if (cleanup !== PUSH_CLEANUP.removed) {
         savePreferences(nextPreferences);
+
         return {
           active: true,
           message:
             "The server could not confirm or remove the subscription. Reminders remain on until cleanup succeeds.",
         };
       }
+
       return {
         active: false,
         message:
           "The subscription could not be saved on the server. Reminders remain off.",
       };
     }
+
     if (savePreferences(nextPreferences)) {
       return { active: true, message: REMINDER_ENABLED_MESSAGE };
     }
+
     const cleanup = await cleanupPushSubscription(subscription);
+
     if (cleanup === PUSH_CLEANUP.removed) {
       savePreferences({ ...nextPreferences, enabled: false });
+
       return {
         active: false,
         message:
           "Browser storage is unavailable, so the server subscription was removed and reminders remain off.",
       };
     }
+
     savePreferences(nextPreferences);
+
     return { active: true, message: STORAGE_CLEANUP_FAILED };
   } catch {
     const cleanup = await cleanupPushSubscription(subscription);
+
     if (cleanup === PUSH_CLEANUP.removed) {
       return {
         active: false,
@@ -277,8 +328,10 @@ const enrollReminder = async (
           "Reminders could not be set up. Check your connection and try again.",
       };
     }
+
     rememberPushEndpoint(subscription.endpoint);
     savePreferences(nextPreferences);
+
     return {
       active: true,
       message:
@@ -290,10 +343,13 @@ const enrollReminder = async (
 const readPublicKey = async (): Promise<string | null> => {
   try {
     const response = await fetch("/api/reminders/public-key");
+
     if (!response.ok) {
       return null;
     }
+
     const value: unknown = await response.json();
+
     return parsePublicKey(value).publicKey;
   } catch {
     return null;
@@ -306,33 +362,44 @@ const getOrCreatePushSubscription = async (
   isCurrent: () => boolean
 ): Promise<PushSubscription | null> => {
   const existing = await registration.pushManager.getSubscription();
+
   if (!isCurrent()) {
     return null;
   }
+
   const expectedKey = decodeApplicationServerKey(publicKey);
+
   if (existing) {
     const currentKey = existing.options.applicationServerKey;
     const currentKeyBytes = currentKey ? new Uint8Array(currentKey) : null;
+
     const matches =
       currentKeyBytes !== null &&
       currentKeyBytes.length === expectedKey.length &&
       currentKeyBytes.every((byte, index) => byte === expectedKey[index]);
+
     if (matches) {
       return existing;
     }
+
     await existing.unsubscribe();
+
     if (!isCurrent()) {
       return null;
     }
   }
+
   const created = await registration.pushManager.subscribe({
     applicationServerKey: expectedKey,
     userVisibleOnly: true,
   });
+
   if (!isCurrent()) {
     await created.unsubscribe();
+
     return null;
   }
+
   return created;
 };
 
@@ -353,6 +420,7 @@ export const useReminderDelivery = (
 ) => {
   const [permission, setPermission] =
     useState<NotificationPermissionState>(readPermissionState);
+
   const [deliveryMessage, setDeliveryMessage] = useState("");
   const [deliveryActive, setDeliveryActive] = useState(false);
   const mutationVersion = useRef(0);
@@ -361,6 +429,7 @@ export const useReminderDelivery = (
   const redBinDate = schedule?.redBin;
   const yellowBinDate = schedule?.yellowBin;
   const hasSchedule = schedule !== null;
+
   const synchronizedSchedule = useMemo(
     () =>
       hasSchedule
@@ -381,6 +450,7 @@ export const useReminderDelivery = (
       yellowBinDate,
     ]
   );
+
   const synchronizedPreferences = useMemo(
     () => ({
       enabled: preferences.enabled,
@@ -391,15 +461,22 @@ export const useReminderDelivery = (
   );
 
   useEffect(() => {
-    const refreshPermission = () => setPermission(readPermissionState());
+    const refreshPermission = () => {
+      setPermission(readPermissionState());
+    };
+
     window.addEventListener("focus", refreshPermission);
-    return () => window.removeEventListener("focus", refreshPermission);
+
+    return () => {
+      window.removeEventListener("focus", refreshPermission);
+    };
   }, []);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) {
       return;
     }
+
     const updateConsent = async () => {
       try {
         const registration = await navigator.serviceWorker.ready;
@@ -411,33 +488,39 @@ export const useReminderDelivery = (
         // Server registration remains manageable if local Cache Storage is unavailable.
       }
     };
+
     void updateConsent();
   }, [preferences.enabled, storageAvailable]);
 
   const enableReminders = async () => {
     mutationVersion.current += 1;
     const operationVersion = mutationVersion.current;
+
     if (!validateReminderEnable(schedule, setPermission, setDeliveryMessage)) {
       return;
     }
 
     const publicKey = await readPublicKey();
-    if (!publicKey) {
+
+    if (publicKey === null || publicKey === "") {
       if (operationVersion === mutationVersion.current) {
         setDeliveryMessage(
           "Reminders aren’t available on this site right now. Please try again later."
         );
       }
+
       return;
     }
 
     let subscription: PushSubscription | null = null;
+
     try {
       const hasPermission = await requestBrowserNotificationPermission(
         () => operationVersion === mutationVersion.current,
         setPermission,
         setDeliveryMessage
       );
+
       if (!hasPermission) {
         return;
       }
@@ -448,17 +531,19 @@ export const useReminderDelivery = (
         publicKey,
         () => operationVersion === mutationVersion.current
       );
+
       if (!subscription) {
         return;
       }
+
       const currentSubscription = subscription;
-      if (!currentSubscription) {
-        return;
-      }
+
+      // oxlint-disable-next-line typescript/promise-function-async -- Preserve queue callback errors and promise identity.
       const outcome = await enqueuePushMutation(() => {
         if (operationVersion !== mutationVersion.current) {
           return Promise.resolve(null);
         }
+
         return enrollReminder(
           currentSubscription,
           schedule,
@@ -466,25 +551,31 @@ export const useReminderDelivery = (
           savePreferences
         );
       });
+
       if (!outcome || operationVersion !== mutationVersion.current) {
         return;
       }
+
       setDeliveryActive(outcome.active);
       setDeliveryMessage(outcome.message);
     } catch {
       if (operationVersion !== mutationVersion.current) {
         return;
       }
+
       if (subscription) {
+        // oxlint-disable-next-line typescript/promise-function-async -- Preserve queue callback errors and promise identity.
         const cleanup = await enqueuePushMutation(() =>
           cleanupPushSubscription(
             subscription,
             () => operationVersion === mutationVersion.current
           )
         );
+
         if (operationVersion !== mutationVersion.current) {
           return;
         }
+
         if (cleanup !== PUSH_CLEANUP.removed) {
           rememberPushEndpoint(subscription.endpoint);
           savePreferences({ ...preferences, enabled: true });
@@ -492,9 +583,11 @@ export const useReminderDelivery = (
           setDeliveryMessage(
             "Setup could not finish and server cleanup failed. Reminders remain enabled; try turning them off again."
           );
+
           return;
         }
       }
+
       setDeliveryMessage(
         "Reminders could not be set up. Check your connection and try again."
       );
@@ -508,31 +601,40 @@ export const useReminderDelivery = (
       if (operationVersion !== mutationVersion.current) {
         return;
       }
+
       try {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
+
         if (operationVersion !== mutationVersion.current) {
           return;
         }
+
         const cleanup = await cleanupPushSubscription(
           subscription,
           () => operationVersion === mutationVersion.current
         );
+
         if (operationVersion !== mutationVersion.current) {
           return;
         }
+
         if (cleanup === PUSH_CLEANUP.missingEndpoint) {
           setDeliveryMessage(
             "No browser subscription or saved endpoint is available to confirm server cleanup. Reminders remain on."
           );
+
           return;
         }
+
         if (cleanup === PUSH_CLEANUP.serverFailed) {
           setDeliveryMessage(
             "The server could not remove this reminder. It remains enabled; try again."
           );
+
           return;
         }
+
         savePreferences({ ...preferences, enabled: false });
         setDeliveryActive(false);
         setDeliveryMessage(
@@ -550,48 +652,65 @@ export const useReminderDelivery = (
 
   useEffect(() => {
     if (!synchronizedPreferences.enabled) {
-      return;
+      // oxlint-disable-next-line unicorn/no-useless-undefined -- React effect has no cleanup in this branch.
+      return undefined;
     }
+
     let active = true;
+
     if (!synchronizedSchedule) {
       if (!cancelMissingSchedule) {
-        return;
+        // oxlint-disable-next-line unicorn/no-useless-undefined -- React effect has no cleanup in this branch.
+        return undefined;
       }
+
       mutationVersion.current += 1;
       const operationVersion = mutationVersion.current;
+
       const isOperationCurrent = () =>
         active && operationVersion === mutationVersion.current;
+
       const removeMissingSchedule = async () => {
         await enqueuePushMutation(async () => {
           if (!active || operationVersion !== mutationVersion.current) {
             return;
           }
+
           try {
             const registration = await navigator.serviceWorker.ready;
+
             const subscription =
               await registration.pushManager.getSubscription();
+
             if (!active || operationVersion !== mutationVersion.current) {
               return;
             }
+
             const cleanup = await cleanupPushSubscription(
               subscription,
               isOperationCurrent
             );
+
             if (!active || operationVersion !== mutationVersion.current) {
               return;
             }
+
             if (cleanup === PUSH_CLEANUP.missingEndpoint) {
               setDeliveryMessage(
                 "The reminder could not be cancelled because no browser subscription or saved endpoint is available for server cleanup."
               );
+
               return;
             }
+
             if (cleanup === PUSH_CLEANUP.serverFailed) {
               setDeliveryMessage(
                 "The server could not cancel the reminder because the new address has no matching schedule."
               );
+
               return;
             }
+
             savePreferences({ ...synchronizedPreferences, enabled: false });
             setDeliveryActive(false);
             setDeliveryMessage(
@@ -606,43 +725,55 @@ export const useReminderDelivery = (
           }
         });
       };
+
       void removeMissingSchedule();
+
       return () => {
         active = false;
       };
     }
+
     mutationVersion.current += 1;
     const operationVersion = mutationVersion.current;
+
     const isOperationCurrent = () =>
       active && operationVersion === mutationVersion.current;
+
     const syncSchedule = async () => {
       await enqueuePushMutation(async () => {
         if (!active || operationVersion !== mutationVersion.current) {
           return;
         }
+
         try {
           const registration = await navigator.serviceWorker.ready;
           const subscription = await registration.pushManager.getSubscription();
+
           if (!active || operationVersion !== mutationVersion.current) {
             return;
           }
+
           const serialized =
             subscription && serializeSubscription(subscription);
-          if (!serialized || !subscription) {
+
+          if (subscription === null || serialized === null) {
             const cleanup = await cleanupAndDisable(
               null,
               synchronizedPreferences,
               savePreferences,
               isOperationCurrent
             );
+
             reportMissingSubscription(
               cleanup,
               active && operationVersion === mutationVersion.current,
               setDeliveryActive,
               setDeliveryMessage
             );
+
             return;
           }
+
           if (
             !savePreferences(synchronizedPreferences) ||
             !rememberPushEndpoint(subscription.endpoint)
@@ -653,9 +784,11 @@ export const useReminderDelivery = (
               savePreferences,
               isOperationCurrent
             );
+
             if (!active || operationVersion !== mutationVersion.current) {
               return;
             }
+
             if (cleanup === PUSH_CLEANUP.removed) {
               setDeliveryActive(false);
               setDeliveryMessage(
@@ -665,17 +798,21 @@ export const useReminderDelivery = (
               setDeliveryActive(true);
               setDeliveryMessage(STORAGE_CLEANUP_FAILED);
             }
+
             return;
           }
+
           const saved = await savePushReminder(
             serialized,
             synchronizedSchedule,
             synchronizedPreferences,
             readDeviceTimeZone()
           );
+
           if (!active || operationVersion !== mutationVersion.current) {
             return;
           }
+
           if (saved) {
             setDeliveryActive(true);
           } else {
@@ -694,7 +831,9 @@ export const useReminderDelivery = (
         }
       });
     };
+
     void syncSchedule();
+
     return () => {
       active = false;
     };

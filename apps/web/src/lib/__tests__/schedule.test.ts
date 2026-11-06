@@ -118,6 +118,7 @@ describe(resolveNextCollection, () => {
 
   it("keeps the upcoming week correct through Hamilton's daylight-saving change", () => {
     const now = new Date("2026-04-05T14:30:00Z");
+
     const schedule = resolveNextCollection(
       {
         ...fridaySchedule,

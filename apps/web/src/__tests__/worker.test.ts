@@ -3,6 +3,7 @@ import { afterEach, describe, expect, vi, it } from "vitest";
 import worker, { handleLookup } from "@/worker";
 
 const addressResult = [{ Collection_Address: "12 Grey Street" }];
+
 const collectionResult = [
   {
     Address: "12 Grey Street",
@@ -23,6 +24,7 @@ describe("lookup endpoint input validation", () => {
     const assets = {
       fetch: vi.fn<(request: Request) => Promise<Response>>(),
     };
+
     const response = await worker.fetch(
       new Request("https://example.test/api/health", { method: "HEAD" }),
       { ASSETS: assets }
@@ -58,6 +60,7 @@ describe("lookup endpoint input validation", () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(Response.json([]));
+
     vi.stubGlobal("fetch", fetch);
 
     const response = await handleLookup(
@@ -73,12 +76,15 @@ describe("lookup endpoint input validation", () => {
 
   it("bounds Council fetches with a 10-second abort signal", async () => {
     const controller = new AbortController();
+
     const timeout = vi
       .spyOn(AbortSignal, "timeout")
       .mockReturnValue(controller.signal);
+
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(Response.json([]));
+
     vi.stubGlobal("fetch", fetch);
 
     const response = await handleLookup(
@@ -122,6 +128,7 @@ describe("lookup endpoint input validation", () => {
           new DOMException("The operation was aborted", "TimeoutError")
         )
     );
+
     const response = await worker.fetch(
       new Request("https://example.test/api/lookup?address=unknown"),
       { ASSETS: { fetch: vi.fn<(request: Request) => Promise<Response>>() } }
@@ -136,6 +143,7 @@ describe("lookup endpoint input validation", () => {
       .mockResolvedValueOnce(Response.json([]))
       .mockResolvedValueOnce(Response.json(addressResult))
       .mockResolvedValueOnce(Response.json(collectionResult));
+
     vi.stubGlobal("fetch", fetch);
 
     const response = await handleLookup(
@@ -152,7 +160,14 @@ describe("lookup endpoint input validation", () => {
       },
     });
     expect(fetch).toHaveBeenCalledTimes(3);
-    expect(String(fetch.mock.calls[1]?.[0])).toContain("12+grey+street");
+    const requestedUrl: unknown = fetch.mock.calls[1]?.[0];
+    expect(requestedUrl).toBeInstanceOf(URL);
+
+    if (!(requestedUrl instanceof URL)) {
+      throw new TypeError("Expected the Council request URL");
+    }
+
+    expect(requestedUrl.toString()).toContain("12+grey+street");
   });
 
   it("returns not found when the matched address has no schedule", async () => {
@@ -196,6 +211,7 @@ describe("lookup endpoint input validation", () => {
         .fn<(request: Request) => Promise<Response>>()
         .mockResolvedValue(new Response("asset")),
     };
+
     const request = new Request(
       "https://example.test/api/lookup?address=12%20grey%20street"
     );
@@ -223,9 +239,11 @@ describe("lookup endpoint input validation", () => {
           Response.json([{ ...collectionResult[0], CollectionDay: 8 }])
         )
     );
+
     const invalidScheduleResponse = await worker.fetch(request, {
       ASSETS: assets,
     });
+
     expect(invalidScheduleResponse.status).toBe(502);
   });
 
@@ -233,6 +251,7 @@ describe("lookup endpoint input validation", () => {
     const assets = {
       fetch: vi.fn<(request: Request) => Promise<Response>>(),
     };
+
     const rateLimit = vi
       .fn<
         (options: {
@@ -241,10 +260,12 @@ describe("lookup endpoint input validation", () => {
       >()
       .mockResolvedValueOnce({ success: false })
       .mockRejectedValueOnce(new Error("limiter unavailable"));
+
     const environment = {
       ASSETS: assets,
       REMINDER_LIMIT: { limit: rateLimit },
     };
+
     const request = new Request(
       "https://example.test/api/reminders/subscription",
       {
@@ -252,6 +273,7 @@ describe("lookup endpoint input validation", () => {
         headers: { "CF-Connecting-IP": "203.0.113.4" },
       }
     );
+
     const crossOrigin = await worker.fetch(
       new Request(request, {
         headers: {
@@ -280,11 +302,13 @@ describe("lookup endpoint input validation", () => {
 
   it("delegates non-lookup requests to the asset binding", async () => {
     const response = new Response("asset");
+
     const assets = {
       fetch: vi
         .fn<(request: Request) => Promise<Response>>()
         .mockResolvedValue(response),
     };
+
     const request = new Request("https://example.test/anything");
 
     await expect(worker.fetch(request, { ASSETS: assets })).resolves.toBe(

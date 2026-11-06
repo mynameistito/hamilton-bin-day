@@ -10,6 +10,7 @@ import { BIN_ITEMS, BIN_ITEM_SOURCE } from "@/lib/bin-items";
 import catalogue from "@/lib/bin-items-data.json" with { type: "json" };
 
 const listingItem = { id: 42, text: "Glass jars & bottles" } as const;
+
 const detail = {
   success: true,
   title: "Glass jars & bottles",
@@ -21,18 +22,27 @@ const detail = {
   ].join(""),
 };
 
-const failingFetch: typeof fetch = async (input, init) => {
-  const request = new Request(input, init);
-  if (request.method === "GET") {
-    return Response.json({
-      results: [listingItem, { id: 43, text: "Other" }],
-    });
-  }
-  if (new URLSearchParams(await request.text()).get("id") === "43") {
-    return new Response("unavailable", { status: 503 });
-  }
-  return Response.json(detail);
-};
+const failingFetch: typeof fetch = Object.assign(
+  async (
+    input: Parameters<typeof fetch>[0],
+    init?: Parameters<typeof fetch>[1]
+  ) => {
+    const request = new Request(input, init);
+
+    if (request.method === "GET") {
+      return Response.json({
+        results: [listingItem, { id: 43, text: "Other" }],
+      });
+    }
+
+    if (new URLSearchParams(await request.text()).get("id") === "43") {
+      return new Response("unavailable", { status: 503 });
+    }
+
+    return Response.json(detail);
+  },
+  { preconnect: fetch.preconnect }
+);
 
 describe("Council sorter catalogue sync", () => {
   it("renders the checked-in catalogue in the same canonical format", () => {
@@ -57,6 +67,7 @@ describe("Council sorter catalogue sync", () => {
 
   it("preserves bare ampersands in catalogue names", () => {
     const listing = { id: 44, text: "M&M's" };
+
     const response = {
       success: true,
       title: "M&M's",
@@ -99,14 +110,25 @@ describe("Council sorter catalogue sync", () => {
 
   it("checks and updates through the injected fetch seam", async () => {
     const calls: Request[] = [];
-    const fetcher: typeof fetch = (input, init) => {
-      const request = new Request(input, init);
-      calls.push(request);
-      if (request.method === "GET") {
-        return Promise.resolve(Response.json({ results: [listingItem] }));
-      }
-      return Promise.resolve(Response.json(detail));
-    };
+
+    const fetcher: typeof fetch = Object.assign(
+      // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
+      (
+        input: Parameters<typeof fetch>[0],
+        init?: Parameters<typeof fetch>[1]
+      ) => {
+        const request = new Request(input, init);
+        calls.push(request);
+
+        if (request.method === "GET") {
+          return Promise.resolve(Response.json({ results: [listingItem] }));
+        }
+
+        return Promise.resolve(Response.json(detail));
+      },
+      { preconnect: fetch.preconnect }
+    );
+
     const fetched = await fetchCouncilCatalogue(fetcher, "2026-10-03");
     const detailRequest = calls.at(1);
     const detailBody = detailRequest ? await detailRequest.text() : null;

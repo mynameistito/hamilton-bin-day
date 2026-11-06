@@ -13,6 +13,7 @@ export interface ScheduleResponse {
 
 const HAMILTON_TIME_ZONE = "Pacific/Auckland";
 const MILLISECONDS_PER_DAY = 86_400_000;
+
 const HAMILTON_DATE_FORMATTER = new Intl.DateTimeFormat("en-NZ", {
   day: "2-digit",
   month: "2-digit",
@@ -22,6 +23,7 @@ const HAMILTON_DATE_FORMATTER = new Intl.DateTimeFormat("en-NZ", {
 
 const calendarDateInHamilton = (date: Date): string => {
   const parts = HAMILTON_DATE_FORMATTER.formatToParts(date);
+
   const part = (type: "day" | "month" | "year") =>
     parts.find((value) => value.type === type)?.value ?? "";
 
@@ -54,6 +56,7 @@ export const resolveNextCollection = (
   const today = calendarDateInHamilton(now);
   const redBin = advanceCollectionDate(schedule.redBin, today);
   const yellowBin = advanceCollectionDate(schedule.yellowBin, today);
+
   const nextCollection =
     redBin <= yellowBin
       ? {
@@ -95,8 +98,10 @@ export const formatCollectionDate = (date: string): string =>
  */
 export const daysUntilCollection = (date: string, today: Date): number => {
   const collectionDay = new Date(`${date}T00:00:00Z`).getTime();
+
   const currentDay = new Date(
     `${calendarDateInHamilton(today)}T00:00:00Z`
   ).getTime();
+
   return Math.round((collectionDay - currentDay) / MILLISECONDS_PER_DAY);
 };

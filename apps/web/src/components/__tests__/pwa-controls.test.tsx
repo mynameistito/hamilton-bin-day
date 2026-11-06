@@ -25,9 +25,11 @@ describe("PWA install controls", () => {
     render(<PwaInstallHelp />);
     const details = document.querySelector("details");
     const summary = details?.querySelector("summary");
+
     if (!details || !summary) {
       throw new Error("Expected the install disclosure and trigger.");
     }
+
     details.open = true;
 
     fireEvent.click(
@@ -40,9 +42,11 @@ describe("PWA install controls", () => {
 
   it("keeps the install panel inside the viewport on narrow screens", () => {
     render(<PwaInstallHelp />);
+
     const closeButton = screen.getByRole("button", {
       name: "Close install instructions",
     });
+
     const panel = closeButton.parentElement?.parentElement;
 
     expect(panel?.className).toContain("fixed");
@@ -64,8 +68,8 @@ describe("PWA install controls", () => {
 
     fireEvent(window, new Event("app-update-available"));
 
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Update app" })).toBeTruthy()
-    );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Update app" })).toBeTruthy();
+    });
   });
 });

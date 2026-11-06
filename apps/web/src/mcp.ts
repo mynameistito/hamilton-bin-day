@@ -9,9 +9,11 @@ const MCP_ALLOW = "POST, OPTIONS";
 
 const rejectCrossOrigin = (request: Request): Response | null => {
   const origin = request.headers.get("Origin");
-  if (!origin) {
+
+  if (origin === null || origin === "") {
     return null;
   }
+
   try {
     if (new URL(origin).origin === new URL(request.url).origin) {
       return null;
@@ -19,6 +21,7 @@ const rejectCrossOrigin = (request: Request): Response | null => {
   } catch {
     // Reject malformed Origin headers using the same response as cross-origin ones.
   }
+
   return Response.json({ error: ORIGIN_NOT_ALLOWED }, { status: 403 });
 };
 
@@ -44,6 +47,7 @@ const createMcpServer = (): McpServer => {
     async ({ address }) => {
       try {
         const { body, status } = await lookupAddress(address);
+
         return {
           content: [{ type: "text" as const, text: JSON.stringify(body) }],
           isError: status !== 200,
@@ -51,6 +55,7 @@ const createMcpServer = (): McpServer => {
         };
       } catch {
         const body = { error: "Council service unavailable" };
+
         return {
           content: [{ type: "text" as const, text: JSON.stringify(body) }],
           isError: true,
@@ -69,6 +74,7 @@ const createMcpServer = (): McpServer => {
  */
 export const handleMcp = async (request: Request): Promise<Response> => {
   const originRejection = rejectCrossOrigin(request);
+
   if (originRejection) {
     return originRejection;
   }
@@ -78,11 +84,14 @@ export const handleMcp = async (request: Request): Promise<Response> => {
   }
 
   const server = createMcpServer();
+
   const transport = new WebStandardStreamableHTTPServerTransport({
     enableJsonResponse: true,
   });
+
   await server.connect(transport);
-  return transport.handleRequest(request);
+
+  return await transport.handleRequest(request);
 };
 
 /** Handle the CORS preflight for MCP requests.
@@ -92,6 +101,7 @@ export const handleMcp = async (request: Request): Promise<Response> => {
 export const handleMcpOptions = (request: Request): Response => {
   const origin = request.headers.get("Origin");
   const originRejection = rejectCrossOrigin(request);
+
   if (originRejection) {
     return originRejection;
   }
@@ -103,8 +113,10 @@ export const handleMcpOptions = (request: Request): Response => {
       "Content-Type, Accept, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
     Vary: "Origin",
   });
-  if (origin) {
+
+  if (origin !== null && origin !== "") {
     headers.set("Access-Control-Allow-Origin", origin);
   }
+
   return new Response(null, { status: 204, headers });
 };

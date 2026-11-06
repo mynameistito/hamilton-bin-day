@@ -30,6 +30,7 @@ const originalServiceWorker = Object.getOwnPropertyDescriptor(
   navigator,
   "serviceWorker"
 );
+
 const originalSecureContext = Object.getOwnPropertyDescriptor(
   window,
   "isSecureContext"
@@ -40,11 +41,13 @@ describe("reminder delivery configuration", () => {
     cleanup();
     vi.unstubAllGlobals();
     window.localStorage.removeItem("hamilton-bin-day-push-endpoint-v1");
+
     if (originalServiceWorker) {
       Object.defineProperty(navigator, "serviceWorker", originalServiceWorker);
     } else {
       Reflect.deleteProperty(navigator, "serviceWorker");
     }
+
     if (originalSecureContext) {
       Object.defineProperty(window, "isSecureContext", originalSecureContext);
     } else {
@@ -67,11 +70,14 @@ describe("reminder delivery configuration", () => {
       configurable: true,
       value: {},
     });
+
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(null, { status: 503 }));
+
     vi.stubGlobal("fetch", fetcher);
     const savePreferences = vi.fn<() => boolean>(() => true);
+
     const { result } = renderHook(() =>
       useReminderDelivery(schedule, false, preferences, true, savePreferences)
     );
@@ -92,13 +98,16 @@ describe("reminder delivery configuration", () => {
   it("replaces a browser subscription when the VAPID public key changes", async () => {
     const publicKey = encodeKey(2);
     const endpoint = "https://fcm.googleapis.com/fcm/send/test-subscription";
+
     const keyMaterial = {
       auth: Buffer.from(new Uint8Array(16).fill(3)).toString("base64url"),
       p256dh: encodeKey(4),
     };
+
     const existingUnsubscribe = vi
       .fn<() => Promise<boolean>>()
       .mockResolvedValue(true);
+
     const existingSubscription: PushSubscription = {
       endpoint,
       expirationTime: null,
@@ -111,19 +120,25 @@ describe("reminder delivery configuration", () => {
       toJSON: () => ({ endpoint, expirationTime: null, keys: keyMaterial }),
       unsubscribe: existingUnsubscribe,
     };
+
     const newSubscription: PushSubscription = {
-      ...existingSubscription,
+      endpoint,
+      expirationTime: null,
+      getKey: () => null,
       options: {
         applicationServerKey: new Uint8Array(
           Buffer.from(publicKey, "base64url")
         ).buffer,
         userVisibleOnly: true,
       },
+      toJSON: () => ({ endpoint, expirationTime: null, keys: keyMaterial }),
       unsubscribe: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
     };
+
     const subscribe = vi
       .fn<() => Promise<PushSubscription>>()
       .mockResolvedValue(newSubscription);
+
     const registration = {
       active: { postMessage: vi.fn<() => void>() },
       pushManager: {
@@ -133,6 +148,7 @@ describe("reminder delivery configuration", () => {
         subscribe,
       },
     };
+
     vi.stubGlobal("Notification", {
       permission: "default",
       requestPermission: vi
@@ -156,6 +172,7 @@ describe("reminder delivery configuration", () => {
       value: { ready: Promise.resolve(registration) },
     });
     const savePreferences = vi.fn<() => boolean>(() => true);
+
     const { result } = renderHook(() =>
       useReminderDelivery(schedule, false, preferences, true, savePreferences)
     );
@@ -177,6 +194,7 @@ describe("reminder delivery configuration", () => {
 
   it("does not re-enroll when a newly-created schedule object has unchanged values", async () => {
     const endpoint = "https://fcm.googleapis.com/fcm/send/test-subscription";
+
     const browserSubscription: PushSubscription = {
       endpoint,
       expirationTime: null,
@@ -192,6 +210,7 @@ describe("reminder delivery configuration", () => {
       }),
       unsubscribe: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
     };
+
     const registration = {
       active: { postMessage: vi.fn<() => void>() },
       pushManager: {
@@ -200,9 +219,11 @@ describe("reminder delivery configuration", () => {
           .mockResolvedValue(browserSubscription),
       },
     };
+
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(Response.json({ saved: true }));
+
     vi.stubGlobal("Notification", { permission: "granted" });
     vi.stubGlobal("PushManager", {});
     vi.stubGlobal("fetch", fetcher);
@@ -214,11 +235,14 @@ describe("reminder delivery configuration", () => {
       configurable: true,
       value: { ready: Promise.resolve(registration) },
     });
+
     const enabledPreferences: NotificationPreferences = {
       ...preferences,
       enabled: true,
     };
+
     const savePreferences = vi.fn<() => boolean>(() => true);
+
     const { rerender } = renderHook(
       ({ currentSchedule }) =>
         useReminderDelivery(

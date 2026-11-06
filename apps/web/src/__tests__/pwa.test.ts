@@ -1,20 +1,27 @@
 import { readFile } from "node:fs/promises";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 
 import { registerServiceWorker } from "@/service-worker-runtime.js";
+import type { ServiceWorkerEvents } from "@/service-worker-runtime.js";
 
+// oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous URL construction errors.
 const readAppFile = (relativePath: string): Promise<string> =>
   readFile(new URL(relativePath, import.meta.url), "utf-8");
 
-interface FetchEvent {
-  readonly request: {
-    readonly method: string;
-    readonly mode: string;
-    readonly url: string;
-  };
-  respondWith: (response: Promise<Response>) => void;
+type FetchEvent = ServiceWorkerEvents["fetch"];
+
+class NavigationRequest extends Request {
+  // oxlint-disable-next-line eslint/class-methods-use-this -- Simulates browser navigation requests.
+  override get mode(): RequestMode {
+    return "navigate";
+  }
 }
+
+type ListenerRegistry = {
+  [K in keyof ServiceWorkerEvents]: ((event: ServiceWorkerEvents[K]) => void)[];
+};
 
 const makeFetchWorker = (
   fetch: (request: FetchEvent["request"]) => Promise<Response>,
@@ -23,20 +30,57 @@ const makeFetchWorker = (
     readonly open: () => { readonly put: () => Promise<void> };
   }
 ) => {
-  const fetchHandlers: ((event: FetchEvent) => void)[] = [];
+  const handlers: ListenerRegistry = {
+    install: [],
+    activate: [],
+    message: [],
+    push: [],
+    notificationclick: [],
+    fetch: [],
+  };
+
   registerServiceWorker({
     Response,
     URL,
-    caches,
+    caches: {
+      // oxlint-disable-next-line eslint/require-await -- Convert fixture failures into rejected cache operations.
+      match: async (request) => caches.match(request),
+      // oxlint-disable-next-line eslint/require-await -- Convert fixture failures into rejected cache operations.
+      open: async () => ({
+        ...caches.open(),
+        addAll: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        delete: vi.fn<() => Promise<boolean>>().mockResolvedValue(false),
+        keys: vi.fn<() => Promise<Request[]>>().mockResolvedValue([]),
+        match: vi.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+      }),
+      keys: vi.fn<() => Promise<string[]>>().mockResolvedValue([]),
+      delete: vi.fn<() => Promise<boolean>>().mockResolvedValue(false),
+    },
+    console,
+    clients: {
+      claim: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      openWindow: vi.fn<() => Promise<null>>().mockResolvedValue(null),
+    },
+    registration: {
+      showNotification: vi
+        .fn<() => Promise<void>>()
+        .mockResolvedValue(undefined),
+    },
+    skipWaiting: () => {},
     fetch,
     location: { origin: "https://example.test" },
-    addEventListener: (type: string, handler: (event: FetchEvent) => void) => {
-      if (type === "fetch") {
-        fetchHandlers.push(handler);
-      }
+    addEventListener: <K extends keyof ServiceWorkerEvents>(
+      type: K,
+      handler: (event: ServiceWorkerEvents[K]) => void
+    ) => {
+      const bucket: ((event: ServiceWorkerEvents[K]) => void)[] =
+        handlers[type];
+
+      bucket.push(handler);
     },
   });
-  return fetchHandlers[0];
+
+  return handlers.fetch[0];
 };
 
 describe("PWA app shell", () => {
@@ -49,19 +93,26 @@ describe("PWA app shell", () => {
         readAppFile("../../../../scripts/build-web.ts"),
         readAppFile("../hooks/use-network-status.ts"),
       ]);
-    const manifest: {
-      readonly display: string;
-      readonly icons: readonly {
-        readonly purpose?: string;
-        readonly sizes: string;
-        readonly src: string;
-        readonly type: string;
-      }[];
-      readonly name: string;
-      readonly short_name: string;
-      readonly start_url: string;
-      readonly theme_color: string;
-    } = JSON.parse(manifestSource);
+
+    const parsedManifest: unknown = JSON.parse(manifestSource);
+
+    const manifest = z
+      .object({
+        display: z.string(),
+        icons: z.array(
+          z.object({
+            purpose: z.string().optional(),
+            sizes: z.string(),
+            src: z.string(),
+            type: z.string(),
+          })
+        ),
+        name: z.string(),
+        short_name: z.string(),
+        start_url: z.string(),
+        theme_color: z.string(),
+      })
+      .parse(parsedManifest);
 
     expect(manifest).toMatchObject({
       display: "standalone",
@@ -144,6 +195,7 @@ describe("PWA app shell", () => {
       readAppFile("../hooks/use-reminder-delivery.ts"),
       readAppFile("../service-worker-runtime.js"),
     ]);
+
     const enableStart = deliveryHook.indexOf("const enableReminders = async");
     const disableStart = deliveryHook.indexOf("const disableReminders = async");
     const enableAction = deliveryHook.slice(enableStart, disableStart);
@@ -190,25 +242,28 @@ describe("PWA app shell", () => {
 
   it("keeps network navigation responses when the cache is unavailable", async () => {
     const networkResponse = new Response("network response");
+
     const fetchHandler = makeFetchWorker(
-      () => Promise.resolve(networkResponse),
+      vi.fn<() => Promise<Response>>().mockResolvedValue(networkResponse),
       {
         match: () => {},
-        open: () => ({ put: () => Promise.reject(new Error("storage full")) }),
+        open: () => ({
+          put: vi
+            .fn<() => Promise<void>>()
+            .mockRejectedValue(new Error("storage full")),
+        }),
       }
     );
+
     expect(fetchHandler).toBeTypeOf("function");
+
     if (!fetchHandler) {
       return;
     }
 
     let response: Promise<Response> | undefined;
     fetchHandler({
-      request: {
-        method: "GET",
-        mode: "navigate",
-        url: "https://example.test/",
-      },
+      request: new NavigationRequest("https://example.test/"),
       respondWith: (value) => {
         response = value;
       },
@@ -218,25 +273,26 @@ describe("PWA app shell", () => {
 
   it("falls back to the cached app shell when navigation is offline", async () => {
     const appShell = new Response("app shell");
+
     const fetchHandler = makeFetchWorker(
-      () => Promise.reject(new Error("offline")),
+      vi.fn<() => Promise<Response>>().mockRejectedValue(new Error("offline")),
       {
         match: (request) => (request === "/" ? appShell : undefined),
-        open: () => ({ put: () => Promise.resolve() }),
+        open: () => ({
+          put: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        }),
       }
     );
+
     expect(fetchHandler).toBeTypeOf("function");
+
     if (!fetchHandler) {
       return;
     }
 
     let response: Promise<Response> | undefined;
     fetchHandler({
-      request: {
-        method: "GET",
-        mode: "navigate",
-        url: "https://example.test/",
-      },
+      request: new NavigationRequest("https://example.test/"),
       respondWith: (value) => {
         response = value;
       },

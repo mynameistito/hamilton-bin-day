@@ -77,6 +77,7 @@ describe("HCC fortnightly bin weeks", () => {
 
   it("rejects unexpected area values", () => {
     // SAFETY: Test the runtime guard with an invalid value TypeScript excludes.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     const invalidArea = "Area 3" as never;
 
     expect(() => getBinWeek(invalidArea)).toThrow(

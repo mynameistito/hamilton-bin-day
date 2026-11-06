@@ -13,14 +13,17 @@ interface McpRequest {
   readonly params: object;
 }
 
+// oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
 const postMcp = (body: McpRequest, origin?: string) => {
   const headers = new Headers({
     Accept: "application/json, text/event-stream",
     "Content-Type": "application/json",
   });
-  if (origin) {
+
+  if (origin !== undefined && origin !== "") {
     headers.set("Origin", origin);
   }
+
   return worker.fetch(
     new Request("https://example.test/api/mcp", {
       body: JSON.stringify(body),
@@ -60,6 +63,7 @@ describe("MCP Streamable HTTP endpoint", () => {
       method: "tools/list",
       params: {},
     });
+
     expect(tools.status).toBe(200);
     await expect(tools.json()).resolves.toMatchObject({
       result: {
@@ -134,6 +138,7 @@ describe("MCP Streamable HTTP endpoint", () => {
         name: "lookup_bin_schedule",
       },
     });
+
     await expect(invalidAddress.json()).resolves.toMatchObject({
       result: {
         isError: true,
@@ -149,6 +154,7 @@ describe("MCP Streamable HTTP endpoint", () => {
         .fn<typeof globalThis.fetch>()
         .mockResolvedValue(new Response(null, { status: 503 }))
     );
+
     const upstreamFailure = await postMcp({
       id: 5,
       jsonrpc: "2.0",
@@ -158,6 +164,7 @@ describe("MCP Streamable HTTP endpoint", () => {
         name: "lookup_bin_schedule",
       },
     });
+
     await expect(upstreamFailure.json()).resolves.toMatchObject({
       result: {
         isError: true,
@@ -199,6 +206,7 @@ describe("MCP Streamable HTTP endpoint", () => {
       { id: 1, jsonrpc: "2.0", method: "tools/list", params: {} },
       "https://attacker.test"
     );
+
     const crossOriginOptions = await worker.fetch(
       new Request("https://example.test/api/mcp", {
         headers: { Origin: "https://attacker.test" },
@@ -206,6 +214,7 @@ describe("MCP Streamable HTTP endpoint", () => {
       }),
       { ASSETS: assets }
     );
+
     expect([crossOrigin.status, crossOriginOptions.status]).toStrictEqual([
       403, 403,
     ]);
@@ -214,6 +223,7 @@ describe("MCP Streamable HTTP endpoint", () => {
       new Request("https://example.test/api/mcp"),
       { ASSETS: assets }
     );
+
     expect(get.status).toBe(405);
     expect(get.headers.get("Allow")).toBe("POST, OPTIONS");
 
@@ -224,6 +234,7 @@ describe("MCP Streamable HTTP endpoint", () => {
       }),
       { ASSETS: assets }
     );
+
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get("Access-Control-Allow-Origin")).toBe(
       "https://example.test"

@@ -22,12 +22,15 @@ const leadDaysFromValue = (value: string): ReminderLeadDays => {
     case "0": {
       return 0;
     }
+
     case "2": {
       return 2;
     }
+
     case "7": {
       return 7;
     }
+
     default: {
       return 1;
     }
@@ -41,9 +44,11 @@ const describePermission = (
   if (permission === "denied") {
     return "Notifications are blocked. Allow them in your browser settings.";
   }
+
   if (!storageAvailable) {
     return "Your settings could not be saved on this device.";
   }
+
   return null;
 };
 
@@ -56,12 +61,15 @@ const describeReminderStatus = (
   if (deliveryMessage) {
     return deliveryMessage;
   }
-  if (permissionMessage) {
+
+  if (permissionMessage !== null && permissionMessage !== "") {
     return permissionMessage;
   }
+
   if (!enabled) {
     return "Reminders are off.";
   }
+
   return deliveryActive ? "Reminders are on." : "Setting up your reminders…";
 };
 
@@ -80,12 +88,15 @@ export const NotificationSettings = ({
   const [preferences, setPreferences] = useState(readNotificationPreferences);
   const [storageAvailable, setStorageAvailable] = useState(true);
   const [timeInputMessage, setTimeInputMessage] = useState("");
+
   const save = useCallback((next: NotificationPreferences) => {
     setPreferences(next);
     const saved = saveNotificationPreferences(next);
     setStorageAvailable(saved);
+
     return saved;
   }, []);
+
   const {
     deliveryActive,
     deliveryMessage,
@@ -99,6 +110,7 @@ export const NotificationSettings = ({
     storageAvailable,
     save
   );
+
   const [timeZone, setTimeZone] = useState(readDeviceTimeZone);
   const [today, setToday] = useState(() => new Date());
   useEffect(() => {
@@ -106,10 +118,15 @@ export const NotificationSettings = ({
       setToday(new Date());
       setTimeZone(readDeviceTimeZone());
     };
+
     const interval = window.setInterval(refreshPreviewContext, 60_000);
-    return () => window.clearInterval(interval);
+
+    return () => {
+      window.clearInterval(interval);
+    };
   }, []);
   let collectionDate = schedule?.nextCollection.date;
+
   if (
     schedule &&
     preferences.leadDays === 7 &&
@@ -120,6 +137,7 @@ export const NotificationSettings = ({
         ? schedule.yellowBin
         : schedule.redBin;
   }
+
   const reminder = schedule
     ? calculateReminderSchedule(
         collectionDate ?? schedule.nextCollection.date,
@@ -127,7 +145,9 @@ export const NotificationSettings = ({
         timeZone
       )
     : null;
+
   const permissionMessage = describePermission(permission, storageAvailable);
+
   const statusMessage = describeReminderStatus(
     deliveryMessage,
     permissionMessage,
@@ -179,6 +199,7 @@ export const NotificationSettings = ({
             onChange={(event) => {
               setToday(new Date());
               setTimeZone(readDeviceTimeZone());
+
               if (event.target.checked) {
                 void enableReminders();
               } else {
@@ -199,10 +220,12 @@ export const NotificationSettings = ({
               onChange={(event) => {
                 setToday(new Date());
                 setTimeZone(readDeviceTimeZone());
+
                 const saved = save({
                   ...preferences,
                   leadDays: leadDaysFromValue(event.target.value),
                 });
+
                 if (!saved && preferences.enabled) {
                   void disableReminders();
                 }
@@ -223,12 +246,15 @@ export const NotificationSettings = ({
               onChange={(event) => {
                 setToday(new Date());
                 setTimeZone(readDeviceTimeZone());
+
                 if (event.target.value) {
                   setTimeInputMessage("");
+
                   const saved = save({
                     ...preferences,
                     localTime: event.target.value,
                   });
+
                   if (!saved && preferences.enabled) {
                     void disableReminders();
                   }

@@ -46,10 +46,12 @@ describe("address resolution", () => {
 
   it("retries expanded queries, filters council placeholders, and handles missing schedules", async () => {
     const queries: string[] = [];
+
     const noScheduleLayer = layerSucceed(HccApi, {
       getCollectionSchedule: () => succeed(null),
       searchAddresses: (query) => {
         queries.push(query);
+
         return succeed(
           query === "12 grey st" ? [] : ["No address found", "12 Grey Street"]
         );

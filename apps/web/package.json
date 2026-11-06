@@ -9,30 +9,30 @@
     "dev:site": "vite --mode site",
     "dev:tunnel": "vite --mode tunnel",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsrs --noEmit && tsrs -p src/tsconfig.json --noEmit && tsrs -p tsconfig.service-worker.json",
     "vapid:generate": "bun src/lib/generate-vapid.ts"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "2.0.0",
-    "@modelcontextprotocol/sdk": "1.32.1",
-    "@tanstack/react-router": "^1.170.44",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@tanstack/react-router": "^1.170.46",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.64.0",
-    "@tailwindcss/vite": "^4.3.3",
+    "@cloudflare/vite-plugin": "1.66.0",
+    "@tailwindcss/vite": "4.3.3",
     "@testing-library/react": "^16.3.3",
     "@types/node": "catalog:",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
+    "@vitejs/plugin-react": "6.1.2",
     "effect": "catalog:",
-    "happy-dom": "^21.0.1",
+    "happy-dom": "^21.0.4",
     "react-grab": "^0.2.0",
-    "tailwindcss": "^4.3.3",
+    "tailwindcss": "4.3.3",
     "typescript": "catalog:",
-    "vite": "^8.3.5"
+    "vite": "8.3.5"
   }
 }

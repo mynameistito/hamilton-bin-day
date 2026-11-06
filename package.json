@@ -9,10 +9,10 @@
       "packages/*"
     ],
     "catalog": {
-      "@effect/platform-bun": "4.0.6",
-      "@effect/platform-node": "4.0.6",
-      "@types/node": "^26.6.5",
-      "effect": "4.0.6",
+      "@effect/platform-bun": "4.0.7",
+      "@effect/platform-node": "4.0.7",
+      "@types/node": "^26.6.6",
+      "effect": "4.0.7",
       "typescript": "npm:@typescript/typescript6@^6.0.2"
     }
   },
@@ -22,7 +22,7 @@
     "bins:export": "bun run --filter @hamilton-bin-day/exporter export",
     "bins:sync": "bun apps/web/scripts/sync-hcc-bin-items.ts",
     "check": "ultracite check",
-    "ci": "bun run check && bun run typecheck && bun run test && bun run build",
+    "ci": "bun run check && bun run typecheck && bun run test && bun run build && bun run knip",
     "changeset": "changeset",
     "changeset-add": "bun ./packages/cli/scripts/changeset-add.ts",
     "deploy": "bun ./scripts/alchemy-command.ts deploy",
@@ -35,11 +35,11 @@
     "dev:web:tunnel": "turbo run dev:tunnel --filter=@hamilton-bin-day/web",
     "dev:tunnel": "turbo run dev:tunnel --filter=@hamilton-bin-day/web",
     "fix": "ultracite fix",
-    "knip": "bunx knip@latest",
+    "knip": "knip",
     "prepare": "lefthook install",
     "test": "turbo run test -- --coverage",
     "vapid:generate": "bun run --filter @hamilton-bin-day/web vapid:generate",
-    "typecheck": "turbo run typecheck && bunx tsc --project tsconfig.json"
+    "typecheck": "turbo run typecheck && tsrs --project tsconfig.json"
   },
   "dependencies": {
     "@alchemy.run/cloudflare": "2.0.0-beta.84",
@@ -49,25 +49,31 @@
     "effect": "catalog:"
   },
   "devDependencies": {
-    "@shadcn/lint": "^0.2.1",
-    "@types/bun": "1.4.3",
+    "@astrojs/compiler-rs": "^0.5.2",
+    "@shadcn/lint": "^0.2.3",
+    "@types/bun": "1.4.4",
     "@types/node": "catalog:",
-    "@typescript/native": "npm:typescript@^7.0.2",
     "@vitest/coverage-v8": "5.0.5",
     "eslint-plugin-github": "6.1.2",
-    "eslint-plugin-jsdoc": "^65.3.4",
+    "eslint-plugin-jsdoc": "^65.4.2",
     "eslint-plugin-sonarjs": "^4.2.2",
     "eslint-plugin-tsdoc": "^0.5.4",
+    "knip": "6.44.0",
     "lefthook": "^2.2.2",
-    "oxfmt": "^0.73.0",
-    "oxlint": "^1.88.0",
-    "oxlint-plugin-react-doctor": "^0.9.18",
-    "tsdown": "0.23.1",
-    "turbo": "^2.11.8",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0",
+    "oxlint-plugin-react-doctor": "0.9.18",
+    "oxlint-tsgolint": "7.0.2005",
+    "tsdown": "0.23.4",
+    "tsrs": "0.20.1-ts7.1.0-beta",
+    "turbo": "^2.11.10",
     "typescript": "catalog:",
-    "ultracite": "7.12.4",
+    "ultracite": "8.1.0",
     "vitest": "5.0.5"
   },
-  "overrides": {},
-  "packageManager": "bun@1.4.2"
+  "overrides": {
+    "@effect/platform-node-shared": "4.0.7",
+    "@effect/sql-d1": "4.0.7"
+  },
+  "packageManager": "bun@1.4.4"
 }

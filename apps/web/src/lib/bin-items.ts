@@ -31,9 +31,11 @@ export const BIN_ITEM_SOURCE = catalogue.source;
 
 const parseBinType = (value: string): BinType => {
   const bin = BIN_TYPES.find((candidate) => candidate === value);
+
   if (!bin) {
     throw new Error(`Unknown Council sorter bin type: ${value}`);
   }
+
   return bin;
 };
 
@@ -51,6 +53,7 @@ const normalize = (value: string): string => value.trim().toLowerCase();
  */
 export const searchBinItems = (query: string): readonly BinItem[] => {
   const normalizedQuery = normalize(query);
+
   if (!normalizedQuery) {
     return [];
   }
@@ -84,6 +87,7 @@ export const binTypeImage: Record<
   "food-scraps": { src: "/assets/bin-food.png", width: 210, height: 310 },
   other: null,
 };
+
 const binTypesByName = {
   "food scraps bin": "food-scraps",
   "glass crate": "glass",
@@ -107,6 +111,7 @@ export const binTypeName = (bin: BinType): string => binTypeNames[bin];
  */
 export const binTypeFromName = (name: string): BinType | null => {
   const normalized = normalize(name);
+
   return (
     Object.entries(binTypesByName).find(
       ([label]) => label === normalized

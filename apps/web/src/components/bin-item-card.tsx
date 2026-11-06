@@ -16,16 +16,21 @@ const BinItemCard = ({
   const image = binTypeImage[item.bin];
   const destination = binTypeName(item.bin);
   const isCompact = variant === "compact";
+
   const imageAlignment =
     imagePlacement === "center" ? "items-center" : "items-end";
+
   const objectAlignment =
     imagePlacement === "center" ? "object-center" : "object-bottom";
+
   const cardClassName = isCompact
     ? "min-h-22 items-center gap-3 p-3 sm:p-4"
     : "min-h-32 items-stretch gap-4 p-4";
+
   const imageContainerClassName = isCompact
     ? "w-12 items-center sm:w-14"
     : `w-20 ${imageAlignment} sm:w-24`;
+
   const imageClassName = isCompact ? "max-h-16" : `max-h-28 ${objectAlignment}`;
 
   return (
@@ -39,7 +44,7 @@ const BinItemCard = ({
             <p className="mt-1 text-sm font-semibold text-moss">
               Goes in: {destination}
             </p>
-            {item.notes && (
+            {item.notes !== undefined && item.notes !== "" && (
               <p className="mt-2 text-sm leading-6 text-detail-muted">
                 {renderBinItemNotes(item.notes)}
               </p>

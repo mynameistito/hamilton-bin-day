@@ -4,7 +4,7 @@ import { HttpClient, make } from "effect/http/HttpClient";
 import { HttpClientError, TransportError } from "effect/http/HttpClientError";
 import { fromWeb } from "effect/http/HttpClientResponse";
 import { provide as provideLayer, succeed as layerSucceed } from "effect/Layer";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { HccApi, hccApiLayerWithoutDependencies } from "@/hcc-api";
 import type { buildSchedule } from "@/schedule";
@@ -35,11 +35,13 @@ const apiLayer = (
       try: async () => fromWeb(request, await respond(url)),
     })
   );
+
   return hccApiLayerWithoutDependencies(scheduleBuilder).pipe(
     provideLayer(layerSucceed(HttpClient, client))
   );
 };
 
+// oxlint-disable-next-line typescript/promise-function-async -- Preserve the returned Effect promise.
 const runWithApi = <A>(
   layer: ReturnType<typeof apiLayer>,
   use: (api: typeof HccApi.Service) => EffectType<A, unknown>
@@ -62,8 +64,10 @@ const capture = <A>(effect: EffectType<A, unknown>) =>
 describe("HccApi HTTP adapter", () => {
   it("searches and decodes council address results", async () => {
     let requestedUrl: URL | undefined;
+
     const layer = apiLayer((url) => {
       requestedUrl = url;
+
       return Response.json([{ Collection_Address: "12 Grey Street" }]);
     });
 
@@ -86,6 +90,7 @@ describe("HccApi HTTP adapter", () => {
 
   it("maps unsuccessful HTTP responses with operation and status", async () => {
     const layer = apiLayer(() => new Response(null, { status: 503 }));
+
     const result = await runWithApi(layer, (api) =>
       capture(api.searchAddresses("query"))
     );
@@ -98,10 +103,12 @@ describe("HccApi HTTP adapter", () => {
       apiLayer(() => {
         const response = new Response(null);
         Object.defineProperty(response, "status", { value: 199 });
+
         return response;
       }),
       (api) => capture(api.getCollectionSchedule("address"))
     );
+
     expect(invalidStatus).toMatchObject({
       error: {
         operation: "getCollectionSchedule",
@@ -116,12 +123,14 @@ describe("HccApi HTTP adapter", () => {
       apiLayer(() => Response.json([{ wrong: true }])),
       (api) => capture(api.searchAddresses("query"))
     );
+
     expect(badBody).toMatchObject({ error: { reason: "decode" } });
 
     const badAddressJson = await runWithApi(
       apiLayer(invalidJsonResponse),
       (api) => capture(api.searchAddresses("query"))
     );
+
     expect(badAddressJson).toMatchObject({
       error: { operation: "searchAddresses", reason: "decode" },
     });
@@ -130,22 +139,29 @@ describe("HccApi HTTP adapter", () => {
       apiLayer(invalidJsonResponse),
       (api) => capture(api.getCollectionSchedule("address"))
     );
+
     expect(badScheduleJson).toMatchObject({
       error: { operation: "getCollectionSchedule", reason: "decode" },
     });
 
     const offline = await runWithApi(
-      apiLayer(() => Promise.reject(new Error("offline"))),
+      apiLayer(
+        vi.fn<() => Promise<Response>>().mockRejectedValue(new Error("offline"))
+      ),
       (api) => capture(api.searchAddresses("query"))
     );
+
     expect(offline).toMatchObject({
       error: { operation: "searchAddresses", reason: "transport" },
     });
 
     const scheduleOffline = await runWithApi(
-      apiLayer(() => Promise.reject(new Error("offline"))),
+      apiLayer(
+        vi.fn<() => Promise<Response>>().mockRejectedValue(new Error("offline"))
+      ),
       (api) => capture(api.getCollectionSchedule("address"))
     );
+
     expect(scheduleOffline).toMatchObject({
       error: { operation: "getCollectionSchedule", reason: "transport" },
     });
@@ -156,6 +172,7 @@ describe("HccApi HTTP adapter", () => {
       apiLayer(() => Response.json([collection])),
       (api) => api.getCollectionSchedule("12 Grey Street")
     );
+
     expect(result).toMatchObject({
       address: "12 Grey Street",
       upcomingWeek: "red",
@@ -165,6 +182,7 @@ describe("HccApi HTTP adapter", () => {
       apiLayer(() => Response.json([{ ...collection, RedBin: "bad" }])),
       (api) => capture(api.getCollectionSchedule("address"))
     );
+
     expect(invalid).toMatchObject({
       error: { operation: "getCollectionSchedule", reason: "decode" },
     });

@@ -107,13 +107,17 @@ describe("push reminder client requests", () => {
     const enqueue = createPushMutationQueue();
     const calls: string[] = [];
     const firstGate = Promise.withResolvers<undefined>();
+
     const first = enqueue(async () => {
       calls.push("first-start");
       await firstGate.promise;
       calls.push("first-finish");
     });
+
+    // oxlint-disable-next-line typescript/promise-function-async -- Preserve the queued operation's promise.
     const second = enqueue(() => {
       calls.push("second");
+
       return Promise.resolve();
     });
 
@@ -129,9 +133,11 @@ describe("push reminder client requests", () => {
     const keyBytes = Uint8Array.from({ length: 65 }, (_, index) =>
       index === 0 ? 4 : index
     );
+
     const encodedKey = btoa(String.fromCodePoint(...keyBytes))
       .replaceAll("+", "-")
       .replaceAll("/", "_");
+
     const publicKey = encodedKey.split("=")[0] ?? "";
 
     expect([...decodeApplicationServerKey(publicKey)]).toStrictEqual([
@@ -146,6 +152,7 @@ describe("push reminder client requests", () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(Response.json({ saved: true }));
+
     const result = await savePushReminder(
       {
         endpoint: "https://fcm.googleapis.com/fcm/send/secret",
@@ -159,7 +166,15 @@ describe("push reminder client requests", () => {
     );
 
     expect(result).toBeTruthy();
-    const body = JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body));
+    const bodyText = fetcher.mock.calls[0]?.[1]?.body;
+
+    // The mock records a generic BodyInit; verify the JSON string at this boundary.
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof
+    if (typeof bodyText !== "string") {
+      throw new TypeError("Expected a JSON request body");
+    }
+
+    const body: unknown = JSON.parse(bodyText);
     expect(body).toStrictEqual({
       subscription: {
         endpoint: "https://fcm.googleapis.com/fcm/send/secret",
@@ -183,6 +198,7 @@ describe("push reminder client requests", () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(Response.json({ removed: true }));
+
     const result = await deletePushReminder(
       "https://fcm.googleapis.com/fcm/send/secret",
       fetcher
@@ -201,6 +217,7 @@ describe("push reminder client requests", () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(null, { status: 503 }));
+
     await expect(
       savePushReminder(
         {

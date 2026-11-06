@@ -24,25 +24,6 @@ const WebPushSubscriptionSchema = Struct({
 
 /** Application-owned serialized subscription shape shared by browser and Worker. */
 export type WebPushSubscription = (typeof WebPushSubscriptionSchema)["Type"];
-/** JSON-compatible data accepted at the subscription parsing boundary. */
-export type WebPushSubscriptionInput =
-  | undefined
-  | string
-  | number
-  | boolean
-  | null
-  | readonly unknown[]
-  | {
-      readonly endpoint?: unknown;
-      readonly expirationTime?: unknown;
-      readonly keys?:
-        | {
-            readonly auth?: unknown;
-            readonly p256dh?: unknown;
-          }
-        | null
-        | undefined;
-    };
 
 const decodeWebPushSubscription = decodeUnknownSync(WebPushSubscriptionSchema);
 
@@ -51,7 +32,9 @@ const decodeWebPushSubscription = decodeUnknownSync(WebPushSubscriptionSchema);
  * @returns The validated subscription, or `null` when validation fails.
  */
 export const parseWebPushSubscription = (
-  untrustedInput: WebPushSubscriptionInput
+  // The schema is the boundary that turns untrusted input into a subscription.
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters
+  untrustedInput: unknown
 ): WebPushSubscription | null => {
   try {
     return decodeWebPushSubscription(untrustedInput);

@@ -35,21 +35,28 @@ class SQLiteReminderDatabase implements ReminderDatabase {
   prepare(query: string) {
     let values: readonly (string | number | null)[] = [];
     const statement = this.sqlite.prepare(query);
+
     const api = {
       bind: (...nextValues: readonly (string | number | null)[]) => {
         values = nextValues;
+
         return api;
       },
+      // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous SQLite errors in the fake adapter.
       first: () => {
         const result = statement.get(...values);
+
         return Promise.resolve(
           result ? ReminderRecordSchema.parse(result) : null
         );
       },
+      // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous SQLite errors in the fake adapter.
       run: () => {
         const result = statement.run(...values);
+
         return Promise.resolve({ meta: { changes: Number(result.changes) } });
       },
+      // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous SQLite errors in the fake adapter.
       all: () =>
         Promise.resolve({
           results: statement
@@ -57,6 +64,7 @@ class SQLiteReminderDatabase implements ReminderDatabase {
             .map((row) => ReminderRecordSchema.parse(row)),
         }),
     };
+
     return api;
   }
 
@@ -72,26 +80,41 @@ const testKeyPair = await crypto.subtle.generateKey(
   true,
   ["sign", "verify"]
 );
+
 const testPrivateJwk = await crypto.subtle.exportKey(
   "jwk",
   testKeyPair.privateKey
 );
-if (!(testPrivateJwk.x && testPrivateJwk.y && testPrivateJwk.d)) {
+
+if (
+  testPrivateJwk.x === undefined ||
+  testPrivateJwk.x === "" ||
+  testPrivateJwk.y === undefined ||
+  testPrivateJwk.y === ""
+) {
   throw new Error("The generated Web Push test key is incomplete");
 }
+
+if (testPrivateJwk.d === undefined || testPrivateJwk.d === "") {
+  throw new Error("The generated Web Push test key is incomplete");
+}
+
 const testPublicKey = Buffer.concat([
   Buffer.from([4]),
   Buffer.from(testPrivateJwk.x, "base64url"),
   Buffer.from(testPrivateJwk.y, "base64url"),
 ]).toString("base64url");
+
 const clientKeyPair = await crypto.subtle.generateKey(
   { name: "ECDH", namedCurve: "P-256" },
   true,
   ["deriveBits"]
 );
+
 const clientPublicKey = Buffer.from(
   await crypto.subtle.exportKey("raw", clientKeyPair.publicKey)
 ).toString("base64url");
+
 const clientAuthSecret = Buffer.from(
   crypto.getRandomValues(new Uint8Array(16))
 ).toString("base64url");
@@ -103,6 +126,7 @@ const environment = {
   VAPID_SUBJECT: "mailto:contact@example.test",
 };
 
+// oxlint-disable-next-line typescript/promise-function-async -- Preserve the returned Effect promise.
 const runDueReminders = (...args: Parameters<typeof sendDueReminders>) =>
   runPromise(sendDueReminders(...args));
 
@@ -150,11 +174,13 @@ describe("reminder delivery database behavior", () => {
     it("keeps delivery disabled until the complete VAPID configuration is available", async () => {
       const publicKeyResponse = await handleReminderPublicKey({});
       expect(publicKeyResponse.status).toBe(503);
+
       const response = await handleReminderSubscribe(
         subscriptionRequest(),
         { REMINDERS: database },
         new Date("2026-10-01T00:00:00.000Z")
       );
+
       expect(response.status).toBe(503);
     });
 
@@ -167,6 +193,7 @@ describe("reminder delivery database behavior", () => {
 
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toStrictEqual({ saved: true });
+
       const row = z
         .object({
           collection_date: z.string(),
@@ -178,6 +205,7 @@ describe("reminder delivery database behavior", () => {
         .parse(
           database.sqlite.prepare("SELECT * FROM reminder_subscriptions").get()
         );
+
       expect(row).toMatchObject({
         collection_date: schedule.collectionDate,
         following_date: schedule.followingDate,
@@ -185,9 +213,7 @@ describe("reminder delivery database behavior", () => {
         time_zone: "Pacific/Auckland",
       });
       expect(JSON.stringify(row)).not.toContain("address");
-      expect(JSON.parse(String(row.subscription_json))).toStrictEqual(
-        subscription
-      );
+      expect(JSON.parse(row.subscription_json)).toStrictEqual(subscription);
     });
 
     it("rejects unsafe push endpoints and mismatched or malformed schedule data", async () => {
@@ -201,6 +227,7 @@ describe("reminder delivery database behavior", () => {
         environment,
         new Date("2026-10-01T00:00:00.000Z")
       );
+
       const mismatchedDate = await handleReminderSubscribe(
         subscriptionRequest({
           schedule: { ...schedule, collectionDate: "2026-10-06" },
@@ -257,6 +284,7 @@ describe("reminder delivery database behavior", () => {
         environment,
         new Date("2026-10-01T00:00:00.000Z")
       );
+
       const changed = await handleReminderSubscribe(
         subscriptionRequest({
           schedule: {
@@ -272,6 +300,7 @@ describe("reminder delivery database behavior", () => {
       );
 
       expect(changed.status).toBe(200);
+
       const row = z
         .object({
           collection_date: z.string(),
@@ -285,6 +314,7 @@ describe("reminder delivery database behavior", () => {
             )
             .get()
         );
+
       expect(row).toMatchObject({
         collection_date: "2026-10-12",
         following_date: "2026-10-19",
@@ -323,12 +353,14 @@ describe("reminder delivery database behavior", () => {
         environment,
         new Date("2026-10-01T00:00:00.000Z")
       );
+
       const unauthorized = await handleReminderUnsubscribe(
         new Request("https://example.test/api/reminders/subscription", {
           method: "DELETE",
         }),
         environment
       );
+
       const removed = await handleReminderUnsubscribe(
         new Request("https://example.test/api/reminders/subscription", {
           method: "DELETE",
@@ -349,8 +381,10 @@ describe("reminder delivery database behavior", () => {
       await runDueReminders(
         environment,
         new Date("2026-10-04T08:00:00.000Z"),
+        // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
         () => {
           sends += 1;
+
           return Promise.resolve(new Response(null, { status: 201 }));
         }
       );
@@ -379,13 +413,16 @@ describe("reminder delivery database behavior", () => {
       true,
       ["sign", "verify"]
     );
+
     const otherPublicKey = Buffer.from(
       await crypto.subtle.exportKey("raw", anotherPair.publicKey)
     ).toString("base64url");
+
     const malformedSubject = await handleReminderPublicKey({
       ...environment,
       VAPID_SUBJECT: "not-a-vapid-subject",
     });
+
     const mismatchedPair = await handleReminderPublicKey({
       ...environment,
       VAPID_PUBLIC_KEY: otherPublicKey,
@@ -405,27 +442,36 @@ describe("reminder delivery database behavior", () => {
         environment,
         new Date("2026-10-01T00:00:00.000Z")
       );
+
       const fetcher = vi
         .fn<typeof fetch>()
         .mockResolvedValue(new Response(null, { status: 201 }));
+
       vi.stubGlobal("fetch", fetcher);
 
       await runDueReminders(environment, new Date("2026-10-04T08:00:00.000Z"));
 
       const [call] = fetcher.mock.calls;
+
       if (!call) {
         throw new Error("Expected a push-service fetch call");
       }
+
       const [url, requestInit] = call;
+
       if (!requestInit) {
         throw new Error("Expected a Web Push RequestInit");
       }
+
       const { body } = requestInit;
+
       if (!(body instanceof Uint8Array)) {
-        throw new Error("Expected an encrypted binary push payload");
+        throw new TypeError("Expected an encrypted binary push payload");
       }
+
       const headers = new Headers(requestInit.headers);
       const authorization = headers.get("authorization") ?? "";
+      const anyBodyLength: unknown = expect.any(Number);
       expect({
         endpoint: url,
         method: requestInit.method,
@@ -449,7 +495,7 @@ describe("reminder delivery database behavior", () => {
         hasVapidAuthorization: true,
         authorizationUsesPublicKey: true,
         contentLength: String(body.byteLength),
-        bodyLength: expect.any(Number),
+        bodyLength: anyBodyLength,
       });
       expect(body.byteLength).toBeGreaterThan(0);
     });
@@ -462,11 +508,15 @@ describe("reminder delivery database behavior", () => {
       );
       let sends = 0;
       let sentPayload = "";
+
+      // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
       const send = (_subscription: WebPushSubscription, payload: string) => {
         sends += 1;
         sentPayload = payload;
+
         return Promise.resolve(new Response(null, { status: 201 }));
       };
+
       const now = new Date("2026-10-04T08:00:00.000Z");
 
       await runDueReminders(environment, now, send);
@@ -502,6 +552,7 @@ describe("reminder delivery database behavior", () => {
         if (remainingCycles === 0) {
           return;
         }
+
         const current = z
           .object({
             collection_date: z.string(),
@@ -518,18 +569,33 @@ describe("reminder delivery database behavior", () => {
               )
               .get()
           );
+
         const now = new Date(current.scheduled_at);
         let sentNotificationId = "";
 
-        await runDueReminders(environment, now, (_subscription, payload) => {
-          sends += 1;
-          sentNotificationId = JSON.parse(payload).notificationId;
-          return Promise.resolve(new Response(null, { status: 201 }));
-        });
-        await runDueReminders(environment, now, () => {
-          sends += 1;
-          return Promise.resolve(new Response(null, { status: 201 }));
-        });
+        await runDueReminders(
+          environment,
+          now,
+          // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
+          (_subscription, payload) => {
+            sends += 1;
+            sentNotificationId = z
+              .object({ notificationId: z.string() })
+              .parse(JSON.parse(payload)).notificationId;
+
+            return Promise.resolve(new Response(null, { status: 201 }));
+          }
+        );
+        await runDueReminders(
+          environment,
+          now,
+          // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
+          () => {
+            sends += 1;
+
+            return Promise.resolve(new Response(null, { status: 201 }));
+          }
+        );
 
         expect(sentNotificationId).toBe(current.notification_id);
         expect(notificationIds.has(sentNotificationId)).toBeFalsy();
@@ -550,6 +616,7 @@ describe("reminder delivery database behavior", () => {
               )
               .get()
           );
+
         expect(next).toMatchObject({
           collection_date: current.following_date,
           collection_type: current.collection_type === "red" ? "yellow" : "red",
@@ -582,10 +649,16 @@ describe("reminder delivery database behavior", () => {
       await handleReminderSubscribe(subscriptionRequest(), environment, now);
       let sentPayload = "";
 
-      await runDueReminders(environment, now, (_subscription, payload) => {
-        sentPayload = payload;
-        return Promise.resolve(new Response(null, { status: 201 }));
-      });
+      await runDueReminders(
+        environment,
+        now,
+        // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
+        (_subscription, payload) => {
+          sentPayload = payload;
+
+          return Promise.resolve(new Response(null, { status: 201 }));
+        }
+      );
 
       expect(JSON.parse(sentPayload)).toMatchObject({
         body: "Bins are collected today.",
@@ -603,8 +676,10 @@ describe("reminder delivery database behavior", () => {
       await runDueReminders(
         environment,
         new Date("2026-10-05T12:00:00.000Z"),
+        // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
         () => {
           sends += 1;
+
           return Promise.resolve(new Response(null, { status: 201 }));
         }
       );
@@ -631,15 +706,19 @@ describe("reminder delivery database behavior", () => {
       const sendGate = Promise.withResolvers<Response>();
       const sendStarted = Promise.withResolvers<undefined>();
       let sends = 0;
+
+      // oxlint-disable-next-line typescript/promise-function-async -- The gate promise must retain its identity.
       const send = () => {
         sends += 1;
         sendStarted.resolve();
+
         return sendGate.promise;
       };
+
       const now = new Date("2026-10-04T08:00:00.000Z");
 
       const firstRun = runDueReminders(environment, now, send);
-      await sendStarted;
+      await sendStarted.promise;
       await runDueReminders(environment, now, send);
 
       expect(sends).toBe(1);
@@ -658,7 +737,9 @@ describe("reminder delivery database behavior", () => {
         await runDueReminders(
           environment,
           new Date("2026-10-04T08:00:00.000Z"),
-          () => Promise.resolve(new Response(null, { status }))
+          vi
+            .fn<() => Promise<Response>>()
+            .mockResolvedValue(new Response(null, { status }))
         );
 
         expect(
@@ -677,21 +758,26 @@ describe("reminder delivery database behavior", () => {
       );
       const sendGate = Promise.withResolvers<Response>();
       const sendStarted = Promise.withResolvers<undefined>();
+
       const firstRun = runDueReminders(
         environment,
         new Date("2026-10-04T08:00:00.000Z"),
+        // oxlint-disable-next-line typescript/promise-function-async -- The gate promise must retain its identity.
         () => {
           sendStarted.resolve();
+
           return sendGate.promise;
         }
       );
-      await sendStarted;
+
+      await sendStarted.promise;
 
       const renewed = await handleReminderSubscribe(
         subscriptionRequest(),
         environment,
         new Date("2026-10-01T00:00:00.000Z")
       );
+
       expect(renewed.status).toBe(200);
       expect(
         database.sqlite
@@ -716,15 +802,19 @@ describe("reminder delivery database behavior", () => {
       );
       const sendGate = Promise.withResolvers<Response>();
       const sendStarted = Promise.withResolvers<undefined>();
+
       const firstRun = runDueReminders(
         environment,
         new Date("2026-10-04T08:00:00.000Z"),
+        // oxlint-disable-next-line typescript/promise-function-async -- The gate promise must retain its identity.
         () => {
           sendStarted.resolve();
+
           return sendGate.promise;
         }
       );
-      await sendStarted;
+
+      await sendStarted.promise;
 
       const renewed = await handleReminderSubscribe(
         subscriptionRequest({
@@ -739,6 +829,7 @@ describe("reminder delivery database behavior", () => {
         environment,
         new Date("2026-10-01T00:00:00.000Z")
       );
+
       expect(renewed.status).toBe(200);
       expect(
         database.sqlite
@@ -774,12 +865,16 @@ describe("reminder delivery database behavior", () => {
         new Date("2026-10-01T00:00:00.000Z")
       );
       let attempts = 0;
+
+      // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
       const send = () => {
         attempts += 1;
+
         return Promise.resolve(
           new Response(null, { status: attempts === 1 ? 503 : 201 })
         );
       };
+
       const now = new Date("2026-10-04T08:00:00.000Z");
       await runDueReminders(environment, now, send);
       await runDueReminders(environment, now, send);
@@ -802,7 +897,9 @@ describe("reminder delivery database behavior", () => {
       await runDueReminders(
         environment,
         new Date("2026-10-04T08:00:00.000Z"),
-        () => Promise.resolve(new Response(null, { status: 403 }))
+        vi
+          .fn<() => Promise<Response>>()
+          .mockResolvedValue(new Response(null, { status: 403 }))
       );
 
       expect(
@@ -821,12 +918,16 @@ describe("reminder delivery database behavior", () => {
           new Date("2026-10-01T00:00:00.000Z")
         );
         let attempts = 0;
+
+        // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fixture errors.
         const send = () => {
           attempts += 1;
+
           return Promise.resolve(
             new Response(null, { status: attempts === 1 ? status : 201 })
           );
         };
+
         const now = new Date("2026-10-04T08:00:00.000Z");
 
         await runDueReminders(environment, now, send);

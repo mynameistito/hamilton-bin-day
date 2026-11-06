@@ -36,6 +36,7 @@ const SOURCE_URL = "https://hamilton.govt.nz/fight-the-landfill";
 const LIST_URL = "https://hamilton.govt.nz/ftl/Select2SorterSearch";
 const DETAIL_URL = "https://hamilton.govt.nz/ftl/SorterSelectionData";
 const DATA_PATH = new URL("../src/lib/bin-items-data.json", import.meta.url);
+
 const BIN_BY_IMAGE = {
   SorterFoodScraps: "food-scraps",
   SorterGlassCrate: "glass",
@@ -43,6 +44,7 @@ const BIN_BY_IMAGE = {
   SorterRedBin: "red",
   SorterYellowBin: "yellow",
 } as const satisfies Record<string, SorterBin>;
+
 const DESTINATION_BY_IMAGE = {
   SorterFoodScraps: "This item goes into your food scraps bin.",
   SorterGlassCrate: "This item goes into your glass recycling crate.",
@@ -50,6 +52,7 @@ const DESTINATION_BY_IMAGE = {
   SorterRedBin: "This item goes into the red rubbish wheelie bin.",
   SorterYellowBin: "This item goes into the yellow recycling wheelie bin",
 } as const satisfies Record<keyof typeof BIN_BY_IMAGE, string>;
+
 const SORTER_IMAGE = z.enum([
   "SorterFoodScraps",
   "SorterGlassCrate",
@@ -57,6 +60,7 @@ const SORTER_IMAGE = z.enum([
   "SorterRedBin",
   "SorterYellowBin",
 ]);
+
 const LISTING_RESPONSE = z.object({
   results: z.array(
     z.object({
@@ -65,12 +69,15 @@ const LISTING_RESPONSE = z.object({
     })
   ),
 });
+
 const DETAIL_RESPONSE = z.object({
   html: z.string().optional(),
   success: z.boolean(),
   title: z.string().optional(),
 });
+
 type CouncilSorterDetail = z.infer<typeof DETAIL_RESPONSE>;
+
 const NAMED_ENTITIES = {
   amp: "&",
   apos: "'",
@@ -97,12 +104,14 @@ const decodeHtmlEntities = (value: string): string =>
       const normalizedReference = reference.endsWith(";")
         ? reference.slice(0, -1)
         : reference;
+
       if (
         normalizedReference.startsWith("#x") ||
         normalizedReference.startsWith("#X")
       ) {
         return String.fromCodePoint(Number(`0${normalizedReference.slice(1)}`));
       }
+
       if (normalizedReference.startsWith("#")) {
         return String.fromCodePoint(
           Math.trunc(Number(normalizedReference.slice(1)))
@@ -112,11 +121,13 @@ const decodeHtmlEntities = (value: string): string =>
       const decoded = Object.entries(NAMED_ENTITIES).find(
         ([name]) => name === normalizedReference.toLowerCase()
       )?.[1];
+
       if (decoded === undefined) {
         throw new Error(
           `Unknown HTML entity in Council sorter response: ${entity}`
         );
       }
+
       return decoded;
     }
   );
@@ -134,7 +145,10 @@ const textFromHtml = (value: string): string =>
 const sectionText = (html: string, tag: "h3" | "h4" | "small"): string => {
   const pattern = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`, "iu");
   const match = pattern.exec(html);
-  return match?.[1] ? textFromHtml(match[1]) : "";
+
+  return match?.[1] !== undefined && match[1] !== ""
+    ? textFromHtml(match[1])
+    : "";
 };
 
 /** Parse one Council sorter detail response into a normalized catalogue item.
@@ -149,16 +163,24 @@ export const parseSorterDetail = (
   if (!detail.success) {
     throw new Error(`Council sorter detail failed for item ${listingItem.id}`);
   }
-  if (!detail.html || !detail.title) {
+
+  if (
+    detail.html === undefined ||
+    detail.html === "" ||
+    detail.title === undefined ||
+    detail.title === ""
+  ) {
     throw new Error(
       `Council sorter detail was incomplete for item ${listingItem.id}`
     );
   }
 
-  const imageMatch = /\/(?<image>Sorter[A-Za-z]+)\.png(?:["'?])/iu.exec(
+  const imageMatch = /\/(?<image>Sorter[A-Z]+)\.png(?:["'?])/iu.exec(
     detail.html
   );
+
   const imageName = SORTER_IMAGE.safeParse(imageMatch?.groups?.image);
+
   if (!imageName.success) {
     throw new Error(
       `Council sorter returned an unknown category for item ${listingItem.id}`
@@ -169,15 +191,20 @@ export const parseSorterDetail = (
   const destination = sectionText(detail.html, "h4");
   const notes = sectionText(detail.html, "small");
   const expectedDestination = DESTINATION_BY_IMAGE[imageName.data];
+
   const normalizedListingText = normalizeWhitespace(
     listingItem.text
   ).toLowerCase();
+
   const invalidItem = !item || item.toLowerCase() !== normalizedListingText;
+
   const invalidDestination =
     !destination ||
     destination.toLowerCase() !== expectedDestination.toLowerCase();
+
   const invalidTitle =
     normalizeWhitespace(detail.title).toLowerCase() !== normalizedListingText;
+
   if (invalidItem || invalidDestination || invalidTitle) {
     throw new Error(
       `Council sorter listing/detail mismatch for item ${listingItem.id}`
@@ -190,9 +217,11 @@ export const parseSorterDetail = (
     id: listingItem.id,
     item,
   };
+
   if (notes) {
     return { ...result, notes };
   }
+
   return result;
 };
 
@@ -211,13 +240,16 @@ const fetchItemDetail = async (
     },
     method: "POST",
   });
+
   if (!response.ok) {
     throw new Error(
       `Council sorter detail request failed for item ${listingItem.id} (${response.status})`
     );
   }
+
   const responseData: unknown = await response.json();
   const detail = DETAIL_RESPONSE.parse(responseData);
+
   return parseSorterDetail(listingItem, detail);
 };
 
@@ -233,6 +265,7 @@ export const fetchCouncilCatalogue = async (
   const response = await fetcher(LIST_URL, {
     headers: { accept: "application/json" },
   });
+
   if (!response.ok) {
     throw new Error(
       `Council sorter listing request failed (${response.status})`
@@ -240,6 +273,7 @@ export const fetchCouncilCatalogue = async (
   }
 
   const listing = LISTING_RESPONSE.safeParse(await response.json());
+
   if (!listing.success || listing.data.results.length === 0) {
     throw new Error("Council sorter returned an invalid or empty item listing");
   }
@@ -248,7 +282,9 @@ export const fetchCouncilCatalogue = async (
     ...item,
     text: normalizeWhitespace(item.text),
   }));
+
   const ids = new Set(items.map(({ id }) => id));
+
   if (ids.size !== items.length || items.some(({ text }) => !text)) {
     throw new Error(
       "Council sorter listing contains duplicate IDs or blank item names"
@@ -256,17 +292,23 @@ export const fetchCouncilCatalogue = async (
   }
 
   const batchSize = 8;
+
+  // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous batch errors.
   const fetchBatch = (offset: number): Promise<readonly SorterItem[]> =>
     Promise.all(
       items
         .slice(offset, offset + batchSize)
+        // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fetch errors.
         .map((item) => fetchItemDetail(fetcher, item))
     );
+
   const fetchBatches = async (offset = 0): Promise<SorterItem[]> => {
     if (offset >= items.length) {
       return [];
     }
+
     const batch = await fetchBatch(offset);
+
     return [...batch, ...(await fetchBatches(offset + batchSize))];
   };
 
@@ -300,6 +342,7 @@ export const planCatalogueSync = (
 ): CatalogueSyncPlan => {
   const content = renderCatalogue(next);
   const changed = content !== current;
+
   if (!changed) {
     return {
       changed: false,
@@ -307,6 +350,7 @@ export const planCatalogueSync = (
       message: "Council sorter catalogue is up to date.",
     };
   }
+
   return {
     changed: true,
     content,
@@ -319,17 +363,21 @@ export const planCatalogueSync = (
 const main = async (): Promise<void> => {
   const args = process.argv.slice(2);
   const checkOnly = args.length === 1 && args[0] === "--check";
+
   if (args.length > 0 && !checkOnly) {
     throw new Error("Usage: bun run bins:sync [--check]");
   }
 
   const checkedOn = new Date().toISOString().slice(0, 10);
+
   const [next, current] = await Promise.all([
     fetchCouncilCatalogue(fetch, checkedOn),
     readFile(DATA_PATH, "utf-8"),
   ]);
+
   const plan = planCatalogueSync(current, next, checkOnly);
   console.info(plan.message);
+
   if (checkOnly && plan.changed) {
     process.exitCode = 1;
   } else if (plan.changed) {

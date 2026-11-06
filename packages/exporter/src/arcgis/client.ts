@@ -11,6 +11,7 @@ import { ArcGisError } from "@/arcgis/error";
  */
 export const sourceUrl =
   "https://services1.arcgis.com/R6s0QqCMQdwKY6yp/ArcGIS/rest/services/app_basedata/FeatureServer/2/query";
+
 /** Maximum number of attempts made for transient ArcGIS request failures. */
 const RETRIES = 5;
 
@@ -54,10 +55,14 @@ export interface ArcGisFeature {
     /** Stable object ID identifying the source feature. */
     readonly OBJECTID: number;
     /** Council-provided street address, if present. */
+    // Explicit undefined is accepted from the decoded source schema.
+    // oxlint-disable-next-line sonarjs/no-redundant-optional
     readonly Parcel_Street_Address?: string | null | undefined;
     /** Council-provided collection weekday or `Not Serviced`, if present. */
+    // oxlint-disable-next-line sonarjs/no-redundant-optional -- The source schema accepts explicit undefined.
     readonly RubbishRecycling_Area_Day?: string | null | undefined;
     /** Council collection area label, if present. */
+    // oxlint-disable-next-line sonarjs/no-redundant-optional -- The source schema accepts explicit undefined.
     readonly RubbishRecycling_Area_Type?: string | null | undefined;
   };
 }
@@ -96,13 +101,18 @@ export class ArcGisClient extends Context.Service<
  * @returns A typed adapter error containing the ArcGIS code and message.
  */
 const decodeError = (error: Schema.Schema.Type<typeof ArcGisErrorSchema>) => {
-  const details = error.details?.length ? ` ${error.details.join(" ")}` : "";
+  const details =
+    error.details !== undefined && error.details.length > 0
+      ? ` ${error.details.join(" ")}`
+      : "";
+
   return new ArcGisError(`ArcGIS ${error.code}: ${error.message}${details}`);
 };
 
 /** Build the ArcGIS service using the HTTP client supplied by the Layer graph. */
 const make = Effect.gen(function* make() {
   const rawClient = yield* HttpClient.HttpClient;
+
   const client = rawClient.pipe(
     HttpClient.filterStatusOk,
     HttpClient.retryTransient({
@@ -141,9 +151,11 @@ const make = Effect.gen(function* make() {
         { returnGeometry: "false", returnIdsOnly: "true", where: "1=1" },
         IdResponseSchema
       );
+
       if (response.error) {
         return yield* Effect.fail(decodeError(response.error));
       }
+
       return response.objectIds ?? [];
     }
   )();
@@ -163,18 +175,23 @@ const make = Effect.gen(function* make() {
         },
         FeatureResponseSchema
       );
+
       if (response.error) {
         return yield* Effect.fail(decodeError(response.error));
       }
+
       const features = response.features ?? [];
-      if (response.exceededTransferLimit) {
+
+      if (response.exceededTransferLimit === true) {
         yield* Effect.logWarning("ArcGIS reported exceededTransferLimit=true.");
       }
+
       if (features.length !== objectIds.length) {
         yield* Effect.logWarning(
           `ArcGIS returned ${features.length} features for a batch of ${objectIds.length} OBJECTIDs.`
         );
       }
+
       return features;
     }
   );

@@ -55,7 +55,8 @@ const findProjectRoot = (startDir: string) => {
   }
 
   console.error(`Could not find ${PACKAGE_JSON_FILENAME} from script location`);
-  process.exit(1);
+
+  return process.exit(1);
 };
 
 const readPackageJson = (packageJsonPath: string) => {
@@ -70,7 +71,8 @@ const readPackageJson = (packageJsonPath: string) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error(`Failed to read ${PACKAGE_JSON_FILENAME}: ${message}`);
-    process.exit(1);
+
+    return process.exit(1);
   }
 };
 
@@ -89,9 +91,9 @@ const getPackageName = (packageJson: PackageJson) => {
 
 const hasChangesetsCliDependency = (packageJson: PackageJson) =>
   Boolean(
-    packageJson.dependencies?.["@changesets/cli"] ||
-    packageJson.devDependencies?.["@changesets/cli"] ||
-    packageJson.optionalDependencies?.["@changesets/cli"] ||
+    Boolean(packageJson.dependencies?.["@changesets/cli"]) ||
+    Boolean(packageJson.devDependencies?.["@changesets/cli"]) ||
+    Boolean(packageJson.optionalDependencies?.["@changesets/cli"]) ||
     packageJson.peerDependencies?.["@changesets/cli"]
   );
 
@@ -124,7 +126,8 @@ const parseChangesetType = (type: string | undefined): ChangesetType => {
   }
 
   console.error(`Invalid type: ${type}. Must be patch, minor, or major.`);
-  process.exit(1);
+
+  return process.exit(1);
 };
 
 const createChangesetFilename = (changesetDir: string) => {
@@ -138,7 +141,8 @@ const createChangesetFilename = (changesetDir: string) => {
   }
 
   console.error("Could not generate a unique changeset filename");
-  process.exit(1);
+
+  return process.exit(1);
 };
 
 const args = process.argv.slice(2);
@@ -160,10 +164,13 @@ if (!summary.trim()) {
 }
 
 const projectRoot = findProjectRoot(import.meta.dirname);
+
 const packageJson = readPackageJson(
   path.join(projectRoot, "packages", "cli", PACKAGE_JSON_FILENAME)
 );
+
 const packageName = getPackageName(packageJson);
+
 assertChangesetsCliInstalled(packageJson, projectRoot);
 
 const changesetDir = path.join(projectRoot, ".changeset");
@@ -178,8 +185,13 @@ ${summary.trim()}
 `;
 
 mkdirSync(changesetDir, { recursive: true });
+
 writeFileSync(filename, content);
+
 console.log(`✓ Created changeset: ${relativeFilename}`);
+
 console.log(`  Package: ${packageName}`);
+
 console.log(`  Type: ${changesetType}`);
+
 console.log(`  Summary: ${summary}`);

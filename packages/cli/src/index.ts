@@ -69,35 +69,42 @@ const main = gen(function* main() {
 
   if (rawArgs.some((arg) => VERSION_FLAGS.has(arg))) {
     console.log(packageJson.version);
+
     return;
   }
 
   const { json, command, query } = parseArgs(process.argv);
 
-  if (
-    !command ||
-    command === "help" ||
-    command === "--help" ||
-    command === "-h"
-  ) {
+  if (command === undefined || command === "") {
     printHelp();
+
+    return;
+  }
+
+  if (command === "help" || command === "--help" || command === "-h") {
+    printHelp();
+
     return;
   }
 
   if (!query) {
     printHelp();
+
     return;
   }
 
   if (command === "search") {
     const api = yield* HccApi;
     const matches = yield* api.searchAddresses(query);
+
     if (json) {
       printJson({ command, matches, query });
+
       return;
     }
 
     console.log("Matches:", matches);
+
     return;
   }
 
@@ -107,13 +114,16 @@ const main = gen(function* main() {
     if (!resolved.ok) {
       if (json) {
         printJson({ command, found: false, matches: resolved.matches, query });
+
         return;
       }
 
       console.log(`No match found for: ${query}`);
+
       if (resolved.matches.length > 0) {
         console.log("Did you mean:", resolved.matches.slice(0, 10));
       }
+
       return;
     }
 
@@ -125,10 +135,12 @@ const main = gen(function* main() {
         query,
         schedule: toScheduleJson(resolved.schedule),
       });
+
       return;
     }
 
     console.log(formatScheduleText(resolved.schedule));
+
     return;
   }
 

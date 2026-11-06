@@ -6,6 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import type { Plugin, UserConfig } from "vite";
 import { defineConfig } from "vite";
+import { z } from "zod";
 
 type LookupHandler = (request: Request) => Promise<Response>;
 
@@ -19,11 +20,14 @@ const serveLookup = async (
       new URL(request.url ?? "/", "http://localhost"),
       { method: request.method ?? "GET" }
     );
+
     const lookupResponse = await (await loadLookup())(lookupRequest);
     response.statusCode = lookupResponse.status;
+
     for (const [key, value] of lookupResponse.headers.entries()) {
       response.setHeader(key, value);
     }
+
     response.end(await lookupResponse.text());
   } catch {
     response.statusCode = 502;
@@ -36,12 +40,28 @@ const lookupDevPlugin: Plugin = {
     server.middlewares.use((request, response, next) => {
       if (request.url?.split("?")[0] !== "/api/lookup") {
         next();
+
         return;
       }
+
       void serveLookup(request, response, async () => {
-        const worker = await server.ssrLoadModule("/src/worker.ts");
-        const handleLookup: LookupHandler = worker["handleLookup"];
-        return handleLookup;
+        const worker: unknown = await server.ssrLoadModule("/src/worker.ts");
+
+        const { handleLookup } = z
+          .object({
+            handleLookup: z.function({
+              input: [z.instanceof(Request)],
+            }),
+          })
+          .parse(worker);
+
+        return async (lookupRequest) => {
+          const result: unknown = await Promise.resolve(
+            handleLookup(lookupRequest)
+          );
+
+          return z.instanceof(Response).parse(result);
+        };
       });
     });
   },
@@ -95,29 +115,38 @@ export default defineConfig(({ mode }) => {
 
   if (mode === "site") {
     const docsOrigin = "http://localhost:4321";
+
     const docsAssetProxy = {
       target: docsOrigin,
       changeOrigin: true,
       bypass: (request: IncomingMessage) => {
         const { referer } = request.headers;
         const { url } = request;
-        if (!referer) {
+
+        if (referer === undefined || referer === "") {
           return url;
         }
+
         const { pathname: refererPath } = new URL(referer);
         const requestPath = new URL(url ?? "/", "http://localhost").pathname;
+
         const isDocsPage =
           refererPath === "/docs" || refererPath.startsWith("/docs/");
+
         const isDocsRuntimeModule =
           refererPath.includes("/node_modules/.bun/") ||
           refererPath.includes("/apps/docs/.blume/");
+
         const isDocsVirtualModule =
           refererPath.startsWith("/@id/") && refererPath.includes("astro:");
+
         const isDocsOptimizedDependency = refererPath.startsWith(
           "/.cache/vite/deps/astro_"
         );
+
         const isDocsViteClientDependency =
           refererPath === "/@vite/client" && requestPath.includes("vite@8.");
+
         const docsReferers = [
           isDocsPage,
           isDocsRuntimeModule,
@@ -125,9 +154,11 @@ export default defineConfig(({ mode }) => {
           isDocsOptimizedDependency,
           isDocsViteClientDependency,
         ];
+
         return docsReferers.includes(true) ? undefined : url;
       },
     };
+
     config.server = {
       proxy: {
         "/docs": {
