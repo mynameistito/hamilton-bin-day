@@ -9,10 +9,10 @@
       "packages/*"
     ],
     "catalog": {
-      "@effect/platform-bun": "4.0.7",
-      "@effect/platform-node": "4.0.7",
+      "@effect/platform-bun": "4.1.2",
+      "@effect/platform-node": "4.1.2",
       "@types/node": "^26.6.6",
-      "effect": "4.0.7",
+      "effect": "4.1.2",
       "typescript": "npm:@typescript/typescript6@^6.0.2"
     }
   },
@@ -42,10 +42,10 @@
     "typecheck": "turbo run typecheck && tsrs --project tsconfig.json"
   },
   "dependencies": {
-    "@alchemy.run/cloudflare": "2.0.0-beta.84",
+    "@alchemy.run/cloudflare": "2.0.0-beta.85",
     "@changesets/cli": "^3.0.3",
     "@effect/platform-bun": "catalog:",
-    "alchemy": "2.0.0-beta.84",
+    "alchemy": "2.0.0-beta.85",
     "effect": "catalog:"
   },
   "devDependencies": {
@@ -72,8 +72,8 @@
     "vitest": "5.0.5"
   },
   "overrides": {
-    "@effect/platform-node-shared": "4.0.7",
-    "@effect/sql-d1": "4.0.7"
+    "@effect/platform-node-shared": "4.1.2",
+    "@effect/sql-d1": "4.1.2"
   },
   "packageManager": "bun@1.4.4"
 }
