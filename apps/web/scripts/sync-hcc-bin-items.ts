@@ -298,7 +298,7 @@ export const fetchCouncilCatalogue = async (
     Promise.all(
       items
         .slice(offset, offset + batchSize)
-        // oxlint-disable-next-line typescript/promise-function-async -- Preserve synchronous fetch errors.
+        // oxlint-disable-next-line typescript/promise-function-async -- Avoid wrapping the existing detail promise.
         .map((item) => fetchItemDetail(fetcher, item))
     );
 

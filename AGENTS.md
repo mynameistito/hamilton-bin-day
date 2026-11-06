@@ -68,6 +68,6 @@ bun run deploy               # Deploy current Alchemy stage
 
 ## NOTES
 
-- Root CI script is `bun run ci` (check, typecheck, test, build).
+- Root CI script is `bun run ci` (check, typecheck, test, build, Knip).
 - Reminder delivery requires deployed D1 and complete production VAPID configuration; unavailable config is handled as a safe disabled state.
 - Council API is upstream and may change; schedule availability and response formats are not controlled here.

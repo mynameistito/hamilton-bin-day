@@ -18,7 +18,7 @@ blume.config.ts Base path, content root, project metadata, and theme
 | --- | --- | --- |
 | Add or edit a docs page | `content/*.mdx` | Blume content convention |
 | Change docs routing/theme | `blume.config.ts` | Base path is `/docs`; do not make it root-mounted |
-| Build/check docs | `package.json` | `blume build`; `blume check && tsc --noEmit` |
+| Build/check docs | `package.json` | `blume build`; `blume check && tsrs --noEmit` |
 
 ## CONVENTIONS
 
