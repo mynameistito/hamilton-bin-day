@@ -24,6 +24,7 @@ describe("VAPID key generation utility", () => {
       false,
       ["verify"]
     );
+
     const privateKey = await crypto.subtle.importKey(
       "jwk",
       {
@@ -39,12 +40,15 @@ describe("VAPID key generation utility", () => {
       false,
       ["sign"]
     );
+
     const challenge = new TextEncoder().encode("key-generation-test");
+
     const signature = await crypto.subtle.sign(
       { name: "ECDSA", hash: "SHA-256" },
       privateKey,
       challenge
     );
+
     await expect(
       crypto.subtle.verify(
         { name: "ECDSA", hash: "SHA-256" },

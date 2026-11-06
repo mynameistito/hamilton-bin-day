@@ -19,12 +19,15 @@ export interface VapidEnvironment {
 
 const Base64UrlPrivateKey = z.string().regex(/^[A-Za-z0-9_-]{43}$/u);
 const Base64UrlPublicKey = z.string().regex(/^[A-Za-z0-9_-]{87}$/u);
+
 const VapidSubject = z.string().refine((subject) => {
   if (/^mailto:[^\s@]+@[^\s@]+$/u.test(subject)) {
     return true;
   }
+
   try {
     const url = new URL(subject);
+
     return (
       url.protocol === "https:" &&
       url.username.length === 0 &&
@@ -43,22 +46,29 @@ const VapidConfigurationSchema = z.strictObject({
 
 const decodeBase64Url = (value: string): Uint8Array<ArrayBuffer> => {
   const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
+
   const binary = atob(
     normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
   );
+
   const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.codePointAt(index) ?? 0;
   }
+
   return bytes;
 };
 
 const encodeBase64Url = (bytes: Uint8Array): string => {
   let binary = "";
+
   for (const byte of bytes) {
     binary += String.fromCodePoint(byte);
   }
+
   const encoded = btoa(binary).replaceAll("+", "-").replaceAll("/", "_");
+
   return encoded.split("=")[0] ?? "";
 };
 
@@ -68,9 +78,11 @@ const matchesVapidKeyPair = async (
 ): Promise<boolean> => {
   try {
     const publicBytes = decodeBase64Url(publicKeyValue);
+
     if (publicBytes[0] !== 4 || publicBytes.byteLength !== 65) {
       return false;
     }
+
     const publicKey = await crypto.subtle.importKey(
       "raw",
       publicBytes,
@@ -78,6 +90,7 @@ const matchesVapidKeyPair = async (
       false,
       ["verify"]
     );
+
     const privateKey = await crypto.subtle.importKey(
       "jwk",
       {
@@ -93,13 +106,16 @@ const matchesVapidKeyPair = async (
       false,
       ["sign"]
     );
+
     const challenge = new TextEncoder().encode("VAPID configuration check");
+
     const signature = await crypto.subtle.sign(
       { name: "ECDSA", hash: "SHA-256" },
       privateKey,
       challenge
     );
-    return crypto.subtle.verify(
+
+    return await crypto.subtle.verify(
       { name: "ECDSA", hash: "SHA-256" },
       publicKey,
       signature,
@@ -122,14 +138,17 @@ export const readVapidConfiguration = async (
     publicKey: environment.VAPID_PUBLIC_KEY,
     subject: environment.VAPID_SUBJECT,
   });
+
   if (!parsed.success) {
     return null;
   }
+
   if (
     !(await matchesVapidKeyPair(parsed.data.privateKey, parsed.data.publicKey))
   ) {
     return null;
   }
+
   return parsed.data;
 };
 
@@ -151,12 +170,14 @@ export const sendWebPush = async (
     ...input.subscription,
     expirationTime: input.subscription.expirationTime ?? null,
   } satisfies Block65PushSubscription;
+
   const request = await buildPushPayload(
     { data: input.payload, options: { ttl: input.ttl } },
     subscription,
     input.vapid
   );
-  return fetcher(input.subscription.endpoint, {
+
+  return await fetcher(input.subscription.endpoint, {
     ...request,
     redirect: "manual",
   });

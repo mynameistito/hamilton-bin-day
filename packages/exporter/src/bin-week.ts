@@ -9,13 +9,16 @@ type BinWeekByArea = Readonly<Record<CollectionArea, BinWeek>>;
 
 /** IANA time zone used to determine HCC's local collection week. */
 const TIME_ZONE = "Pacific/Auckland";
+
 /** Monday of the verified reference week used to anchor the fortnight rotation. */
 const REFERENCE_WEEK = "2026-10-05";
+
 /** Verified bin color in each area during the reference week. */
 const REFERENCE_BIN_WEEKS: BinWeekByArea = {
   "Area 1": "yellow",
   "Area 2": "red",
 };
+
 const DATE_PARTS_FORMATTER = new Intl.DateTimeFormat("en-NZ", {
   day: "2-digit",
   month: "2-digit",
@@ -40,7 +43,16 @@ const getAucklandDate = (date: Date): string => {
   const month = parts.find((part) => part.type === "month")?.value;
   const day = parts.find((part) => part.type === "day")?.value;
 
-  if (!year || !month || !day) {
+  if (
+    year === undefined ||
+    year === "" ||
+    month === undefined ||
+    month === ""
+  ) {
+    throw new Error("Unable to determine the date in Pacific/Auckland.");
+  }
+
+  if (day === undefined || day === "") {
     throw new Error("Unable to determine the date in Pacific/Auckland.");
   }
 

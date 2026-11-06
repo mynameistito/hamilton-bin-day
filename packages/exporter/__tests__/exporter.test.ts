@@ -21,6 +21,7 @@ import { exportDataset } from "@/exporter";
 describe("export pipeline", () => {
   it("fails with an Effect error and does not write an incomplete download", async () => {
     const outputPath = path.join(tmpdir(), `hcc-bin-day-${randomUUID()}.json`);
+
     const api: ArcGisClient["Service"] = {
       allObjectIds: Effect.succeed([1, 2]),
       featuresByObjectIds: () =>
@@ -33,6 +34,7 @@ describe("export pipeline", () => {
           },
         ]),
     };
+
     const dependencies = Layer.mergeAll(
       Layer.succeed(ArcGisClient, ArcGisClient.of(api)),
       nodeFileSystemLayer
@@ -55,6 +57,7 @@ describe("export pipeline", () => {
       const fileSystem = await Effect.runPromise(
         FileSystem.FileSystem.pipe(Effect.provide(nodeFileSystemLayer))
       );
+
       const failingFileSystem = FileSystem.FileSystem.of({
         ...fileSystem,
         writeFileString: (filePath, data, options) =>
@@ -70,6 +73,7 @@ describe("export pipeline", () => {
             )
           ),
       });
+
       const api: ArcGisClient["Service"] = {
         allObjectIds: Effect.succeed([1]),
         featuresByObjectIds: () =>
@@ -84,6 +88,7 @@ describe("export pipeline", () => {
             },
           ]),
       };
+
       const dependencies = Layer.mergeAll(
         Layer.succeed(ArcGisClient, ArcGisClient.of(api)),
         Layer.succeed(FileSystem.FileSystem, failingFileSystem)
@@ -107,6 +112,7 @@ describe("export pipeline", () => {
     const outputPath = path.join(tmpdir(), `hcc-bin-day-${randomUUID()}.json`);
     const logMessages: unknown[] = [];
     const logger = Logger.make(({ message }) => logMessages.push(message));
+
     const api: ArcGisClient["Service"] = {
       allObjectIds: Effect.succeed([1, 2]),
       featuresByObjectIds: () =>
@@ -121,6 +127,7 @@ describe("export pipeline", () => {
           }))
         ),
     };
+
     const dependencies = Layer.mergeAll(
       Layer.succeed(ArcGisClient, ArcGisClient.of(api)),
       nodeFileSystemLayer,

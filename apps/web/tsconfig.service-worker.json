@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "lib": ["ES2024", "WebWorker"],
+    "types": []
+  },
+  "files": [
+    "src/service-worker-entry.js",
+    "src/service-worker-runtime.js",
+    "src/service-worker-types.ts",
+    "src/service-worker-globals.d.ts"
+  ]
+}

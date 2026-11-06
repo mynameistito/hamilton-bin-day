@@ -23,42 +23,40 @@ const describeRelativeDate = (days: number): string => {
   if (days === 0) {
     return "Put these out today";
   }
+
   if (days === 1) {
     return "Put these out tomorrow";
   }
+
   return `In ${days} days`;
 };
 
 const collectionHighlightClass = (
   type: ScheduleResponse["nextCollection"]["type"] | undefined
 ): string => {
-  switch (type) {
-    case "yellow": {
-      return "bg-yellow-bin";
-    }
-    case "red": {
-      return "bg-red-bin";
-    }
-    default: {
-      return "bg-highlight";
-    }
+  if (type === "yellow") {
+    return "bg-yellow-bin";
   }
+
+  if (type === "red") {
+    return "bg-red-bin";
+  }
+
+  return "bg-highlight";
 };
 
 const collectionBadgeClass = (
   type: ScheduleResponse["nextCollection"]["type"] | undefined
 ): string => {
-  switch (type) {
-    case "yellow": {
-      return "bg-yellow-bin text-yellow-copy";
-    }
-    case "red": {
-      return "bg-red-bin text-red-copy";
-    }
-    default: {
-      return "bg-panel text-copy-muted";
-    }
+  if (type === "yellow") {
+    return "bg-yellow-bin text-yellow-copy";
   }
+
+  if (type === "red") {
+    return "bg-red-bin text-red-copy";
+  }
+
+  return "bg-panel text-copy-muted";
 };
 
 const selectVisibleSchedule = (
@@ -69,6 +67,7 @@ const selectVisibleSchedule = (
   if (!canShowSchedule || state.kind !== "success") {
     return null;
   }
+
   return resolveNextCollection(state.schedule, now);
 };
 
@@ -264,28 +263,37 @@ const CollectionCard = ({
 export const HomePage = () => {
   const { address, lookupRevision, setAddress, state, submitLookup } =
     useAddressLookup();
+
   const reminderDialogRef = useRef<HTMLDialogElement>(null);
   const isOnline = useNetworkStatus();
   const previousOnline = useRef(isOnline);
+
   const [minimumVisibleLookupRevision, setMinimumVisibleLookupRevision] =
     useState(0);
+
   const [theme, setTheme] = useState<"dark" | "light">(() =>
     document.documentElement.dataset.theme === "light" ? "light" : "dark"
   );
+
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     if (!isOnline || !previousOnline.current) {
       setMinimumVisibleLookupRevision(lookupRevision + 1);
     }
+
     previousOnline.current = isOnline;
   }, [isOnline, lookupRevision]);
 
   useEffect(() => {
-    const refreshNow = () => setNow(new Date());
+    const refreshNow = () => {
+      setNow(new Date());
+    };
+
     const interval = window.setInterval(refreshNow, 60_000);
 
     document.addEventListener("visibilitychange", refreshNow);
+
     return () => {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", refreshNow);
@@ -299,6 +307,7 @@ export const HomePage = () => {
       .querySelector('meta[name="theme-color"]')
       ?.setAttribute("content", nextTheme === "light" ? "#f7f6f2" : "#171d19");
     setTheme(nextTheme);
+
     try {
       window.localStorage.setItem("hamilton-bin-day-theme", nextTheme);
       window.localStorage.removeItem("hcc-bin-day-theme");
@@ -312,15 +321,20 @@ export const HomePage = () => {
     state,
     now
   );
+
   const until = schedule
     ? daysUntilCollection(schedule.nextCollection.date, now)
     : null;
+
   const relativeCollectionDate =
     until === null ? "" : describeRelativeDate(until);
+
   const showReminderSettings =
     isReminderBrowserSupported() || readNotificationPreferences().enabled;
+
   const openReminderSettings = () => {
     const dialog = reminderDialogRef.current;
+
     if (dialog && !dialog.open) {
       dialog.showModal();
     }
@@ -375,7 +389,15 @@ export const HomePage = () => {
           )}
           <form
             className={`flex max-w-xl flex-col gap-2 rounded-2xl border border-paper-border bg-surface p-2 shadow-lookup sm:flex-row sm:gap-3 ${schedule ? "mt-0 md:mt-9" : "mt-6 sm:mt-9"}`}
-            onSubmit={submitLookup}
+            onSubmit={(event) => {
+              void (async () => {
+                try {
+                  await submitLookup(event);
+                } catch (error) {
+                  console.error("Failed to submit the address lookup.", error);
+                }
+              })();
+            }}
           >
             <label className="sr-only" htmlFor="address">
               Hamilton street address
@@ -385,7 +407,9 @@ export const HomePage = () => {
               className="min-w-0 flex-1"
               id="address"
               maxLength={ADDRESS_LENGTH_LIMIT}
-              onChange={(event) => setAddress(event.target.value)}
+              onChange={(event) => {
+                setAddress(event.target.value);
+              }}
               placeholder="Try 12 Grey Street"
               value={address}
             />

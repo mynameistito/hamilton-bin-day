@@ -75,23 +75,27 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
   yield* Effect.log("HCC bin-day dataset exporter");
   yield* Effect.log("Fetching complete OBJECTID list...");
   const ids = [...(yield* api.allObjectIds)].toSorted((a, b) => a - b);
+
   if (ids.length === 0) {
     return yield* Effect.fail(
       new ExportError("No OBJECTIDs were returned; output was not written.")
     );
   }
+
   yield* Effect.log(`Found ${formatNumber(ids.length)} property records.`);
 
   const batches = chunks(ids, BATCH_SIZE);
   yield* Effect.log(
     `Fetching ${formatNumber(ids.length)} records in ${formatNumber(batches.length)} batches...`
   );
+
   const downloadedFeatures = yield* Effect.all(
     batches.map((batch, index) =>
       Effect.gen(function* fetchBatch() {
         yield* Effect.log(
           `[${index + 1}/${batches.length}] Fetching ${formatNumber(batch.length)} records...`
         );
+
         return yield* api.featuresByObjectIds(batch);
       })
     ),
@@ -101,23 +105,28 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
   const fetchedIds = new Set(
     downloadedFeatures.map(({ attributes }) => attributes.OBJECTID)
   );
+
   const missingIds = ids.filter((id) => !fetchedIds.has(id));
+
   if (missingIds.length > 0) {
     yield* Effect.logWarning(
       `Missing ${formatNumber(missingIds.length)} records.`
     );
+
     return yield* Effect.fail(
       new ExportError(
         `Download was incomplete: ${formatNumber(missingIds.length)} OBJECTIDs were missing. Output was not written.`
       )
     );
   }
+
   yield* Effect.log(
     `Verified all ${formatNumber(ids.length)} records were fetched.`
   );
 
   const transformed = transformFeatures(downloadedFeatures);
   const usableRecords = transformed.records.length + transformed.duplicateCount;
+
   if (transformed.invalidDays.length > 0) {
     return yield* Effect.fail(
       new ExportError(
@@ -125,7 +134,9 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
       )
     );
   }
+
   const generatedAt = new Date(yield* Clock.currentTimeMillis);
+
   const output = {
     binWeek: {
       "Area 1": getBinWeek("Area 1", generatedAt),
@@ -157,6 +168,7 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
   yield* Effect.log(
     `Conflicting addresses: ${formatNumber(transformed.conflictingAddresses)}`
   );
+
   const temporaryDirectory = yield* fs
     .makeTempDirectory({
       directory: path.dirname(outputPath),
@@ -167,10 +179,12 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
         () => new ExportError(`Could not write dataset to ${outputPath}.`)
       )
     );
+
   const temporaryPath = path.join(
     temporaryDirectory,
     path.basename(outputPath)
   );
+
   yield* fs
     .writeFileString(temporaryPath, `${JSON.stringify(output, null, 2)}\n`)
     .pipe(
@@ -198,6 +212,7 @@ export const exportDataset = Effect.fn("exportDataset")(function* exportDataset(
     `Conflicting addresses: ${formatNumber(transformed.conflictingAddresses)}`
   );
   yield* Effect.log(`Created: ${outputPath}`);
+
   return {
     outputPath,
     sourceRecords: ids.length,

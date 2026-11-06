@@ -1,7 +1,8 @@
 export const ADDRESS_LENGTH_LIMIT = 160;
 
-/** Check that a lookup address is non-empty and within the supported length. */
 /**
+ * Check that a lookup address is non-empty and within the supported length.
+ *
  * @param address - Address text entered for lookup.
  * @returns Whether the address can be submitted to the lookup service.
  */
@@ -15,33 +16,43 @@ const LEGACY_ADDRESS_COOKIE_NAME = "hcc-bin-day-address";
 const ADDRESS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 let addressWriteQueue: Promise<void> = Promise.resolve();
 
-/** Trim a valid remembered address, or return `null` for invalid input. */
 /**
+ * Trim a valid remembered address, or return `null` for invalid input.
+ *
  * @param address - Address value read from browser storage.
  * @returns The normalized address, or `null` when it is unusable.
  */
 export const normalizeRememberedAddress = (
   address: string | null | undefined
-): string | null =>
-  address && isLookupAddressValid(address) ? address.trim() : null;
+): string | null => {
+  if (address === null || address === undefined || address === "") {
+    return null;
+  }
+
+  return isLookupAddressValid(address) ? address.trim() : null;
+};
 
 const readAddressStorage = (): string | null => {
   try {
     const current = normalizeRememberedAddress(
       window.localStorage.getItem(ADDRESS_COOKIE_NAME)
     );
-    if (current) {
+
+    if (current !== null && current !== "") {
       try {
         window.localStorage.removeItem(LEGACY_ADDRESS_COOKIE_NAME);
       } catch {
         // The current address is usable even if legacy cleanup fails.
       }
+
       return current;
     }
+
     const legacy = normalizeRememberedAddress(
       window.localStorage.getItem(LEGACY_ADDRESS_COOKIE_NAME)
     );
-    if (legacy) {
+
+    if (legacy !== null && legacy !== "") {
       try {
         window.localStorage.setItem(ADDRESS_COOKIE_NAME, legacy);
         window.localStorage.removeItem(LEGACY_ADDRESS_COOKIE_NAME);
@@ -49,6 +60,7 @@ const readAddressStorage = (): string | null => {
         // The legacy address remains usable if migration storage is full.
       }
     }
+
     return legacy;
   } catch {
     return null;
@@ -75,8 +87,10 @@ const persistAddress = async (address: string): Promise<void> => {
     });
   } catch {
     writeAddressStorage(address);
+
     return;
   }
+
   try {
     await window.cookieStore.delete({
       name: LEGACY_ADDRESS_COOKIE_NAME,
@@ -87,22 +101,28 @@ const persistAddress = async (address: string): Promise<void> => {
   }
 };
 
-/** Read and validate the remembered address from cookie or local storage. */
-/** @returns The remembered address, or `null` when none can be read. */
+/** Read and validate the remembered address from cookie or local storage.
+ * @returns The remembered address, or `null` when none can be read.
+ */
 export const readRememberedAddress = async (): Promise<string | null> => {
   try {
     const currentCookie = await window.cookieStore.get(ADDRESS_COOKIE_NAME);
     const currentAddress = normalizeRememberedAddress(currentCookie?.value);
-    if (currentAddress) {
+
+    if (currentAddress !== null && currentAddress !== "") {
       return currentAddress;
     }
+
     const legacyCookie = await window.cookieStore.get(
       LEGACY_ADDRESS_COOKIE_NAME
     );
+
     const address = normalizeRememberedAddress(legacyCookie?.value);
-    if (address) {
+
+    if (address !== null && address !== "") {
       await persistAddress(address);
     }
+
     return address ?? normalizeRememberedAddress(readAddressStorage());
   } catch {
     return normalizeRememberedAddress(readAddressStorage());
@@ -118,15 +138,19 @@ const persistAddressAfter = async (
   } catch {
     // A failed earlier write must not block this address.
   }
+
   await persistAddress(address);
 };
 
-/** Save the lookup address and serialize writes to preserve their order. */
 /**
+ * Save the lookup address and serialize writes to preserve their order.
+ *
  * @param address - Address value to remember.
  * @returns A promise that settles when this address has been persisted.
  */
+// oxlint-disable-next-line typescript/promise-function-async -- Return the queue promise without wrapping it.
 export const saveAddressCookie = (address: string): Promise<void> => {
   addressWriteQueue = persistAddressAfter(addressWriteQueue, address);
+
   return addressWriteQueue;
 };

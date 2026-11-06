@@ -74,6 +74,7 @@ export const resolveNotificationPermissionState = (
   if (!capabilities.secureContext) {
     return "insecure";
   }
+
   if (
     !capabilities.hasNotification ||
     !capabilities.hasServiceWorker ||
@@ -81,6 +82,7 @@ export const resolveNotificationPermissionState = (
   ) {
     return "unsupported";
   }
+
   return capabilities.permission;
 };
 
@@ -89,6 +91,7 @@ const NotificationPreferencesSchema = Struct({
   leadDays: Union([Literal(0), Literal(1), Literal(2), Literal(7)]),
   localTime: SchemaString.check(isPattern(/^(?:[01]\d|2[0-3]):[0-5]\d$/u)),
 });
+
 const parsePreferences = decodeUnknownSync(NotificationPreferencesSchema);
 
 interface ZonedDateParts {
@@ -125,6 +128,7 @@ const parseStoredPreferences = (
   if (stored === null) {
     return null;
   }
+
   try {
     return parsePreferences(JSON.parse(stored));
   } catch {
@@ -140,27 +144,34 @@ export const readNotificationPreferences = (): NotificationPreferences => {
     const current = parseStoredPreferences(
       window.localStorage.getItem(NOTIFICATION_PREFERENCES_KEY)
     );
+
     if (current) {
       try {
         window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
       } catch {
         // Current preferences remain usable if legacy cleanup fails.
       }
+
       return current;
     }
+
     const legacyStored = window.localStorage.getItem(
       LEGACY_NOTIFICATION_PREFERENCES_KEY
     );
+
     const legacy = parseStoredPreferences(legacyStored);
+
     if (!legacy || legacyStored === null) {
       return DEFAULT_PREFERENCES;
     }
+
     try {
       window.localStorage.setItem(NOTIFICATION_PREFERENCES_KEY, legacyStored);
       window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
     } catch {
       // Keep using valid legacy preferences if migration storage is full.
     }
+
     return legacy;
   } catch {
     return DEFAULT_PREFERENCES;
@@ -181,6 +192,7 @@ export const saveNotificationPreferences = (
       JSON.stringify(parsedPreferences)
     );
     window.localStorage.removeItem(LEGACY_NOTIFICATION_PREFERENCES_KEY);
+
     return true;
   } catch {
     return false;
@@ -191,15 +203,19 @@ const parseDate = (date: string): Date | null => {
   if (!/^\d{4}-\d{2}-\d{2}$/u.test(date)) {
     return null;
   }
+
   const parsed = new Date(`${date}T00:00:00.000Z`);
+
   if (Number.isNaN(parsed.getTime())) {
     return null;
   }
+
   return parsed.toISOString().slice(0, 10) === date ? parsed : null;
 };
 
 const shiftDate = (date: Date, days: number): string => {
   date.setUTCDate(date.getUTCDate() - days);
+
   return date.toISOString().slice(0, 10);
 };
 
@@ -213,12 +229,15 @@ const partsFor = (instant: Date, timeZone: string): ZonedDateParts => {
     minute: "2-digit",
     hourCycle: "h23",
   }).formatToParts(instant);
+
   const values = new Map<string, number>();
+
   for (const part of formattedParts) {
     if (part.type !== "literal") {
       values.set(part.type, Number(part.value));
     }
   }
+
   return {
     day: values.get("day") ?? 0,
     hour: values.get("hour") ?? 0,
@@ -237,11 +256,13 @@ const localDateTimeMatches = (
   const parts = partsFor(instant, timeZone);
   const expected = `${date} ${time}`;
   const actual = `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")} ${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
+
   return actual === expected;
 };
 
 const offsetAt = (instant: Date, timeZone: string): number => {
   const parts = partsFor(instant, timeZone);
+
   const localAsUtc = Date.UTC(
     parts.year,
     parts.month - 1,
@@ -249,6 +270,7 @@ const offsetAt = (instant: Date, timeZone: string): number => {
     parts.hour,
     parts.minute
   );
+
   return localAsUtc - Math.floor(instant.getTime() / 60_000) * 60_000;
 };
 
@@ -259,24 +281,31 @@ const matchingInstants = (
 ): Date[] => {
   const wallTime = Date.parse(`${date}T${time}:00.000Z`);
   const offsets = new Set<number>();
+
   for (const offsetHours of [-36, -24, -12, 0, 12, 24, 36]) {
     offsets.add(
       offsetAt(new Date(wallTime + offsetHours * 3_600_000), timeZone)
     );
   }
+
   const candidates: Date[] = [];
+
   for (const offset of offsets) {
     const instant = new Date(wallTime - offset);
+
     if (localDateTimeMatches(instant, date, time, timeZone)) {
       candidates.push(instant);
     }
   }
+
   let earliest: Date | null = null;
+
   for (const candidate of candidates) {
     if (!earliest || candidate.getTime() < earliest.getTime()) {
       earliest = candidate;
     }
   }
+
   return earliest ? [earliest] : [];
 };
 
@@ -287,6 +316,7 @@ const resolveLocalInstant = (
 ): Date | null => {
   try {
     const exact = matchingInstants(date, time, timeZone);
+
     if (exact.length > 0) {
       // During a fall-back overlap, use the first occurrence of the chosen time.
       return exact[0] ?? null;
@@ -295,15 +325,18 @@ const resolveLocalInstant = (
     // A spring-forward gap has no matching instant. Move to the first valid
     // local minute after the requested time rather than silently sending early.
     const wallTime = Date.parse(`${date}T${time}:00.000Z`);
+
     for (let minutes = 1; minutes <= 180; minutes += 1) {
       const shifted = new Date(wallTime + minutes * 60_000);
       const shiftedDate = shifted.toISOString().slice(0, 10);
       const shiftedTime = shifted.toISOString().slice(11, 16);
       const candidates = matchingInstants(shiftedDate, shiftedTime, timeZone);
+
       if (candidates[0]) {
         return candidates[0];
       }
     }
+
     return null;
   } catch {
     return null;
@@ -322,19 +355,23 @@ export const calculateReminderSchedule = (
   timeZone: string
 ): ReminderSchedule | null => {
   const parsedDate = parseDate(collectionDate);
+
   if (!preferences.enabled || !parsedDate) {
     return null;
   }
 
   const localDate = shiftDate(parsedDate, preferences.leadDays);
+
   const scheduledAt = resolveLocalInstant(
     localDate,
     preferences.localTime,
     timeZone
   );
+
   if (!scheduledAt) {
     return null;
   }
+
   const scheduledParts = partsFor(scheduledAt, timeZone);
   const scheduledLocalDate = `${String(scheduledParts.year).padStart(4, "0")}-${String(scheduledParts.month).padStart(2, "0")}-${String(scheduledParts.day).padStart(2, "0")}`;
   const scheduledLocalTime = `${String(scheduledParts.hour).padStart(2, "0")}:${String(scheduledParts.minute).padStart(2, "0")}`;

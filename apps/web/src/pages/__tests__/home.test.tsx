@@ -15,21 +15,24 @@ const serviceWorkerDescriptor = Object.getOwnPropertyDescriptor(
   navigator,
   "serviceWorker"
 );
+
 const secureContextDescriptor = Object.getOwnPropertyDescriptor(
   window,
   "isSecureContext"
 );
+
 const dialogShowModalDescriptor = Object.getOwnPropertyDescriptor(
   HTMLDialogElement.prototype,
   "showModal"
 );
+
 const dialogCloseDescriptor = Object.getOwnPropertyDescriptor(
   HTMLDialogElement.prototype,
   "close"
 );
 
-const restoreProperty = <T extends object>(
-  target: T,
+const restoreProperty = (
+  target: Navigator | Window | HTMLDialogElement,
   property: PropertyKey,
   descriptor: PropertyDescriptor | undefined
 ) => {
@@ -103,7 +106,9 @@ describe("home page navigation", () => {
     Object.defineProperty(navigator, "serviceWorker", {
       configurable: true,
       value: {
-        getRegistration: vi.fn<() => Promise<undefined>>().mockResolvedValue(),
+        getRegistration: vi
+          .fn<() => Promise<undefined>>()
+          .mockResolvedValue(undefined),
         ready: Promise.resolve({
           active: { postMessage: vi.fn<() => void>() },
         }),
@@ -127,9 +132,11 @@ describe("home page navigation", () => {
     const triggers = screen.getAllByRole("button", {
       name: /remind/iu,
     });
+
     const [headerTrigger, footerTrigger] = triggers;
     const dialog = screen.getByRole("dialog", { hidden: true });
     expect(triggers).toHaveLength(2);
+
     if (!(headerTrigger && footerTrigger)) {
       throw new Error("Expected reminder triggers in the header and footer");
     }
@@ -177,18 +184,21 @@ describe("home page navigation", () => {
     const address = screen.getByRole("textbox", {
       name: "Hamilton street address",
     });
+
     fireEvent.change(address, { target: { value: "12 Grey Street" } });
     const form = address.closest("form");
+
     if (!form) {
       throw new Error("Expected the address lookup form.");
     }
+
     fireEvent.submit(form);
 
     expect(new URL(window.location.href).searchParams.has("query")).toBeFalsy();
 
-    await waitFor(() =>
-      expect(screen.getByText("Change address")).toBeTruthy()
-    );
+    await waitFor(() => {
+      expect(screen.getByText("Change address")).toBeTruthy();
+    });
     expect(
       screen.getByRole("article").classList.contains("min-h-0")
     ).toBeTruthy();
@@ -234,13 +244,15 @@ describe("home page navigation", () => {
     const addressInput = screen.getByRole("textbox", {
       name: "Hamilton street address",
     });
+
     if (!(addressInput instanceof HTMLInputElement)) {
-      throw new Error("Expected the address field to be an input.");
+      throw new TypeError("Expected the address field to be an input.");
     }
+
     expect(addressInput.value).toBe("12 Grey Street");
-    await waitFor(() =>
-      expect(screen.getByText("Change address")).toBeTruthy()
-    );
+    await waitFor(() => {
+      expect(screen.getByText("Change address")).toBeTruthy();
+    });
     expect(fetch).toHaveBeenCalledWith(
       "/api/lookup?address=12%20Grey%20Street"
     );

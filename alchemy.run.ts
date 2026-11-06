@@ -14,9 +14,11 @@ const resolveStackValue = Stack.useSync.bind(Stack);
 
 const reminderRateLimitNamespaceId = (stage: string): number => {
   let hash = 7;
+
   for (const character of `hamilton-bin-day:${stage}`) {
     hash = (hash * 31 + (character.codePointAt(0) ?? 0)) % 2_147_483_647;
   }
+
   return hash || 1;
 };
 
@@ -52,7 +54,7 @@ const Reminders = D1.Database(
 );
 
 interface ProductionVapidEnvironment {
-  VAPID_PRIVATE_KEY?: RedactedValue<string>;
+  VAPID_PRIVATE_KEY?: RedactedValue;
   VAPID_PUBLIC_KEY?: string;
   VAPID_SUBJECT?: string;
 }
@@ -63,19 +65,24 @@ const productionVapidEnvironment = (
   if (stage !== "prod") {
     return {};
   }
+
   const privateKey = Bun.env.VAPID_PRIVATE_KEY?.trim();
   const publicKey = Bun.env.VAPID_PUBLIC_KEY?.trim();
   const subject = Bun.env.VAPID_SUBJECT?.trim();
   const environment: ProductionVapidEnvironment = {};
-  if (privateKey) {
+
+  if (privateKey !== undefined && privateKey !== "") {
     environment.VAPID_PRIVATE_KEY = makeRedacted(privateKey);
   }
-  if (publicKey) {
+
+  if (publicKey !== undefined && publicKey !== "") {
     environment.VAPID_PUBLIC_KEY = publicKey;
   }
-  if (subject) {
+
+  if (subject !== undefined && subject !== "") {
     environment.VAPID_SUBJECT = subject;
   }
+
   return environment;
 };
 
@@ -100,6 +107,7 @@ export default Stack(
   gen(function* createStack() {
     yield* Reminders;
     const website = yield* Site;
+
     return { url: website.url };
   })
 );

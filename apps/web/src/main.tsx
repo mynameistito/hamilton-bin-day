@@ -27,32 +27,38 @@ if (import.meta.env.DEV) {
 }
 
 const rootRoute = createRootRoute();
+
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: HomePage,
 });
+
 const binCatalogueRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/what-goes-where",
   component: BinCataloguePage,
 });
+
 const privacyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/privacy",
   component: PrivacyPage,
 });
+
 const termsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/terms",
   component: TermsPage,
 });
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   binCatalogueRoute,
   privacyRoute,
   termsRoute,
 ]);
+
 const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
@@ -91,17 +97,21 @@ const registerServiceWorker = async (): Promise<void> => {
       "/sw.js",
       import.meta.env.DEV ? { type: "module" } : undefined
     );
+
     const notifyUpdateAvailable = () => {
       if (navigator.serviceWorker.controller) {
         updatePending = true;
         window.dispatchEvent(new Event("app-update-available"));
       }
     };
+
     const observedInstalling = new WeakSet<ServiceWorker>();
+
     const observeInstalling = (installing: ServiceWorker | null) => {
       if (!installing || observedInstalling.has(installing)) {
         return;
       }
+
       observedInstalling.add(installing);
       installing.addEventListener("statechange", () => {
         if (installing.state === "installed") {
@@ -109,10 +119,12 @@ const registerServiceWorker = async (): Promise<void> => {
         }
       });
     };
+
     registration.addEventListener("updatefound", () => {
       observeInstalling(registration.installing);
     });
     observeInstalling(registration.installing);
+
     if (registration.waiting) {
       notifyUpdateAvailable();
     }
@@ -121,4 +133,12 @@ const registerServiceWorker = async (): Promise<void> => {
   }
 };
 
-window.addEventListener("load", registerServiceWorker);
+window.addEventListener("load", () => {
+  void (async () => {
+    try {
+      await registerServiceWorker();
+    } catch (error) {
+      console.error("Failed to register the offline app shell.", error);
+    }
+  })();
+});

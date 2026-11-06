@@ -11,9 +11,11 @@ const buttonTypeProps = (
   if (type === "submit") {
     return { type: "submit" };
   }
+
   if (type === "reset") {
     return { type: "reset" };
   }
+
   return { type: "button" };
 };
 

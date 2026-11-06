@@ -5,76 +5,86 @@ import { describe, expect, vi, it } from "vitest";
 import { readVapidConfiguration, sendWebPush } from "@/lib/web-push";
 import type { WebPushSubscription } from "@/lib/web-push-subscription";
 import { registerServiceWorker } from "@/service-worker-runtime.js";
+import type { ServiceWorkerEvents } from "@/service-worker-runtime.js";
 
-interface PushPayload {
-  readonly body: string;
-  readonly collectionDate: string;
-  readonly leadDays: number;
-  readonly notificationId: string;
-  readonly title: string;
-  readonly version: number;
-}
-
-interface ServiceWorkerEvent {
-  readonly data?: {
-    readonly enabled?: boolean;
-    readonly json?: () => PushPayload;
-    readonly type?: string;
-  };
-  readonly notification?: { readonly close: () => void };
-  readonly waitUntil: (promise: Promise<void>) => void;
-}
-
-type ServiceWorkerListener = (event: ServiceWorkerEvent) => void;
 type CacheKey = string | Request | URL;
 
+type ListenerRegistry = {
+  [K in keyof ServiceWorkerEvents]: ((event: ServiceWorkerEvents[K]) => void)[];
+};
+
 const makeServiceWorker = () => {
-  const listeners = new Map<string, ServiceWorkerListener>();
+  const listeners: ListenerRegistry = {
+    install: [],
+    activate: [],
+    message: [],
+    push: [],
+    notificationclick: [],
+    fetch: [],
+  };
+
   const entries = new Map<string, Response>();
+
   const cache = {
+    addAll: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    // oxlint-disable-next-line typescript/promise-function-async -- Preserve the fake cache's synchronous failures.
     delete: (key: CacheKey) =>
       Promise.resolve(
         entries.delete(key instanceof Request ? key.url : String(key))
       ),
+    // oxlint-disable-next-line typescript/promise-function-async -- Preserve the fake cache's synchronous failures.
     keys: () =>
       Promise.resolve([...entries.keys()].map((key) => new Request(key))),
+    // oxlint-disable-next-line typescript/promise-function-async -- Preserve the fake cache's synchronous failures.
     match: (key: CacheKey) => {
       const stored = entries.get(
         key instanceof Request ? key.url : String(key)
       );
+
       return Promise.resolve(stored?.clone());
     },
+    // oxlint-disable-next-line typescript/promise-function-async -- Preserve the fake cache's synchronous failures.
     put: (key: CacheKey, response: Response) => {
       entries.set(
         key instanceof Request ? key.url : String(key),
         response.clone()
       );
+
       return Promise.resolve();
     },
   };
+
   const cachesApi = {
-    delete: () => Promise.resolve(true),
-    keys: () => Promise.resolve<string[]>([]),
-    match: () => Promise.resolve(null),
-    open: () => Promise.resolve(cache),
+    delete: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
+    keys: vi.fn<() => Promise<string[]>>().mockResolvedValue([]),
+    match: vi.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+    open: vi.fn<() => Promise<typeof cache>>().mockResolvedValue(cache),
   };
+
   const showNotification = vi.fn<() => Promise<void>>().mockResolvedValue();
+
   const self = {
-    addEventListener: (type: string, listener: ServiceWorkerListener) => {
-      listeners.set(type, listener);
+    addEventListener: <K extends keyof ServiceWorkerEvents>(
+      type: K,
+      listener: (event: ServiceWorkerEvents[K]) => void
+    ) => {
+      const bucket: ((event: ServiceWorkerEvents[K]) => void)[] =
+        listeners[type];
+
+      bucket.push(listener);
     },
     clients: {
-      claim: () => Promise.resolve(),
-      openWindow: vi.fn<() => Promise<void>>().mockResolvedValue(),
+      claim: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      openWindow: vi.fn<() => Promise<null>>().mockResolvedValue(null),
     },
     location: { origin: "https://example.test" },
     registration: { showNotification },
     skipWaiting: vi.fn<() => void>(),
   };
+
   const logger = { warn: vi.fn<(message: string) => void>() };
 
   registerServiceWorker({
-    Request,
     Response,
     URL,
     caches: cachesApi,
@@ -86,15 +96,29 @@ const makeServiceWorker = () => {
     registration: self.registration,
     skipWaiting: self.skipWaiting,
   });
+
   return { cache, listeners, logger, showNotification };
 };
 
 const dispatch = async (
-  listener: ServiceWorkerListener | undefined,
-  data?: { readonly json: () => PushPayload }
+  listener: ((event: ServiceWorkerEvents["push"]) => void) | undefined,
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Push JSON is untrusted at this boundary.
+  data?: { readonly json: () => unknown }
 ): Promise<void> => {
-  const pending: Promise<void>[] = [];
-  listener?.({ data, waitUntil: (promise) => pending.push(promise) });
+  const pending: Promise<unknown>[] = [];
+
+  const event: ServiceWorkerEvents["push"] = {
+    waitUntil: (promise) => {
+      pending.push(promise);
+    },
+  };
+
+  if (data === undefined) {
+    listener?.(event);
+  } else {
+    listener?.({ ...event, data });
+  }
+
   await Promise.all(pending);
 };
 
@@ -111,10 +135,44 @@ const encode = (value: ArrayBuffer): string =>
   Buffer.from(value).toString("base64url");
 
 describe("service worker push notifications", () => {
+  it("accepts boxed notification strings and sends their text to the browser", async () => {
+    const worker = makeServiceWorker();
+    // Exercise boxed strings accepted at the push boundary.
+    // oxlint-disable-next-line unicorn/new-for-builtins
+    const title: unknown = Object(validPayload.title);
+    // oxlint-disable-next-line unicorn/new-for-builtins
+    const body: unknown = Object(validPayload.body);
+    // oxlint-disable-next-line unicorn/new-for-builtins
+    const notificationId: unknown = Object(validPayload.notificationId);
+    const pending: Promise<unknown>[] = [];
+    worker.listeners.message[0]?.({
+      data: { type: "NOTIFICATION_CONSENT", enabled: true },
+      waitUntil: (promise) => {
+        pending.push(promise);
+      },
+    });
+    await Promise.all(pending);
+    await dispatch(worker.listeners.push[0], {
+      json: () => ({
+        ...validPayload,
+        title,
+        body,
+        notificationId,
+      }),
+    });
+    expect(worker.showNotification).toHaveBeenCalledWith(
+      validPayload.title,
+      expect.objectContaining({
+        body: validPayload.body,
+        tag: validPayload.notificationId,
+      })
+    );
+  });
+
   it("does not display push notifications until local opt-in is recorded", async () => {
     const worker = makeServiceWorker();
 
-    await dispatch(worker.listeners.get("push"), {
+    await dispatch(worker.listeners.push[0], {
       json: () => validPayload,
     });
 
@@ -123,41 +181,47 @@ describe("service worker push notifications", () => {
 
   it("validates payloads and displays every consented collection reminder", async () => {
     const worker = makeServiceWorker();
-    const consent = worker.listeners.get("message");
-    const consentPromises: Promise<void>[] = [];
+    const [consent] = worker.listeners.message;
+    const consentPromises: Promise<unknown>[] = [];
     consent?.({
       data: { type: "NOTIFICATION_CONSENT", enabled: true },
-      waitUntil: (promise) => consentPromises.push(promise),
+      waitUntil: (promise) => {
+        consentPromises.push(promise);
+      },
     });
     await Promise.all(consentPromises);
 
-    await dispatch(worker.listeners.get("push"), {
+    await dispatch(worker.listeners.push[0], {
       json: () => ({ ...validPayload, notificationId: "" }),
     });
     const validPush = { json: () => validPayload };
     await Promise.all([
-      dispatch(worker.listeners.get("push"), validPush),
-      dispatch(worker.listeners.get("push"), validPush),
+      dispatch(worker.listeners.push[0], validPush),
+      dispatch(worker.listeners.push[0], validPush),
     ]);
-    await dispatch(worker.listeners.get("push"), {
+    await dispatch(worker.listeners.push[0], {
       json: () => validPayload,
     });
 
     consent?.({
       data: { type: "NOTIFICATION_CONSENT", enabled: false },
-      waitUntil: (promise) => consentPromises.push(promise),
+      waitUntil: (promise) => {
+        consentPromises.push(promise);
+      },
     });
     await Promise.all(consentPromises.slice(-1));
-    await dispatch(worker.listeners.get("push"), {
+    await dispatch(worker.listeners.push[0], {
       json: () => validPayload,
     });
 
     consent?.({
       data: { type: "NOTIFICATION_CONSENT", enabled: true },
-      waitUntil: (promise) => consentPromises.push(promise),
+      waitUntil: (promise) => {
+        consentPromises.push(promise);
+      },
     });
     await Promise.all(consentPromises.slice(-1));
-    await dispatch(worker.listeners.get("push"), {
+    await dispatch(worker.listeners.push[0], {
       json: () => validPayload,
     });
 
@@ -179,13 +243,16 @@ describe("service worker push notifications", () => {
       true,
       ["sign", "verify"]
     );
+
     const vapidPrivate = await crypto.subtle.exportKey(
       "jwk",
       vapidPair.privateKey
     );
-    if (!vapidPrivate.d) {
+
+    if (vapidPrivate.d === undefined || vapidPrivate.d === "") {
       throw new Error("The test VAPID keypair is incomplete");
     }
+
     const vapid = await readVapidConfiguration({
       VAPID_PRIVATE_KEY: vapidPrivate.d,
       VAPID_PUBLIC_KEY: encode(
@@ -193,11 +260,13 @@ describe("service worker push notifications", () => {
       ),
       VAPID_SUBJECT: "mailto:push-test@example.test",
     });
+
     const clientPair = await crypto.subtle.generateKey(
       { name: "ECDH", namedCurve: "P-256" },
       true,
       ["deriveBits"]
     );
+
     const subscription: WebPushSubscription = {
       endpoint: "https://fcm.googleapis.com/fcm/send/local-test-endpoint",
       expirationTime: null,
@@ -208,42 +277,61 @@ describe("service worker push notifications", () => {
         ),
       },
     };
+
     const payload = JSON.stringify(validPayload);
+
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(null, { status: 201 }));
+
     const worker = makeServiceWorker();
 
     expect(vapid).not.toBeNull();
+
     if (!vapid) {
       throw new Error("Expected valid test VAPID keys");
     }
+
     await sendWebPush({ subscription, payload, vapid, ttl: 86_400 }, fetcher);
     const [call] = fetcher.mock.calls;
+
     if (!call) {
       throw new Error("Expected a push-service fetch call");
     }
+
     const [, request] = call;
+
     if (!request) {
       throw new Error("Expected a Web Push RequestInit");
     }
+
+    const expectedHeaders: unknown = expect.objectContaining({
+      "content-encoding": "aes128gcm",
+    });
+
     expect(request).toMatchObject({
       redirect: "manual",
-      headers: expect.objectContaining({ "content-encoding": "aes128gcm" }),
+      headers: expectedHeaders,
     });
     expect(request.body).toBeInstanceOf(Uint8Array);
 
-    const consent = worker.listeners.get("message");
-    const consentPromises: Promise<void>[] = [];
+    const [consent] = worker.listeners.message;
+    const consentPromises: Promise<unknown>[] = [];
     consent?.({
       data: { type: "NOTIFICATION_CONSENT", enabled: true },
-      waitUntil: (promise) => consentPromises.push(promise),
+      waitUntil: (promise) => {
+        consentPromises.push(promise);
+      },
     });
     await Promise.all(consentPromises);
 
-    const providerDeliveredData = { json: () => JSON.parse(payload) };
-    await dispatch(worker.listeners.get("push"), providerDeliveredData);
-    await dispatch(worker.listeners.get("push"), providerDeliveredData);
+    const providerDeliveredData = {
+      // oxlint-disable-next-line anti-slop/no-unknown-returns -- Model untrusted provider JSON.
+      json: (): unknown => JSON.parse(payload),
+    };
+
+    await dispatch(worker.listeners.push[0], providerDeliveredData);
+    await dispatch(worker.listeners.push[0], providerDeliveredData);
 
     expect(worker.showNotification).toHaveBeenCalledTimes(2);
     expect(worker.showNotification).toHaveBeenNthCalledWith(
@@ -259,11 +347,13 @@ describe("service worker push notifications", () => {
 
   it("handles notification display failures without rejecting push processing", async () => {
     const worker = makeServiceWorker();
-    const consent = worker.listeners.get("message");
-    const pending: Promise<void>[] = [];
+    const [consent] = worker.listeners.message;
+    const pending: Promise<unknown>[] = [];
     consent?.({
       data: { type: "NOTIFICATION_CONSENT", enabled: true },
-      waitUntil: (promise) => pending.push(promise),
+      waitUntil: (promise) => {
+        pending.push(promise);
+      },
     });
     await Promise.all(pending);
     worker.showNotification.mockRejectedValueOnce(
@@ -271,7 +361,7 @@ describe("service worker push notifications", () => {
     );
 
     await expect(
-      dispatch(worker.listeners.get("push"), { json: () => validPayload })
+      dispatch(worker.listeners.push[0], { json: () => validPayload })
     ).resolves.toBeUndefined();
     expect(worker.logger.warn).toHaveBeenCalledExactlyOnceWith(
       "Unable to display a bin-day notification."

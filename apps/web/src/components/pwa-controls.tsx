@@ -12,7 +12,7 @@ const applyWaitingUpdate = async (): Promise<void> => {
 };
 
 const isStandalonePwa = (): boolean =>
-  window.matchMedia?.("(display-mode: standalone)").matches === true ||
+  window.matchMedia?.("(display-mode: standalone)").matches ||
   ("standalone" in navigator && navigator.standalone === true);
 
 /** Show browser-specific instructions for adding the site to a home screen.
@@ -24,8 +24,9 @@ export const PwaInstallHelp = () => {
   useEffect(() => {
     const closeOnOutsidePointer = (event: PointerEvent) => {
       const details = detailsRef.current;
+
       if (
-        details?.open &&
+        details?.open === true &&
         event.target instanceof Node &&
         !details.contains(event.target)
       ) {
@@ -34,6 +35,7 @@ export const PwaInstallHelp = () => {
     };
 
     document.addEventListener("pointerdown", closeOnOutsidePointer);
+
     return () => {
       document.removeEventListener("pointerdown", closeOnOutsidePointer);
     };
@@ -92,13 +94,20 @@ export const PwaStatus = ({ isOnline }: { readonly isOnline: boolean }) => {
 
   useEffect(() => {
     if (!isPwa) {
-      return;
+      // oxlint-disable-next-line unicorn/no-useless-undefined -- React effect has no cleanup in this branch.
+      return undefined;
     }
-    const showUpdate = () => setUpdateAvailable(true);
+
+    const showUpdate = () => {
+      setUpdateAvailable(true);
+    };
+
     window.addEventListener("app-update-available", showUpdate);
+
     const checkForWaitingUpdate = async () => {
       try {
         const registration = await navigator.serviceWorker?.getRegistration();
+
         if (registration?.waiting) {
           showUpdate();
         }
@@ -106,7 +115,9 @@ export const PwaStatus = ({ isOnline }: { readonly isOnline: boolean }) => {
         console.error("Failed to check for a pending app update.");
       }
     };
+
     void checkForWaitingUpdate();
+
     return () => {
       window.removeEventListener("app-update-available", showUpdate);
     };
@@ -132,7 +143,15 @@ export const PwaStatus = ({ isOnline }: { readonly isOnline: boolean }) => {
           A new version is ready.
           <button
             className="font-semibold underline underline-offset-2"
-            onClick={applyWaitingUpdate}
+            onClick={() => {
+              void (async () => {
+                try {
+                  await applyWaitingUpdate();
+                } catch (error) {
+                  console.error("Failed to apply the app update.", error);
+                }
+              })();
+            }}
             type="button"
           >
             Update app

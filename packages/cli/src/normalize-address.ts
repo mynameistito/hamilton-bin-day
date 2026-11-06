@@ -94,6 +94,7 @@ export const pickMatchingAddress = (
   matches: readonly string[]
 ): string | null => {
   const normalizedQuery = normalizeAddress(query);
+
   const exactMatches = matches.filter(
     (match) => normalizeAddress(match) === normalizedQuery
   );

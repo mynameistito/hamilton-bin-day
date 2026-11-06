@@ -12,6 +12,7 @@ const probeNetwork = async (): Promise<boolean> => {
       method: "HEAD",
       signal: AbortSignal.timeout(5000),
     });
+
     return response.ok;
   } catch {
     return false;
@@ -22,7 +23,9 @@ const publish = (value: boolean) => {
   if (isOnline === value) {
     return;
   }
+
   isOnline = value;
+
   for (const listener of listeners) {
     listener();
   }
@@ -32,33 +35,46 @@ const refresh = async () => {
   probeId += 1;
   const currentProbe = probeId;
   const connected = await probeNetwork();
+
   if (currentProbe === probeId) {
     publish(connected);
   }
 };
 
-const handleOnline = async () => {
-  await refresh();
+const refreshAndReport = async () => {
+  try {
+    await refresh();
+  } catch (error) {
+    console.error("Failed to refresh network status.", error);
+  }
+};
+
+const handleOnline = () => {
+  void refreshAndReport();
 };
 
 const handleOffline = () => {
   publish(false);
-  void refresh();
+  handleOnline();
 };
 
 const subscribe = (listener: () => void): (() => void) => {
   listeners.add(listener);
+
   if (listeners.size === 1) {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     interval = window.setInterval(handleOnline, 30_000);
     handleOnline();
   }
+
   return () => {
     listeners.delete(listener);
+
     if (listeners.size === 0) {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+
       if (interval !== null) {
         window.clearInterval(interval);
         interval = null;

@@ -83,15 +83,19 @@ describe("per-bin help", () => {
     );
 
     const dialog = screen.getByRole("dialog");
+
     const initialItems = dialog
       .querySelector("section > ul")
       ?.querySelectorAll("li").length;
+
     const sourceLink = screen.getByRole("link", {
       name: "Hamilton City Council’s item sorter",
     });
+
     const catalogueLink = screen.getByRole("link", {
       name: "Browse the full catalogue",
     });
+
     expect({
       initialItemsAtMostTen: initialItems !== undefined && initialItems <= 10,
       hasItemsHeading: Boolean(
@@ -124,15 +128,18 @@ describe("per-bin help", () => {
         name: "What goes in the yellow recycling wheelie bin?",
       })
     );
+
     const search = screen.getByRole("searchbox", {
       name: "Search the full catalogue",
     });
 
     fireEvent.change(search, { target: { value: "Aerosol cans" } });
     const resultList = document.querySelector('output[aria-live="polite"]');
-    if (!resultList) {
-      throw new Error("Expected the live search results list.");
+
+    if (!(resultList instanceof HTMLElement)) {
+      throw new TypeError("Expected the live search results list.");
     }
+
     expect(
       within(resultList).getAllByRole("img", {
         name: "red rubbish wheelie bin",
@@ -171,9 +178,11 @@ describe("per-bin help", () => {
 
   it("closes with Escape and returns focus to its help control", () => {
     render(<BinHelpControl bin="food-scraps" binName="food scraps bin" />);
+
     const trigger = screen.getByRole("button", {
       name: "What goes in the food scraps bin?",
     });
+
     fireEvent.click(trigger);
 
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
@@ -184,17 +193,21 @@ describe("per-bin help", () => {
 
   it("shows non-bin advice and closes with the accessible control", () => {
     render(<BinHelpControl bin={null} binName="collection bins" />);
+
     const trigger = screen.getByRole("button", {
       name: "What goes in the collection bins?",
     });
+
     fireEvent.click(trigger);
     expect(
       screen.getByText(/The Council sorter has no listed items/u).textContent
     ).toContain("The Council sorter has no listed items");
     const search = screen.getByLabelText("Search the full catalogue");
+
     const sourceLink = screen.getByRole("link", {
       name: "Hamilton City Council’s item sorter",
     });
+
     const close = screen.getByRole("button", { name: "Close bin help" });
 
     close.focus();

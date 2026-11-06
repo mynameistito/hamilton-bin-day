@@ -11,21 +11,24 @@ const serviceWorkerDescriptor = Object.getOwnPropertyDescriptor(
   navigator,
   "serviceWorker"
 );
+
 const secureContextDescriptor = Object.getOwnPropertyDescriptor(
   window,
   "isSecureContext"
 );
+
 const dialogShowModalDescriptor = Object.getOwnPropertyDescriptor(
   HTMLDialogElement.prototype,
   "showModal"
 );
+
 const dialogCloseDescriptor = Object.getOwnPropertyDescriptor(
   HTMLDialogElement.prototype,
   "close"
 );
 
-const restoreProperty = <T extends object>(
-  target: T,
+const restoreProperty = (
+  target: Navigator | Window | HTMLDialogElement,
   property: PropertyKey,
   descriptor: PropertyDescriptor | undefined
 ) => {

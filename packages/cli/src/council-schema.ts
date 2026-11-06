@@ -19,6 +19,7 @@ const isValidCouncilDate = (value: string): boolean => {
   const hour = Number(value.slice(11, 13));
   const minute = Number(value.slice(14, 16));
   const second = Number(value.slice(17, 19));
+
   if (
     ![hour, minute, second].every(Number.isInteger) ||
     hour > 23 ||
@@ -29,6 +30,7 @@ const isValidCouncilDate = (value: string): boolean => {
   }
 
   const date = new Date(Date.UTC(year, month - 1, day));
+
   return (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() === month - 1 &&

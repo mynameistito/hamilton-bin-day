@@ -32,6 +32,7 @@ export const resolveAddressQuery = (
   query: string
 ): EffectType<AddressResolution, HccApiError, HccApi> => {
   const expandedQuery = expandAddressQuery(query);
+
   return gen(function* resolveAddress() {
     const api = yield* HccApi;
     let matches = filterAddressMatches(yield* api.searchAddresses(query));
@@ -46,7 +47,7 @@ export const resolveAddressQuery = (
 
     const matchedAddress = pickMatchingAddress(query, matches);
 
-    if (!matchedAddress) {
+    if (matchedAddress === null || matchedAddress === "") {
       return { matches, ok: false };
     }
 

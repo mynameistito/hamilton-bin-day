@@ -38,6 +38,7 @@ describe("collection schedules", () => {
       RedBin: "2026-10-05T00:00:00",
       YellowBin: "2026-09-28T00:00:00",
     });
+
     const output = toScheduleJson(schedule);
 
     expect(schedule).toMatchObject({
@@ -50,14 +51,13 @@ describe("collection schedules", () => {
     expect({
       followingBins: output.following.bins,
       followingLabel: output.following.weekLabel,
-      text: formatScheduleText(schedule),
       upcomingLabel: output.upcoming.weekLabel,
     }).toMatchObject({
       followingBins: ["red bin", "food scraps bin"],
       followingLabel: "Red week",
-      text: expect.stringContaining("Yellow week"),
       upcomingLabel: "Yellow week",
     });
+    expect(formatScheduleText(schedule)).toContain("Yellow week");
     expect(formatScheduleText(schedule)).toContain("Red week");
   });
 
@@ -74,6 +74,7 @@ describe("collection schedules", () => {
       ...councilResult,
       CollectionDay: 8,
     } satisfies CollectionDatesResult;
+
     expect(() => buildSchedule(invalidDay)).toThrow(
       "Invalid collection day: 8"
     );

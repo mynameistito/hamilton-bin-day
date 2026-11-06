@@ -22,6 +22,7 @@ const verificationDateFormatter = new Intl.DateTimeFormat("en-NZ", {
   dateStyle: "long",
   timeZone: "UTC",
 });
+
 const hasConflictingKerbsideGuidance = (itemId: number): boolean =>
   itemId === 231 || itemId === 232;
 
@@ -51,37 +52,48 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
   const [query, setQuery] = useState("");
   const guidance = bin ? BIN_ITEMS.filter((entry) => entry.bin === bin) : [];
   const results = query.trim() ? searchBinItems(query) : null;
+
   const hasGuidanceConflict = guidance.some(({ id }) =>
     hasConflictingKerbsideGuidance(id)
   );
+
   const showGuidance = results === null && guidance.length > 0;
   const showNoGuidance = results === null && guidance.length === 0;
   const hasMoreGuidance = guidance.length > 10;
 
   useEffect(() => {
     const dialog = dialogRef.current;
+
     if (!dialog) {
-      return;
+      // oxlint-disable-next-line unicorn/no-useless-undefined -- React effect has no cleanup in this branch.
+      return undefined;
     }
+
     const appRoot = document.querySelector<HTMLElement>("#root");
     const wasRootInert = appRoot?.inert ?? false;
+
     if (import.meta.env.DEV) {
       // Native modal dialogs sit above every ordinary z-index, including React Grab.
       if (appRoot) {
         appRoot.inert = true;
       }
+
       dialog.show?.();
     } else {
       dialog.showModal?.();
     }
+
     if (!dialog.open) {
       dialog.setAttribute("open", "");
     }
+
     searchRef.current?.focus();
+
     return () => {
       if (dialog.open) {
         dialog.close?.();
       }
+
       if (appRoot) {
         appRoot.inert = wasRootInert;
       }
@@ -92,6 +104,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
     if (event.key === "Escape") {
       event.preventDefault();
       onClose();
+
       return;
     }
 
@@ -102,8 +115,10 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
     const focusable = event.currentTarget.querySelectorAll<HTMLElement>(
       'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
     );
+
     const first = focusable.item(0);
     const last = focusable.item(focusable.length - 1);
+
     if (event.shiftKey && document.activeElement === first) {
       event.preventDefault();
       last?.focus();
@@ -147,7 +162,9 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
         <input
           className="mt-2 min-h-12 w-full rounded-xl border border-sage-border bg-panel px-4 py-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-leaf"
           id="bin-item-search"
-          onChange={(event) => setQuery(event.currentTarget.value)}
+          onChange={(event) => {
+            setQuery(event.currentTarget.value);
+          }}
           placeholder="e.g. glass bottles"
           ref={searchRef}
           type="search"
@@ -247,7 +264,9 @@ const BinHelpControl = ({ bin, binName }: BinHelpControlProps) => {
     }
   }, [isOpen]);
 
-  const close = () => setIsOpen(false);
+  const close = () => {
+    setIsOpen(false);
+  };
 
   return (
     <>
@@ -256,7 +275,9 @@ const BinHelpControl = ({ bin, binName }: BinHelpControlProps) => {
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         className="size-11 shrink-0"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true);
+        }}
         ref={buttonRef}
         variant="icon"
       >

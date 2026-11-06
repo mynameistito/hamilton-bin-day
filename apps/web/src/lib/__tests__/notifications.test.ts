@@ -77,10 +77,12 @@ describe("notification preference persistence", () => {
   it("uses valid legacy preferences when current data is invalid and storage is full", () => {
     const previousKey = "hcc-bin-day-notifications-v1";
     const preferences = enabledPreferences({ leadDays: 2 });
+
     const values = new Map([
       [NOTIFICATION_PREFERENCES_KEY, "invalid json"],
       [previousKey, JSON.stringify(preferences)],
     ]);
+
     vi.stubGlobal("window", {
       localStorage: {
         getItem: (key: string) => values.get(key) ?? null,
@@ -238,11 +240,13 @@ describe(calculateReminderSchedule, () => {
       enabledPreferences(),
       "Pacific/Auckland"
     );
+
     const changedPreference = calculateReminderSchedule(
       "2026-10-05",
       enabledPreferences({ leadDays: 2 }),
       "Pacific/Auckland"
     );
+
     const changedCollection = calculateReminderSchedule(
       "2026-10-12",
       enabledPreferences(),

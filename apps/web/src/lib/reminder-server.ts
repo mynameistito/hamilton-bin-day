@@ -14,15 +14,17 @@ import { parseWebPushSubscription } from "@/lib/web-push-subscription";
 type WebPushSubscription = NonNullable<
   ReturnType<typeof parseWebPushSubscription>
 >;
-type WebPushSubscriptionInput = Parameters<typeof parseWebPushSubscription>[0];
 
 const isCalendarDate = (value: string): boolean => {
   const date = new Date(`${value}T00:00:00.000Z`);
+
   return (
     Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
   );
 };
+
 const CollectionDate = z.iso.date().refine(isCalendarDate);
+
 const SubscriptionRequest = z.strictObject({
   subscription: z.strictObject({
     endpoint: z.unknown(),
@@ -92,6 +94,7 @@ export const ReminderRecordSchema = z.strictObject({
   claim_until: z.string().nullable(),
   revision: z.number(),
 });
+
 type ReminderRecord = z.infer<typeof ReminderRecordSchema>;
 
 const PUSH_SERVICE_SUFFIXES = [
@@ -99,15 +102,20 @@ const PUSH_SERVICE_SUFFIXES = [
   ".notify.windows.com",
   ".push.services.mozilla.com",
 ] as const;
+
 const validPushOrigin = (endpoint: string): boolean => {
   const url = new URL(endpoint);
+
   if (url.protocol !== "https:" || url.port || url.username || url.password) {
     return false;
   }
+
   const host = url.hostname.toLowerCase();
+
   const knownProvider =
     host === "fcm.googleapis.com" ||
     host === "updates.push.services.mozilla.com";
+
   return (
     knownProvider ||
     PUSH_SERVICE_SUFFIXES.some((suffix) => host.endsWith(suffix))
@@ -116,6 +124,7 @@ const validPushOrigin = (endpoint: string): boolean => {
 
 const jsonError = (status: number, error: string): Response =>
   Response.json({ error }, { status });
+
 const DELIVERY_UNAVAILABLE = "Reminder delivery is not configured";
 
 /** A scheduled reminder run could not complete a storage operation. */
@@ -149,6 +158,7 @@ export const handleReminderPublicKey = async (
   environment: ReminderEnvironment
 ): Promise<Response> => {
   const keys = await readVapidConfiguration(environment);
+
   return keys && environment.REMINDERS
     ? Response.json({ publicKey: keys.publicKey })
     : jsonError(503, DELIVERY_UNAVAILABLE);
@@ -178,6 +188,7 @@ const currentHamiltonDate = (now: Date): string => {
       part.value,
     ])
   );
+
   return `${parts.get("year")}-${parts.get("month")}-${parts.get("day")}`;
 };
 
@@ -196,15 +207,19 @@ const calendarDateInTimeZone = (date: Date, timeZone: string): string => {
       .formatToParts(date)
       .map((part) => [part.type, part.value])
   );
+
   return `${parts.get("year")}-${parts.get("month")}-${parts.get("day")}`;
 };
 
 const bearerEndpoint = (request: Request): string | null => {
   const authorization = request.headers.get("authorization");
-  if (!authorization?.startsWith("Bearer ")) {
+
+  if (authorization?.startsWith("Bearer ") !== true) {
     return null;
   }
+
   const endpoint = authorization.slice("Bearer ".length);
+
   try {
     return validPushOrigin(endpoint) ? endpoint : null;
   } catch {
@@ -218,6 +233,7 @@ const bearerEndpoint = (request: Request): string | null => {
  */
 export const isSameOriginRequest = (request: Request): boolean => {
   const origin = request.headers.get("origin");
+
   return origin === null || origin === new URL(request.url).origin;
 };
 
@@ -232,32 +248,44 @@ const readBoundedJson = async (
   ) {
     return null;
   }
+
   const { body } = request;
+
   if (!body) {
     return null;
   }
+
   const chunks: Uint8Array[] = [];
   let byteLength = 0;
+
   for await (const value of body) {
     byteLength += value.byteLength;
+
     if (byteLength > MAX_SUBSCRIPTION_BODY_BYTES) {
       return null;
     }
+
     chunks.push(value);
   }
+
   const bytes = new Uint8Array(byteLength);
   let offset = 0;
+
   for (const chunk of chunks) {
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
+
   const parsed = SubscriptionRequest.safeParse(
     JSON.parse(new TextDecoder().decode(bytes))
   );
+
   if (!parsed.success) {
     return null;
   }
+
   const subscription = parseWebPushSubscription(parsed.data.subscription);
+
   return subscription ? { ...parsed.data, subscription } : null;
 };
 
@@ -271,10 +299,13 @@ type ParsedSubscriptionRequest = Omit<
 const parseRequest = async (request: Request, now: Date) => {
   try {
     const parsed = await readBoundedJson(request);
+
     if (!parsed || !validPushOrigin(parsed.subscription.endpoint)) {
       return null;
     }
+
     const timeZone = parseTimeZone(parsed.timeZone);
+
     const {
       collectionDate,
       followingDate,
@@ -282,20 +313,32 @@ const parseRequest = async (request: Request, now: Date) => {
       redDate,
       yellowDate,
     } = parsed.schedule;
+
     const dateForType = collectionType === "red" ? redDate : yellowDate;
+
     const expectedFollowingDate =
       collectionType === "red" ? yellowDate : redDate;
+
     const today = currentHamiltonDate(now);
+
     const invalidSnapshot =
       collectionDate !== dateForType ||
       followingDate !== expectedFollowingDate ||
       daysBetween(collectionDate, followingDate) < 1 ||
       daysBetween(collectionDate, followingDate) > 14;
+
     const invalidHorizon =
       collectionDate < today || daysBetween(today, collectionDate) > 21;
-    if (!timeZone || invalidSnapshot || invalidHorizon) {
+
+    if (
+      timeZone === null ||
+      timeZone === "" ||
+      invalidSnapshot ||
+      invalidHorizon
+    ) {
       return null;
     }
+
     return { ...parsed, timeZone };
   } catch {
     return null;
@@ -320,6 +363,7 @@ const collectionTypeAfter = (type: "red" | "yellow"): "red" | "yellow" =>
 const advanceDate = (date: string, days: number): string => {
   const instant = new Date(`${date}T00:00:00.000Z`);
   instant.setUTCDate(instant.getUTCDate() + days);
+
   return instant.toISOString().slice(0, 10);
 };
 
@@ -337,52 +381,71 @@ export const handleReminderSubscribe = async (
   if (!isSameOriginRequest(request)) {
     return jsonError(403, "Cross-origin reminder requests are not allowed");
   }
+
   const database = environment.REMINDERS;
+
   if (!database) {
     return jsonError(503, DELIVERY_UNAVAILABLE);
   }
+
   const keys = await readVapidConfiguration(environment);
+
   if (!keys) {
     return jsonError(503, DELIVERY_UNAVAILABLE);
   }
+
   const input = await parseRequest(request, now);
+
   if (!input) {
     return jsonError(400, "Invalid reminder subscription or schedule");
   }
+
   const pushSubscription = {
     ...input.subscription,
     expirationTime: input.subscription.expirationTime ?? null,
   } satisfies WebPushSubscription;
+
   const date = currentHamiltonDate(now);
+
   const deferWeeklyReminder =
     input.preferences.leadDays === 7 &&
     daysBetween(date, input.schedule.collectionDate) < 7;
+
   const collectionDate = deferWeeklyReminder
     ? input.schedule.followingDate
     : input.schedule.collectionDate;
+
   const followingDate = deferWeeklyReminder
     ? advanceDate(input.schedule.followingDate, 7)
     : input.schedule.followingDate;
+
   const collectionType = deferWeeklyReminder
     ? collectionTypeAfter(input.schedule.collectionType)
     : input.schedule.collectionType;
+
   if (collectionDate < date) {
     return jsonError(400, "Collection date is no longer current");
   }
+
   const reminder = scheduleFor(
     collectionDate,
     input.preferences.leadDays,
     input.preferences.localTime,
     input.timeZone
   );
+
   if (!reminder) {
     return jsonError(400, "Reminder time could not be resolved");
   }
+
   const nextDue = reminder.scheduledAt.getTime() <= now.getTime();
+
   const scheduledAt = nextDue
     ? now.toISOString()
     : reminder.scheduledAt.toISOString();
+
   const notificationId = `${collectionDate}:${input.preferences.leadDays}:${input.preferences.localTime}:${input.timeZone}`;
+
   try {
     await database
       .prepare(
@@ -419,6 +482,7 @@ export const handleReminderSubscribe = async (
         now.toISOString()
       )
       .run();
+
     return Response.json({ saved: true });
   } catch {
     return jsonError(503, "Reminder subscription could not be saved");
@@ -437,19 +501,24 @@ export const handleReminderUnsubscribe = async (
   if (!isSameOriginRequest(request)) {
     return jsonError(403, "Cross-origin reminder requests are not allowed");
   }
+
   const endpoint = bearerEndpoint(request);
-  if (!endpoint) {
+
+  if (endpoint === null || endpoint === "") {
     return jsonError(401, "A valid subscription credential is required");
   }
+
   if (!environment.REMINDERS) {
     return jsonError(503, "Reminder storage is unavailable");
   }
+
   try {
     await environment.REMINDERS.prepare(
       "DELETE FROM reminder_subscriptions WHERE endpoint = ?"
     )
       .bind(endpoint)
       .run();
+
     return Response.json({ removed: true });
   } catch {
     return jsonError(503, "Reminder subscription could not be removed");
@@ -498,33 +567,46 @@ const advanceSubscription = async (
     )
     .bind(record.endpoint, record.notification_id)
     .first();
+
   if (!currentRecordResult) {
     return;
   }
+
   const currentRecord = ReminderRecordSchema.parse(currentRecordResult);
 
   let nextDate = currentRecord.following_date;
   let nextFollowingDate = advanceDate(nextDate, 7);
   let nextType = collectionTypeAfter(currentRecord.collection_type);
-  if (notBeforeDate && nextDate < notBeforeDate) {
+
+  if (
+    notBeforeDate !== undefined &&
+    notBeforeDate !== "" &&
+    nextDate < notBeforeDate
+  ) {
     const weeksToSkip = Math.ceil(daysBetween(nextDate, notBeforeDate) / 7);
     nextDate = advanceDate(nextDate, weeksToSkip * 7);
     nextFollowingDate = advanceDate(nextDate, 7);
+
     if (weeksToSkip % 2 === 1) {
       nextType = collectionTypeAfter(nextType);
     }
   }
+
   const nextReminder = scheduleFor(
     nextDate,
     currentRecord.lead_days,
     currentRecord.local_time,
     currentRecord.time_zone
   );
+
   if (!nextReminder) {
     await removeSubscription(database, currentRecord);
+
     return;
   }
+
   const nextNotificationId = `${nextDate}:${currentRecord.lead_days}:${currentRecord.local_time}:${currentRecord.time_zone}`;
+
   const update = await database
     .prepare(
       `UPDATE reminder_subscriptions SET collection_date = ?, following_date = ?,
@@ -543,6 +625,7 @@ const advanceSubscription = async (
       currentRecord.revision
     )
     .run();
+
   if (update.meta?.changes !== 1 && attempt < 2) {
     await advanceSubscription(
       database,
@@ -567,6 +650,7 @@ const sendDueRecord = async (
   ) => Promise<Response>
 ): Promise<void> => {
   const nowIso = now.toISOString();
+
   const claim = await database
     .prepare(
       `UPDATE reminder_subscriptions SET claim_until = ?
@@ -581,26 +665,34 @@ const sendDueRecord = async (
       nowIso
     )
     .run();
+
   if (claim.meta?.changes !== 1) {
     return;
   }
 
   const localToday = calendarDateInTimeZone(now, record.time_zone);
+
   if (record.collection_date < localToday) {
     await advanceSubscription(database, record, now, localToday);
+
     return;
   }
 
-  let storedSubscription: WebPushSubscriptionInput;
+  let storedSubscription: unknown;
+
   try {
     storedSubscription = JSON.parse(record.subscription_json);
   } catch {
     await removeSubscription(database, record);
+
     return;
   }
+
   const subscription = parseWebPushSubscription(storedSubscription);
+
   if (!subscription) {
     await removeSubscription(database, record);
+
     return;
   }
 
@@ -608,11 +700,14 @@ const sendDueRecord = async (
     0,
     daysBetween(localToday, record.collection_date)
   );
+
   const daysText = daysUntilCollection === 1 ? "day" : "days";
+
   const reminderText =
     daysUntilCollection === 0
       ? "Bins are collected today."
       : `Bins are collected in ${daysUntilCollection} ${daysText}.`;
+
   const body = JSON.stringify({
     version: 1,
     notificationId: record.notification_id,
@@ -621,8 +716,10 @@ const sendDueRecord = async (
     title: "Bin collection reminder",
     body: reminderText,
   });
+
   try {
     const response = await send(subscription, body, keys);
+
     if (response.status === 404 || response.status === 410) {
       await removeSubscription(database, record);
     } else if (response.ok) {
@@ -655,24 +752,32 @@ export const sendDueReminders = (
     subscription: WebPushSubscription,
     payload: string,
     keys: VapidConfiguration
+    // oxlint-disable-next-line typescript/promise-function-async -- Return the adapter promise without wrapping it.
   ) => Promise<Response> = (subscription, payload, vapid) =>
     sendWebPush({ subscription, payload, vapid, ttl: 60 * 60 * 24 })
 ): EffectType<void, ReminderDeliveryError> =>
   gen(function* sendDueRemindersEffect() {
     const database = environment.REMINDERS;
+
     if (!database) {
       return;
     }
+
     const keys = yield* tryPromise({
+      // oxlint-disable-next-line typescript/promise-function-async -- Effect owns promise error handling.
       try: () => readVapidConfiguration(environment),
       catch: (cause) => new ReminderDeliveryError("loadConfiguration", cause),
     });
+
     if (!keys) {
       return;
     }
+
     const nowIso = now.toISOString();
     const claimedThrough = new Date(now.getTime() + 30 * 60_000).toISOString();
+
     const { results } = yield* tryPromise({
+      // oxlint-disable-next-line typescript/promise-function-async -- Effect owns promise error handling.
       try: () =>
         database
           .prepare(
@@ -690,6 +795,7 @@ export const sendDueReminders = (
     yield* all(
       results.map((result) =>
         tryPromise({
+          // oxlint-disable-next-line typescript/promise-function-async -- Effect owns promise error handling.
           try: () =>
             sendDueRecord(
               database,

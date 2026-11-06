@@ -98,6 +98,7 @@ const formatScheduleDate = (date: string): string => {
 export const formatScheduleText = (schedule: CollectionSchedule): string => {
   const oppositeWeek: BinWeek =
     schedule.upcomingWeek === "red" ? "yellow" : "red";
+
   const oppositeDate =
     schedule.upcomingWeek === "red" ? schedule.yellowBin : schedule.redBin;
 
@@ -119,6 +120,7 @@ export const formatScheduleText = (schedule: CollectionSchedule): string => {
 export const toScheduleJson = (schedule: CollectionSchedule) => {
   const followingWeek: BinWeek =
     schedule.upcomingWeek === "red" ? "yellow" : "red";
+
   const followingDate =
     schedule.upcomingWeek === "red" ? schedule.yellowBin : schedule.redBin;
 

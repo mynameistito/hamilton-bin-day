@@ -33,8 +33,10 @@ export const SOFT_PLASTICS_RECYCLING_URL = "https://www.recycling.kiwi.nz";
 const facilityAliases = Object.values(LINCOLN_FACILITIES).flatMap(
   (facility) => facility.aliases
 );
+
 const escapeRegExp = (value: string): string =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+
 const NOTE_REFERENCE = new RegExp(
   `(?<facilityName>${facilityAliases.map(escapeRegExp).join("|")})(?:\\s+\\([^)]*\\)|,\\s+at 60 Lincoln Street, Frankton)?|(?<countdown>Countdown)|(?<warehouse>The Warehouse stores)|(?<recyclingSite>(?:www\\.)?recycling\\.kiwi\\.nz)`,
   "giu"
@@ -43,21 +45,24 @@ const NOTE_REFERENCE = new RegExp(
 type NoteLink = Readonly<{ href: string; label: string }>;
 
 const getNoteLink = (match: RegExpMatchArray) => {
-  if (match.groups?.countdown) {
+  if (match.groups?.countdown !== undefined && match.groups.countdown !== "") {
     return {
       href: WOOLWORTHS_HAMILTON_MAPS_URL,
       label: "Woolworths",
     } satisfies NoteLink;
   }
 
-  if (match.groups?.warehouse) {
+  if (match.groups?.warehouse !== undefined && match.groups.warehouse !== "") {
     return {
       href: THE_WAREHOUSE_HAMILTON_MAPS_URL,
       label: "The Warehouse stores",
     } satisfies NoteLink;
   }
 
-  if (match.groups?.recyclingSite) {
+  if (
+    match.groups?.recyclingSite !== undefined &&
+    match.groups.recyclingSite !== ""
+  ) {
     return {
       href: SOFT_PLASTICS_RECYCLING_URL,
       label: match[0],
@@ -65,6 +70,7 @@ const getNoteLink = (match: RegExpMatchArray) => {
   }
 
   const facilityName = match.groups?.facilityName;
+
   const facilityLabel = Object.values(LINCOLN_FACILITIES).find((facility) =>
     facility.aliases.some(
       (alias) => alias.toLowerCase() === facilityName?.toLowerCase()
@@ -87,6 +93,7 @@ export const renderBinItemNotes = (notes: string): ReactNode => {
 
   for (const match of notes.matchAll(NOTE_REFERENCE)) {
     const start = match.index;
+
     if (previousEnd < start) {
       noteParts.push(notes.slice(previousEnd, start));
     }

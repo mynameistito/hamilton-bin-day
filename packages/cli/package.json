@@ -45,7 +45,7 @@
     "build": "tsdown",
     "dev": "bun run src/index.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsrs --noEmit",
     "check": "ultracite check",
     "prepack": "bun run check && bun run typecheck && bun run build"
   },

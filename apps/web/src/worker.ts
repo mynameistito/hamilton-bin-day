@@ -27,9 +27,11 @@ const checkReminderRateLimit = async (
   if (!environment.REMINDER_LIMIT) {
     return null;
   }
+
   try {
     const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
     const result = await environment.REMINDER_LIMIT.limit({ key: ip });
+
     return result.success
       ? null
       : Response.json(
@@ -51,6 +53,7 @@ const checkReminderRateLimit = async (
 export const handleLookup = async (request: Request): Promise<Response> => {
   const rawAddress = new URL(request.url).searchParams.get("address");
   const result = await lookupAddress(rawAddress);
+
   return Response.json(result.body, { status: result.status });
 };
 
@@ -60,18 +63,22 @@ export default {
     environment: WorkerEnvironment
   ): Promise<Response> {
     const url = new URL(request.url);
+
     if (url.pathname === "/api/mcp") {
       if (request.method === "OPTIONS") {
         return handleMcpOptions(request);
       }
-      return handleMcp(request);
+
+      return await handleMcp(request);
     }
+
     if (
       url.pathname === "/api/reminders/public-key" &&
       request.method === "GET"
     ) {
-      return handleReminderPublicKey(environment);
+      return await handleReminderPublicKey(environment);
     }
+
     if (url.pathname === "/api/reminders/subscription") {
       if (!isSameOriginRequest(request)) {
         return Response.json(
@@ -79,30 +86,37 @@ export default {
           { status: 403 }
         );
       }
+
       const rateLimitResponse = await checkReminderRateLimit(
         request,
         environment
       );
+
       if (rateLimitResponse) {
         return rateLimitResponse;
       }
+
       if (request.method === "POST") {
-        return handleReminderSubscribe(request, environment);
+        return await handleReminderSubscribe(request, environment);
       }
+
       if (request.method === "DELETE") {
-        return handleReminderUnsubscribe(request, environment);
+        return await handleReminderUnsubscribe(request, environment);
       }
+
       return new Response(null, {
         status: 405,
         headers: { Allow: "POST, DELETE" },
       });
     }
+
     if (url.pathname === "/api/health" && request.method === "HEAD") {
       return new Response(null, {
         headers: { "Cache-Control": "no-store" },
         status: 204,
       });
     }
+
     if (url.pathname === "/api/lookup" && request.method === "GET") {
       try {
         return await handleLookup(request);
@@ -113,7 +127,8 @@ export default {
         );
       }
     }
-    return environment.ASSETS.fetch(request);
+
+    return await environment.ASSETS.fetch(request);
   },
   scheduled: (
     controller: { readonly scheduledTime: number },

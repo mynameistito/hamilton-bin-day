@@ -28,9 +28,11 @@ import type { CollectionSchedule } from "@/schedule";
 type AddressLookup = SchemaTypes.Type<
   typeof AddressLookupResultsSchema
 >[number];
+
 type CollectionDates = SchemaTypes.Type<
   typeof CollectionDatesResultsSchema
 >[number];
+
 type ApiOperation = HccApiError["operation"];
 
 /** The application-owned council API capability. */
@@ -114,6 +116,7 @@ const buildFirstSchedule = (
   scheduleBuilder: typeof buildSchedule
 ) => {
   const [first] = results;
+
   if (!first) {
     return succeed(null);
   }
@@ -146,6 +149,7 @@ const make = (
         "/FightTheLandFill/get_Addresses",
         "https://api2.hcc.govt.nz"
       );
+
       url.searchParams.set("search_string", searchString);
 
       return mapTransportError(
@@ -169,6 +173,7 @@ const make = (
         "/FightTheLandFill/get_Collection_Dates",
         "https://api2.hcc.govt.nz"
       );
+
       url.searchParams.set("address_string", address);
 
       const result = client.get(url).pipe(

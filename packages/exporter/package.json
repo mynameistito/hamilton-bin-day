@@ -29,7 +29,7 @@
     "build": "tsdown",
     "export": "bun run build && node dist/cli.mjs",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",

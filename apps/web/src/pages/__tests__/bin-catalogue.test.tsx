@@ -70,8 +70,9 @@ describe("bin catalogue page", () => {
       const expectedItems = BIN_ITEMS.filter((item) => item.bin === bin);
       expect(binCards).toHaveLength(expectedItems.length);
       expect(
-        binCards.every((card) =>
-          within(card).getByText(`Goes in: ${binTypeName(bin)}`)
+        binCards.every(
+          (card) =>
+            within(card).queryByText(`Goes in: ${binTypeName(bin)}`) !== null
         )
       ).toBeTruthy();
     }
@@ -124,20 +125,26 @@ describe("bin catalogue page", () => {
     render(<BinCataloguePage />);
 
     const facilities = Object.values(LINCOLN_FACILITIES);
+
     const facilityNotes = BIN_ITEMS.filter((item) =>
       facilities.some((facility) =>
-        facility.aliases.some((alias) => item.notes?.includes(alias))
+        facility.aliases.some((alias) => item.notes?.includes(alias) === true)
       )
     );
+
     const facilityIds = new Set(facilityNotes.map((item) => item.id));
+
     const facilityCards = screen.getAllByRole("listitem").filter((_, index) => {
       const item = BIN_ITEMS[index];
+
       return item !== undefined && facilityIds.has(item.id);
     });
+
     const facilityLinks = facilityCards.map((card) =>
       within(card).getByRole("link")
     );
-    const facilityLabels = new Set(
+
+    const facilityLabels = new Set<string>(
       facilities.map((facility) => facility.label)
     );
 
@@ -163,25 +170,36 @@ describe("bin catalogue page", () => {
   it("links soft plastics stores and scheme website in catalogue notes", () => {
     render(<BinCataloguePage />);
 
-    const participatingStoreNotes = BIN_ITEMS.filter((item) =>
-      item.notes?.includes("participating Countdown and The Warehouse stores")
+    const participatingStoreNotes = BIN_ITEMS.filter(
+      (item) =>
+        item.notes?.includes(
+          "participating Countdown and The Warehouse stores"
+        ) === true
     );
-    const softPlasticsSiteNotes = BIN_ITEMS.filter((item) =>
-      item.notes?.includes("recycling.kiwi.nz")
+
+    const softPlasticsSiteNotes = BIN_ITEMS.filter(
+      (item) => item.notes?.includes("recycling.kiwi.nz") === true
     );
+
     const participatingStoreIds = new Set(
       participatingStoreNotes.map((item) => item.id)
     );
+
     const softPlasticsSiteIds = new Set(
       softPlasticsSiteNotes.map((item) => item.id)
     );
+
     const cards = screen.getAllByRole("listitem");
+
     const participatingStoreCards = cards.filter((_, index) => {
       const item = BIN_ITEMS[index];
+
       return item !== undefined && participatingStoreIds.has(item.id);
     });
+
     const softPlasticsSiteCards = cards.filter((_, index) => {
       const item = BIN_ITEMS[index];
+
       return item !== undefined && softPlasticsSiteIds.has(item.id);
     });
 
@@ -190,8 +208,8 @@ describe("bin catalogue page", () => {
       participatingStoreCards: participatingStoreCards.length,
       softPlasticsSiteNotes: softPlasticsSiteNotes.length,
       softPlasticsSiteCards: softPlasticsSiteCards.length,
-      wwwSiteNotes: softPlasticsSiteNotes.filter((item) =>
-        item.notes?.includes("www.recycling.kiwi.nz")
+      wwwSiteNotes: softPlasticsSiteNotes.filter(
+        (item) => item.notes?.includes("www.recycling.kiwi.nz") === true
       ).length,
     }).toStrictEqual({
       participatingStoreNotes: 13,
@@ -205,9 +223,11 @@ describe("bin catalogue page", () => {
         const woolworths = within(card).getByRole("link", {
           name: "Woolworths",
         });
+
         const warehouse = within(card).getByRole("link", {
           name: "The Warehouse stores",
         });
+
         return (
           woolworths.getAttribute("href") === WOOLWORTHS_HAMILTON_MAPS_URL &&
           warehouse.getAttribute("href") === THE_WAREHOUSE_HAMILTON_MAPS_URL &&
@@ -220,6 +240,7 @@ describe("bin catalogue page", () => {
         const recyclingLink = within(card).getByRole("link", {
           name: /^(?:www\.)?recycling\.kiwi\.nz$/u,
         });
+
         return (
           recyclingLink.getAttribute("href") === SOFT_PLASTICS_RECYCLING_URL
         );

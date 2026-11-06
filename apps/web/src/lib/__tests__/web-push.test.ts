@@ -14,10 +14,13 @@ const makeVapidConfiguration = async () => {
     true,
     ["sign", "verify"]
   );
+
   const privateJwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
-  if (!privateJwk.d) {
+
+  if (privateJwk.d === undefined || privateJwk.d === "") {
     throw new Error("The test VAPID keypair is incomplete");
   }
+
   return {
     VAPID_PRIVATE_KEY: privateJwk.d,
     VAPID_PUBLIC_KEY: encode(
@@ -33,6 +36,7 @@ const makeSubscription = async (): Promise<WebPushSubscription> => {
     true,
     ["deriveBits"]
   );
+
   return {
     endpoint: "https://fcm.googleapis.com/fcm/send/local-test-endpoint",
     expirationTime: null,
@@ -48,16 +52,20 @@ describe("server-only Web Push adapter", () => {
     const bindings = await makeVapidConfiguration();
     const vapid = await readVapidConfiguration(bindings);
     const subscription = await makeSubscription();
+
     const providerResponse = new Response(null, {
       status: 307,
       headers: { Location: "https://attacker.example/redirect" },
     });
+
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(providerResponse);
 
     expect(vapid).not.toBeNull();
+
     if (!vapid) {
       throw new Error("Expected valid test VAPID keys");
     }
+
     const response = await sendWebPush(
       {
         subscription,
@@ -76,18 +84,24 @@ describe("server-only Web Push adapter", () => {
     );
 
     const [call] = fetcher.mock.calls;
+
     if (!call) {
       throw new Error("Expected a push-service fetch call");
     }
+
     const [url, request] = call;
+
     if (!request) {
       throw new Error("Expected a Web Push RequestInit");
     }
+
     const headers = new Headers(request.headers);
     const { body } = request;
+
     if (!(body instanceof Uint8Array)) {
-      throw new Error("Expected an encrypted binary push payload");
+      throw new TypeError("Expected an encrypted binary push payload");
     }
+
     const authorization = headers.get("authorization") ?? "";
 
     expect({
@@ -100,8 +114,9 @@ describe("server-only Web Push adapter", () => {
       contentType: headers.get("content-type"),
       ttl: headers.get("ttl"),
       authorizationStartsWithVapid: authorization.startsWith("vapid t="),
-      authorizationContainsPublicKey: authorization.includes(vapid.publicKey),
-      bodyLength: body.byteLength,
+      authorizationContainsPublicKey: authorization.includes(
+        bindings.VAPID_PUBLIC_KEY
+      ),
       contentLength: headers.get("content-length"),
     }).toMatchObject({
       responseIsProviderResponse: true,
@@ -114,7 +129,6 @@ describe("server-only Web Push adapter", () => {
       ttl: "86400",
       authorizationStartsWithVapid: true,
       authorizationContainsPublicKey: true,
-      bodyLength: expect.any(Number),
       contentLength: String(body.byteLength),
     });
     expect(body.byteLength).toBeGreaterThan(0);
@@ -139,5 +153,19 @@ describe("server-only Web Push adapter", () => {
         VAPID_SUBJECT: "http://example.test",
       })
     ).resolves.toBeNull();
+  });
+
+  it("rejects configuration when key verification fails", async () => {
+    const bindings = await makeVapidConfiguration();
+
+    const verify = vi
+      .spyOn(crypto.subtle, "verify")
+      .mockRejectedValueOnce(new Error("verification failed"));
+
+    try {
+      await expect(readVapidConfiguration(bindings)).resolves.toBeNull();
+    } finally {
+      verify.mockRestore();
+    }
   });
 });

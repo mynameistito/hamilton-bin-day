@@ -9,7 +9,7 @@ import {
   Union,
 } from "effect/Schema";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 
 import {
   ADDRESS_LENGTH_LIMIT,
@@ -50,6 +50,7 @@ const lookup = async (address: string): Promise<LookupState> => {
   const response = await fetch(
     `/api/lookup?address=${encodeURIComponent(address)}`
   );
+
   if (!response.ok) {
     throw new Error(
       "The council lookup is unavailable right now. Please try again."
@@ -57,9 +58,11 @@ const lookup = async (address: string): Promise<LookupState> => {
   }
 
   const result = parseLookup(await response.json());
+
   if (!result.found || !result.schedule) {
     return { kind: "not-found", matches: result.matches ?? [] };
   }
+
   return { kind: "success", schedule: result.schedule };
 };
 
@@ -69,8 +72,10 @@ const lookup = async (address: string): Promise<LookupState> => {
 export const useAddressLookup = () => {
   const [address, setAddress] = useState(() => {
     const query = new URLSearchParams(window.location.search).get("query");
+
     return query ?? "";
   });
+
   const [state, setState] = useState<LookupState>({ kind: "idle" });
   const [lookupRevision, setLookupRevision] = useState(0);
   const latestRequest = useRef(0);
@@ -79,12 +84,16 @@ export const useAddressLookup = () => {
     latestRequest.current += 1;
     const requestId = latestRequest.current;
     setState({ kind: "loading" });
+
     try {
       const result = await lookup(query);
+
       if (requestId !== latestRequest.current) {
         return;
       }
+
       setState(result);
+
       if (result.kind === "success") {
         setLookupRevision((revision) => revision + 1);
         await saveAddressCookie(query);
@@ -93,6 +102,7 @@ export const useAddressLookup = () => {
       if (requestId !== latestRequest.current) {
         return;
       }
+
       setState({
         kind: "error",
         message:
@@ -104,38 +114,50 @@ export const useAddressLookup = () => {
   useEffect(() => {
     let active = true;
     const requestId = latestRequest.current;
+
     const loadRememberedAddress = async () => {
       const query = new URLSearchParams(window.location.search).get("query");
       const rememberedAddress = query ?? (await readRememberedAddress());
+
       if (
         !active ||
         requestId !== latestRequest.current ||
-        !rememberedAddress ||
-        !isLookupAddressValid(rememberedAddress)
+        rememberedAddress === null ||
+        rememberedAddress === ""
       ) {
         return;
       }
+
+      if (!isLookupAddressValid(rememberedAddress)) {
+        return;
+      }
+
       const normalizedQuery = rememberedAddress.trim();
       setAddress(normalizedQuery);
       await runLookup(normalizedQuery);
     };
+
     void loadRememberedAddress();
+
     return () => {
       active = false;
     };
   }, [runLookup]);
 
-  const submitLookup = async (event: FormEvent<HTMLFormElement>) => {
+  const submitLookup = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = address.trim();
+
     if (!query) {
       return;
     }
+
     if (!isLookupAddressValid(query)) {
       setState({
         kind: "error",
         message: `Enter an address with no more than ${ADDRESS_LENGTH_LIMIT} characters.`,
       });
+
       return;
     }
 

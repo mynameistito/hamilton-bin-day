@@ -47,25 +47,30 @@ const parseFeature = (
 ): FeatureResult => {
   const { attributes } = feature;
   const address = attributes.Parcel_Street_Address?.trim();
-  if (!address) {
+
+  if (address === undefined || address === "") {
     return { _tag: "Skipped", reason: "missingAddress" };
   }
 
   const rawDay = attributes.RubbishRecycling_Area_Day?.trim();
-  if (!rawDay) {
+
+  if (rawDay === undefined || rawDay === "") {
     return { _tag: "Skipped", reason: "missingDay" };
   }
 
   const area = attributes.RubbishRecycling_Area_Type?.trim();
-  if (!area) {
+
+  if (area === undefined || area === "") {
     return { _tag: "Skipped", reason: "missingArea" };
   }
+
   if (area !== "Area 1" && area !== "Area 2") {
     return { _tag: "Skipped", reason: "unsupportedArea" };
   }
 
   const day = rawDay.toLocaleLowerCase("en-NZ");
   const dayOfWeek = day === "not serviced" ? null : days.get(day);
+
   if (dayOfWeek === undefined) {
     return { _tag: "InvalidDay", day };
   }
@@ -95,13 +100,16 @@ const parseFeature = (
  */
 export const transformFeatures = (features: readonly ArcGisFeature[]) => {
   const records: AddressRecord[] = [];
+
   const skipped = {
     missingAddress: 0,
     missingArea: 0,
     missingDay: 0,
     unsupportedArea: 0,
   };
+
   const invalidDays = new Set<string>();
+
   const days = new Map([
     ["monday", 1],
     ["tuesday", 2],
@@ -112,6 +120,7 @@ export const transformFeatures = (features: readonly ArcGisFeature[]) => {
 
   for (const feature of features) {
     const result = parseFeature(feature, days);
+
     if (result._tag === "Record") {
       records.push(result.record);
     } else if (result._tag === "InvalidDay") {
@@ -122,14 +131,17 @@ export const transformFeatures = (features: readonly ArcGisFeature[]) => {
   }
 
   const uniqueBySchedule = new Map<string, AddressRecord>();
+
   for (const record of records) {
     const key = [
       record.address.toLocaleLowerCase("en-NZ"),
       record.dayOfWeek ?? "not_serviced",
       record.area.toLocaleLowerCase("en-NZ"),
     ].join("\u0000");
+
     uniqueBySchedule.set(key, record);
   }
+
   const unique = [...uniqueBySchedule.values()].toSorted((a, b) =>
     a.address.localeCompare(b.address, "en-NZ", {
       numeric: true,
@@ -138,6 +150,7 @@ export const transformFeatures = (features: readonly ArcGisFeature[]) => {
   );
 
   const schedulesByAddress = new Map<string, Set<string>>();
+
   for (const record of unique) {
     const key = record.address.toLocaleLowerCase("en-NZ");
     const schedules = schedulesByAddress.get(key) ?? new Set<string>();

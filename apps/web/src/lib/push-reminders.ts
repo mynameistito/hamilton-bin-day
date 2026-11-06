@@ -13,11 +13,13 @@ export type PushMutationQueue = <T>(operation: () => Promise<T>) => Promise<T>;
  */
 export const createPushMutationQueue = (): PushMutationQueue => {
   let tail = Promise.resolve(null);
+
   return async <T>(operation: () => Promise<T>): Promise<T> => {
     const previous = tail;
     const current = Promise.withResolvers<null>();
     tail = current.promise;
     await previous;
+
     try {
       return await operation();
     } finally {
@@ -32,6 +34,7 @@ const pushMutationQueue = createPushMutationQueue();
  * @param operation - Mutation to run after prior mutations finish.
  * @returns The operation result.
  */
+// oxlint-disable-next-line typescript/promise-function-async -- Return the queue promise without wrapping it.
 export const enqueuePushMutation: PushMutationQueue = (operation) =>
   pushMutationQueue(operation);
 
@@ -41,17 +44,21 @@ export const enqueuePushMutation: PushMutationQueue = (operation) =>
 export const readStoredPushEndpoint = (): string | null => {
   try {
     const current = window.localStorage.getItem(PUSH_ENDPOINT_STORAGE_KEY);
+
     if (current !== null) {
       try {
         window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
       } catch {
         // The current endpoint is usable even if legacy cleanup fails.
       }
+
       return current;
     }
+
     const legacy = window.localStorage.getItem(
       LEGACY_PUSH_ENDPOINT_STORAGE_KEY
     );
+
     if (legacy !== null) {
       try {
         window.localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, legacy);
@@ -60,6 +67,7 @@ export const readStoredPushEndpoint = (): string | null => {
         // Keep the endpoint usable if migration storage is full.
       }
     }
+
     return legacy;
   } catch {
     return null;
@@ -74,6 +82,7 @@ export const rememberPushEndpoint = (endpoint: string): boolean => {
   try {
     window.localStorage.setItem(PUSH_ENDPOINT_STORAGE_KEY, endpoint);
     window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
+
     return true;
   } catch {
     return false;
@@ -87,6 +96,7 @@ export const forgetPushEndpoint = (): boolean => {
   try {
     window.localStorage.removeItem(PUSH_ENDPOINT_STORAGE_KEY);
     window.localStorage.removeItem(LEGACY_PUSH_ENDPOINT_STORAGE_KEY);
+
     return true;
   } catch {
     return false;
@@ -103,17 +113,23 @@ export const decodeApplicationServerKey = (
   if (!/^[A-Za-z0-9_-]{87}$/u.test(value)) {
     throw new Error("Invalid VAPID public key");
   }
+
   const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
+
   const binary = atob(
     normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
   );
+
   const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.codePointAt(index) ?? 0;
   }
+
   if (bytes.byteLength !== 65 || bytes[0] !== 4) {
     throw new Error("Invalid VAPID public key");
   }
+
   return bytes;
 };
 
@@ -161,6 +177,7 @@ export const savePushReminder = async (
         timeZone,
       }),
     });
+
     return response.ok;
   } catch {
     return false;
@@ -181,6 +198,7 @@ export const deletePushReminder = async (
       method: "DELETE",
       headers: { Authorization: `Bearer ${endpoint}` },
     });
+
     return response.ok;
   } catch {
     return false;

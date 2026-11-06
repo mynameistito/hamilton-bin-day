@@ -23,14 +23,18 @@ export const BinCataloguePage = () => {
   const [query, setQuery] = useState("");
   const [selectedBin, setSelectedBin] = useState<BinType | null>(null);
   const matchingItems = query.trim() ? searchBinItems(query) : BIN_ITEMS;
+
   const items = selectedBin
     ? matchingItems.filter((item) => item.bin === selectedBin)
     : matchingItems;
+
   const itemLabel = items.length === 1 ? "item" : "items";
   const resultContext = query.trim() ? "found" : "in the catalogue";
+
   const emptyResultSummary = selectedBin
     ? `No items match “${query}” with the ${binTypeName(selectedBin)} filter. Try another search or choose All bins.`
     : `No item matches “${query}”. Try another search.`;
+
   const resultSummary = items.length
     ? `${items.length} ${itemLabel} ${resultContext}`
     : emptyResultSummary;
@@ -77,7 +81,9 @@ export const BinCataloguePage = () => {
           autoComplete="off"
           className="mt-2"
           id="catalogue-search"
-          onChange={(event) => setQuery(event.currentTarget.value)}
+          onChange={(event) => {
+            setQuery(event.currentTarget.value);
+          }}
           placeholder="Search by item name, e.g. glass bottles"
           type="search"
           variant="search"
@@ -90,7 +96,9 @@ export const BinCataloguePage = () => {
             <button
               aria-pressed={selectedBin === null}
               className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-leaf ${selectedBin === null ? "border-focus-leaf bg-highlight text-ink" : "border-sage-border bg-panel text-ink hover:border-forest"}`}
-              onClick={() => setSelectedBin(null)}
+              onClick={() => {
+                setSelectedBin(null);
+              }}
               type="button"
             >
               All bins
@@ -100,7 +108,9 @@ export const BinCataloguePage = () => {
                 aria-pressed={selectedBin === bin}
                 className={`rounded-full border px-4 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-leaf ${selectedBin === bin ? "border-focus-leaf bg-highlight text-ink" : "border-sage-border bg-panel text-ink hover:border-forest"}`}
                 key={bin}
-                onClick={() => setSelectedBin(bin)}
+                onClick={() => {
+                  setSelectedBin(bin);
+                }}
                 type="button"
               >
                 {binTypeName(bin)}
