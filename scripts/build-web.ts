@@ -9,6 +9,24 @@ const docsOutput = path.resolve(import.meta.dir, "../apps/docs/dist");
 const webOutput = path.resolve(webDirectory, "dist");
 
 await $`bun x vite build`.cwd(webDirectory);
+await mkdir(path.resolve(webOutput, "docs"), { recursive: true });
+await cp(path.resolve(docsOutput, "docs"), path.resolve(webOutput, "docs"), {
+  recursive: true,
+});
+const docsEntries = await readdir(docsOutput);
+await Promise.all(
+  docsEntries
+    .filter((entry) => entry !== "docs" && entry !== "index.html")
+    .map((entry) =>
+      cp(path.resolve(docsOutput, entry), path.resolve(webOutput, entry), {
+        force: true,
+        recursive: true,
+      })
+    )
+);
+await $`bun ${path.resolve(webDirectory, "scripts/render-pages.ts")}`.cwd(
+  webDirectory
+);
 await $`bun build ${path.resolve(webDirectory, "src/service-worker-entry.js")} --target browser --outfile ${path.resolve(webOutput, "sw.js")}`;
 const assetFiles = await readdir(path.resolve(webOutput, "assets"));
 const builtAssets = assetFiles.toSorted().map((asset) => `/assets/${asset}`);
@@ -60,18 +78,3 @@ const versionedServiceWorker = replaceExactlyOnce(
   `const BUILD_ASSETS = ${JSON.stringify(builtAssets)};`
 );
 await writeFile(serviceWorkerPath, versionedServiceWorker);
-await mkdir(path.resolve(webOutput, "docs"), { recursive: true });
-await cp(path.resolve(docsOutput, "docs"), path.resolve(webOutput, "docs"), {
-  recursive: true,
-});
-const docsEntries = await readdir(docsOutput);
-await Promise.all(
-  docsEntries
-    .filter((entry) => entry !== "docs" && entry !== "index.html")
-    .map((entry) =>
-      cp(path.resolve(docsOutput, entry), path.resolve(webOutput, entry), {
-        force: true,
-        recursive: true,
-      })
-    )
-);

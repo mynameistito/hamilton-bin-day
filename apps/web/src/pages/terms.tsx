@@ -80,7 +80,7 @@ export const TermsPage = () => (
       The site depends on services operated by others, including Cloudflare and
       Hamilton City Council's public lookup API, and uses analytics providers as
       described in the{" "}
-      <a className="underline" href="/privacy">
+      <a className="underline" href="/privacy/">
         Privacy Policy
       </a>
       . Those services have their own terms, availability, and privacy
@@ -130,7 +130,7 @@ export const TermsPage = () => (
     <h2 className="text-xl font-semibold text-ink">Privacy</h2>
     <p>
       Use of the site is also subject to the{" "}
-      <a className="underline" href="/privacy">
+      <a className="underline" href="/privacy/">
         Privacy Policy
       </a>
       , which explains address searches, browser storage, analytics, and

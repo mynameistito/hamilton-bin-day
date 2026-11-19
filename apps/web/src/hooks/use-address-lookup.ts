@@ -68,7 +68,7 @@ const lookup = async (address: string): Promise<LookupState> => {
  */
 export const useAddressLookup = () => {
   const [address, setAddress] = useState(() => {
-    const query = new URLSearchParams(window.location.search).get("query");
+    const query = new URLSearchParams(globalThis.location?.search).get("query");
     return query ?? "";
   });
   const [state, setState] = useState<LookupState>({ kind: "idle" });

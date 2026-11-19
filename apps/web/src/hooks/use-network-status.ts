@@ -74,5 +74,5 @@ export const useNetworkStatus = (): boolean =>
   useSyncExternalStore(
     subscribe,
     () => isOnline,
-    () => false
+    () => true
   );

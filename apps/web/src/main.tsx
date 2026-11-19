@@ -7,10 +7,7 @@ import {
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { BinCataloguePage } from "./pages/bin-catalogue";
-import { HomePage } from "./pages/home";
-import { PrivacyPage } from "./pages/privacy";
-import { TermsPage } from "./pages/terms";
+import { sitePages } from "./pages/site-pages";
 
 import "./styles.css";
 
@@ -27,32 +24,11 @@ if (import.meta.env.DEV) {
 }
 
 const rootRoute = createRootRoute();
-const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: HomePage,
-});
-const binCatalogueRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/what-goes-where",
-  component: BinCataloguePage,
-});
-const privacyRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/privacy",
-  component: PrivacyPage,
-});
-const termsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/terms",
-  component: TermsPage,
-});
-const routeTree = rootRoute.addChildren([
-  indexRoute,
-  binCatalogueRoute,
-  privacyRoute,
-  termsRoute,
-]);
+const routeTree = rootRoute.addChildren(
+  sitePages.map(({ component, path }) =>
+    createRoute({ component, getParentRoute: () => rootRoute, path })
+  )
+);
 const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
@@ -67,6 +43,7 @@ if (!rootElement) {
   throw new Error("Missing application root element");
 }
 
+// Browser state such as saved addresses and offline status is read on mount.
 createRoot(rootElement).render(
   <StrictMode>
     <RouterProvider router={router} />

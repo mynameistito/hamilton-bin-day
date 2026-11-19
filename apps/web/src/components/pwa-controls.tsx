@@ -12,8 +12,9 @@ const applyWaitingUpdate = async (): Promise<void> => {
 };
 
 const isStandalonePwa = (): boolean =>
-  window.matchMedia?.("(display-mode: standalone)").matches === true ||
-  ("standalone" in navigator && navigator.standalone === true);
+  typeof window !== "undefined" &&
+  (window.matchMedia?.("(display-mode: standalone)").matches === true ||
+    ("standalone" in navigator && navigator.standalone === true));
 
 /** Show browser-specific instructions for adding the site to a home screen.
  * @returns The install instructions disclosure.
