@@ -142,12 +142,6 @@ The repository is a Bun workspace. Its CLI package is `hamilton-bin-day`; the we
 
 ## Deployment
 
-### Search visibility
-
-The web build generates the public pages as HTML, including the address lookup and bin sorter. It publishes a sitemap at [`/sitemap.xml`](https://bin-day.mynameistito.com/sitemap.xml) and advertises it in `/robots.txt`.
-
-After deploying, submit the sitemap in [Google Search Console](https://search.google.com/search-console/). Use [URL Inspection](https://support.google.com/webmasters/answer/9012289) for the homepage and `/what-goes-where/` to check indexability and the canonical URL. In the [Performance report](https://support.google.com/webmasters/answer/7576553), filter to New Zealand and compare 28-day impressions, clicks and click-through rate by page and query. Start with Hamilton bin day, rubbish collection, recycling day, red week, yellow week, and what goes where.
-
 Deploy and destroy Cloudflare resources with Alchemy:
 
 ```bash
