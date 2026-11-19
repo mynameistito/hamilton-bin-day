@@ -110,7 +110,7 @@ describe("per-bin help", () => {
       hasNoDestinationSubtext: true,
       remainingItemsDisclosure: "SUMMARY",
       sourceOutsideLiveRegion: true,
-      catalogueHref: "/what-goes-where",
+      catalogueHref: "/what-goes-where/",
       catalogueOutsideLiveRegion: true,
     });
   });

@@ -24,7 +24,7 @@ const websiteProps = (stage: string) => {
   const props = {
     assets: {
       htmlHandling: "force-trailing-slash" as const,
-      notFoundHandling: "single-page-application" as const,
+      notFoundHandling: "404-page" as const,
       runWorkerFirst: ["/api/*"],
     },
     command: "bun run build",

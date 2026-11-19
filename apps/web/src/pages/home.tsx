@@ -125,7 +125,7 @@ const HomeHeader = ({
       <PwaInstallHelp />
       <a
         className="inline-flex min-h-11 items-center rounded-lg px-1 py-2 text-sm font-semibold text-sage-dark underline-offset-4 hover:underline sm:px-0"
-        href="/what-goes-where"
+        href="/what-goes-where/"
       >
         <span className="sm:hidden">Items</span>
         <span className="hidden sm:inline">What goes where?</span>
@@ -262,6 +262,7 @@ const CollectionCard = ({
  * @returns The home page element.
  */
 export const HomePage = () => {
+  const canLookUpAddress = typeof window !== "undefined";
   const { address, lookupRevision, setAddress, state, submitLookup } =
     useAddressLookup();
   const reminderDialogRef = useRef<HTMLDialogElement>(null);
@@ -270,7 +271,9 @@ export const HomePage = () => {
   const [minimumVisibleLookupRevision, setMinimumVisibleLookupRevision] =
     useState(0);
   const [theme, setTheme] = useState<"dark" | "light">(() =>
-    document.documentElement.dataset.theme === "light" ? "light" : "dark"
+    globalThis.document?.documentElement.dataset.theme === "light"
+      ? "light"
+      : "dark"
   );
   const [now, setNow] = useState(() => new Date());
 
@@ -360,13 +363,13 @@ export const HomePage = () => {
           <h1
             className={`max-w-xl text-4xl leading-heading font-semibold tracking-heading sm:text-6xl ${schedule ? "sr-only md:not-sr-only md:block" : ""}`}
           >
-            Never miss your <span className="text-moss">bin day</span> again.
+            Hamilton <span className="text-moss">bin day</span>
           </h1>
           <p
             className={`mt-4 max-w-lg text-base leading-7 text-body-muted sm:mt-6 sm:text-lg sm:leading-8 ${schedule ? "hidden md:block" : ""}`}
           >
-            Look up your address to see exactly what to put out and when your
-            next collection is.
+            Enter your Hamilton, New Zealand street address to find your next
+            rubbish and recycling collection and which bins to put out.
           </p>
           {schedule && (
             <p className="mb-2 text-sm font-semibold text-copy-muted md:hidden">
@@ -383,6 +386,7 @@ export const HomePage = () => {
             <Input
               autoComplete="street-address"
               className="min-w-0 flex-1"
+              disabled={!canLookUpAddress}
               id="address"
               maxLength={ADDRESS_LENGTH_LIMIT}
               onChange={(event) => setAddress(event.target.value)}
@@ -391,12 +395,24 @@ export const HomePage = () => {
             />
             <Button
               className="min-h-12 w-full whitespace-nowrap sm:w-auto"
-              disabled={state.kind === "loading"}
+              disabled={!canLookUpAddress || state.kind === "loading"}
               type="submit"
             >
               {state.kind === "loading" ? "Checking…" : "Find my bin day"}
             </Button>
           </form>
+          <noscript>
+            <p className="mt-4 text-sm text-copy-muted">
+              Enable JavaScript for address lookup, or{" "}
+              <a
+                className="underline underline-offset-2"
+                href="https://hamilton.govt.nz/fight-the-landfill/"
+              >
+                check your collection day with Hamilton City Council
+              </a>
+              .
+            </p>
+          </noscript>
           <p aria-live="polite" className="mt-4 text-sm text-copy-muted">
             {state.kind === "error" && state.message}
             {state.kind === "not-found" &&
@@ -413,25 +429,44 @@ export const HomePage = () => {
           />
         )}
       </section>
-      <section className="home-steps mx-auto grid w-full max-w-6xl gap-5 border-t border-footer-border py-6 text-sm text-footer-copy md:grid-cols-3 md:gap-4 md:pt-6">
-        <div>
-          <span className="font-semibold text-step-copy">
-            01 / Find your address
-          </span>
-          <p className="mt-1">Search an address in Hamilton.</p>
-        </div>
-        <div>
-          <span className="font-semibold text-step-copy">
-            02 / Check the next date
-          </span>
-          <p className="mt-1">See your next red or yellow week.</p>
-        </div>
-        <div>
-          <span className="font-semibold text-step-copy">
-            03 / Put the right bins out
-          </span>
-          <p className="mt-1">Get the collection details at a glance.</p>
-        </div>
+      <section className="home-steps mx-auto w-full max-w-6xl border-t border-footer-border py-6 text-sm leading-6 text-footer-copy">
+        <h2 className="mb-3 text-lg font-semibold text-step-copy">
+          Hamilton rubbish and recycling collection
+        </h2>
+        <dl className="grid gap-4 md:grid-cols-3">
+          <div>
+            <dt className="font-semibold text-step-copy">Red week</dt>
+            <dd>Put out your red rubbish bin and green food scraps bin.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-step-copy">Yellow week</dt>
+            <dd>
+              Put out your yellow recycling bin, glass crate and green food
+              scraps bin.
+            </dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-step-copy">Public holidays</dt>
+            <dd>
+              Check your address for the next collection date. Holiday
+              collections can differ from your usual day.
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-4">
+          Put your bins out by 7am on collection day.{" "}
+          <a className="underline underline-offset-2" href="/what-goes-where/">
+            Find what goes in each Hamilton bin
+          </a>
+          {" or read "}
+          <a
+            className="underline underline-offset-2"
+            href="https://hamilton.govt.nz/fight-the-landfill/kerbside-collection"
+          >
+            Hamilton City Council’s kerbside collection guide
+          </a>
+          .
+        </p>
       </section>
       <footer className="home-footer mx-auto mt-auto flex w-full max-w-6xl flex-col gap-3 border-t border-footer-border pt-5 text-xs leading-5 text-footer-muted sm:flex-row sm:justify-between sm:gap-2 sm:pt-4">
         <span>
@@ -461,13 +496,13 @@ export const HomePage = () => {
           <a className="underline underline-offset-2" href="/docs/">
             Docs
           </a>
-          <a className="underline underline-offset-2" href="/privacy">
+          <a className="underline underline-offset-2" href="/privacy/">
             Privacy
           </a>
-          <a className="underline underline-offset-2" href="/what-goes-where">
+          <a className="underline underline-offset-2" href="/what-goes-where/">
             What goes where?
           </a>
-          <a className="underline underline-offset-2" href="/terms">
+          <a className="underline underline-offset-2" href="/terms/">
             Terms
           </a>
         </nav>

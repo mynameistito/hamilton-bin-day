@@ -171,7 +171,7 @@ const BinHelp = ({ bin, binName, onClose }: BinHelpProps) => {
 
         <a
           className="mt-3 inline-block text-sm font-semibold text-sage-dark underline underline-offset-2"
-          href="/what-goes-where"
+          href="/what-goes-where/"
         >
           Browse the full catalogue
         </a>

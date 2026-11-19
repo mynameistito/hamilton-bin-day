@@ -27,6 +27,9 @@ const readDeviceTimeZone = (): string =>
 const parsePublicKey = decodeUnknownSync(Struct({ publicKey: SchemaString }));
 
 const readPermissionState = (): NotificationPermissionState => {
+  if (typeof window === "undefined") {
+    return "unsupported";
+  }
   const hasNotification = "Notification" in window;
   return resolveNotificationPermissionState({
     hasNotification,

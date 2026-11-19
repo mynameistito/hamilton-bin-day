@@ -77,15 +77,29 @@ describe("home page navigation", () => {
     ).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "Privacy" }).getAttribute("href")
-    ).toBe("/privacy");
+    ).toBe("/privacy/");
     expect(
       screen.getByRole("link", { name: "Terms" }).getAttribute("href")
-    ).toBe("/terms");
+    ).toBe("/terms/");
     expect(
       screen
         .getAllByRole("link", { name: "Docs" })
         .every((link) => link.getAttribute("href") === "/docs/")
     ).toBeTruthy();
+  });
+
+  it("links collection guidance to the canonical Hamilton bin sorter", () => {
+    render(<HomePage />);
+
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      "Hamilton bin day"
+    );
+    expect(
+      screen
+        .getByRole("link", { name: "Find what goes in each Hamilton bin" })
+        .getAttribute("href")
+    ).toBe("/what-goes-where/");
+    expect(screen.getByText("Public holidays")).toBeTruthy();
   });
 
   it("places two reminder triggers in the header and footer for one dialog", () => {
@@ -202,7 +216,7 @@ describe("home page navigation", () => {
     ).toBeTruthy();
     expect(
       screen
-        .getByRole("heading", { name: "Never miss your bin day again." })
+        .getByRole("heading", { name: "Hamilton bin day" })
         .classList.contains("sr-only")
     ).toBeTruthy();
   });

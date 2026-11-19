@@ -29,7 +29,7 @@ describe("legal pages", () => {
     expect(
       screen
         .getAllByRole("link", { name: "Privacy Policy" })
-        .every((link) => link.getAttribute("href") === "/privacy")
+        .every((link) => link.getAttribute("href") === "/privacy/")
     ).toBeTruthy();
   });
 });

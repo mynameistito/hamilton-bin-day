@@ -57,7 +57,7 @@ export const BinCataloguePage = () => {
           className="rounded-lg px-3 py-2 text-sm font-semibold text-sage-dark underline-offset-4 hover:underline"
           href="/"
         >
-          Back to home
+          Find your bin day
         </a>
       </header>
 
@@ -66,8 +66,9 @@ export const BinCataloguePage = () => {
           What goes where?
         </h1>
         <p className="mt-3 max-w-2xl text-base leading-7 text-body-muted">
-          Search an item to find out which Hamilton bin it belongs in. Browse
-          the full Council sorter below.
+          Search Hamilton City Council’s sorter to see what goes in the yellow
+          recycling bin, red rubbish bin, food scraps bin or glass crate, and
+          where to take items that need special disposal.
         </p>
 
         <label className="mt-7 block font-semibold" htmlFor="catalogue-search">
